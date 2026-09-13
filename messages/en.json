@@ -143,5 +143,19 @@
       "name": "S&P 500 P/E",
       "help": "Trailing price-to-earnings for the index as a whole, as a baseline to read a single company's multiple against. Taken from SPY, which tracks the index and reports one where the index itself does not."
     }
+  },
+  "thesis": {
+    "title": "AI thesis summary",
+    "intro": "A short bull and bear read on the fundamentals, generated on request from the figures on this page. Not advice, and not a substitute for your own review below.",
+    "generate": "Generate summary",
+    "refresh": "Refresh summary",
+    "generating": "Generating…",
+    "empty": "No summary yet.",
+    "mockNotice": "Placeholder text — no ANTHROPIC_API_KEY is configured, so nothing was generated.",
+    "staleNotice": "Written against an earlier signal; refresh to bring it up to date.",
+    "generatedAt": "Generated {date}",
+    "error": "Could not generate:",
+    "signedOut": "Sign in to generate a summary.",
+    "langMismatch": "Written in {lang}. Refresh to regenerate it in the language you are reading."
   }
 }

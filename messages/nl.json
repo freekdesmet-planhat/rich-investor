@@ -143,5 +143,19 @@
       "name": "K/W van de S&P 500",
       "help": "De koers-winstverhouding van de index als geheel, als ijkpunt om de waardering van één bedrijf tegen af te zetten. Afgeleid van SPY, die de index volgt en wél een K/W rapporteert waar de index zelf dat niet doet."
     }
+  },
+  "thesis": {
+    "title": "AI-samenvatting van de these",
+    "intro": "Een korte weging van de bull- en bearcase op basis van de fundamenten, op verzoek gegenereerd uit de cijfers op deze pagina. Geen advies, en geen vervanging van je eigen beoordeling hieronder.",
+    "generate": "Samenvatting genereren",
+    "refresh": "Samenvatting vernieuwen",
+    "generating": "Bezig met genereren…",
+    "empty": "Nog geen samenvatting.",
+    "mockNotice": "Voorbeeldtekst — er is geen ANTHROPIC_API_KEY ingesteld, dus er is niets gegenereerd.",
+    "staleNotice": "Geschreven op basis van een eerder signaal; vernieuw om hem bij te werken.",
+    "generatedAt": "Gegenereerd op {date}",
+    "error": "Genereren mislukt:",
+    "signedOut": "Log in om een samenvatting te genereren.",
+    "langMismatch": "Geschreven in het {lang}. Vernieuw om hem opnieuw te genereren in de taal die je nu leest."
   }
 }

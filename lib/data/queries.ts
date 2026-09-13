@@ -235,3 +235,23 @@ export async function getReviews(
 
   return { reviews: reviews ?? [], notes: notes ?? [] };
 }
+
+export interface TickerSummary {
+  symbol: string;
+  thesis: string;
+  lang: string;
+  model: string | null;
+  is_mock: boolean;
+  signal_as_of: string | null;
+  generated_at: string;
+}
+
+/** The cached AI thesis for one ticker, if it has ever been generated. */
+export async function getTickerSummary(symbol: string): Promise<TickerSummary | null> {
+  const { data } = await (await client())
+    .from('ticker_summaries')
+    .select('symbol,thesis,lang,model,is_mock,signal_as_of,generated_at')
+    .eq('symbol', symbol)
+    .maybeSingle<TickerSummary>();
+  return data ?? null;
+}

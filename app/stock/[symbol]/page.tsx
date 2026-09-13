@@ -5,6 +5,7 @@ import { PriceChart } from '@/components/PriceChart';
 import { RatioCard } from '@/components/RatioCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AiThesisCard } from '@/components/AiThesisCard';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -12,6 +13,7 @@ import {
   getReviews,
   getSignal,
   getSnapshot,
+  getTickerSummary,
   getTranslations as getDocTranslations,
   type RatioRow,
 } from '@/lib/data/queries';
@@ -73,17 +75,19 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, tRatio, tSignal, tData, tSector, tStatus] =
+  const [ratios, snapshot, docs, reviewData, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
     getDocTranslations(locale),
     getReviews(symbol),
+    getTickerSummary(symbol),
     getTranslations('ratio'),
     getTranslations('signal'),
     getTranslations('data'),
     getTranslations('sector'),
     getTranslations('status'),
+    getTranslations('thesis'),
   ]);
 
   const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
@@ -306,6 +310,40 @@ export default async function StockPage({
             </div>
           </section>
         )}
+
+        {/* --- AI thesis, beside the human judgement it is not a substitute for */}
+        <section className="mt-8">
+          <AiThesisCard
+            symbol={symbol}
+            lang={locale}
+            thesis={summary?.thesis ?? null}
+            isMock={summary?.is_mock ?? false}
+            // A thesis written against an older signal may no longer describe
+            // the figures on the page, so the card says so rather than pretending.
+            isStale={Boolean(summary && summary.signal_as_of !== signal.as_of)}
+            generatedAt={summary?.generated_at ?? null}
+            canGenerate={Boolean(user)}
+            labels={{
+              title: tThesis('title'),
+              intro: tThesis('intro'),
+              generate: tThesis('generate'),
+              refresh: tThesis('refresh'),
+              generating: tThesis('generating'),
+              empty: tThesis('empty'),
+              mockNotice: tThesis('mockNotice'),
+              staleNotice: tThesis('staleNotice'),
+              generatedAt: tThesis('generatedAt'),
+              error: tThesis('error'),
+              signedOut: tThesis('signedOut'),
+              langMismatch:
+                summary && summary.lang !== locale
+                  ? tThesis('langMismatch', {
+                      lang: summary.lang === 'nl' ? 'Nederlands' : 'English',
+                    })
+                  : null,
+            }}
+          />
+        </section>
 
         {/* --- the judgement the app cannot make (section 8) ------------------ */}
         <QualitativeReview
