@@ -168,6 +168,7 @@ function analyse(bundle: SymbolBundle) {
       roeByYear: roeSeries,
     },
 
+    estimates: bundle.estimates,
     errors: bundle.errors,
     isStale: bundle.isStale,
   };
@@ -210,6 +211,14 @@ async function main() {
     console.log(`quarterly periods: ${a.quarterlyPeriods.join(', ') || '— (none available)'}`);
     console.log(
       `trailing basis:    revenue=${a.basis.revenue} netIncome=${a.basis.netIncome} ocf=${a.basis.ocf}`,
+    );
+    const est = a.estimates;
+    console.log(
+      `analyst estimates: ` +
+        (est
+          ? `next FY ${est.series[0]?.fiscalYearEnd} EPS ${num(est.nextYearEps)} ` +
+            `(${est.analystCount ?? '?'} analysts), target ${num(est.targetPrice)}`
+          : 'not available for this ticker'),
     );
     if (a.errors.length) console.log(`notes: ${a.errors.join(' | ')}`);
     console.log();

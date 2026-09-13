@@ -12,6 +12,7 @@
  * (scripts, tests) without Supabase configured.
  */
 import { financeQueryProvider } from './financeQuery';
+import { fmpEstimatesProvider } from './fmpEstimates';
 import { secEdgarProvider } from './secEdgar';
 import {
   type AnalystEstimates,
@@ -83,9 +84,10 @@ export interface MarketDataService {
   search(query: string, limit?: number): ReturnType<MarketDataProvider['search']>;
 }
 
-export function createMarketDataService(
-  provider: MarketDataProvider = financeQueryProvider,
-  cache: BundleCache = nullCache,
+export interface MarketDataOptions {
+  /** Quotes, prices, news, search, and statements of last resort. */
+  provider?: MarketDataProvider;
+  cache?: BundleCache;
   /**
    * Deep-history sources, tried in order before the primary provider.
    *
@@ -94,8 +96,28 @@ export function createMarketDataService(
    * currency outright. Symbols it does not cover — EU-only listings — fall
    * through to the primary provider's shorter history.
    */
-  fundamentalsProviders: FundamentalsProvider[] = [secEdgarProvider],
-): MarketDataService {
+  fundamentalsProviders?: FundamentalsProvider[];
+  /**
+   * Forward estimates. Null for any symbol the source does not cover, which is
+   * most of them on FMP's free tier, so callers must handle absence.
+   */
+  estimatesProvider?: { getAnalystEstimates(symbol: string): Promise<AnalystEstimates | null> };
+  /**
+   * Skips the estimates call entirely. The universe-wide auto-scan sets this,
+   * because FMP's free tier allows ~250 requests/day and the scan covers
+   * thousands of tickers.
+   */
+  skipEstimates?: boolean;
+}
+
+export function createMarketDataService(options: MarketDataOptions = {}): MarketDataService {
+  const {
+    provider = financeQueryProvider,
+    cache = nullCache,
+    fundamentalsProviders = [secEdgarProvider],
+    estimatesProvider = fmpEstimatesProvider,
+    skipEstimates = false,
+  } = options;
   /**
    * Fetches every statement kind/frequency for the whole symbol list. Each of
    * the six combinations is one batched provider call, so a 27-ticker refresh
@@ -233,7 +255,9 @@ export function createMarketDataService(
         quote: quotes.get(symbol) ?? null,
         statements: { income, balance, cash },
         priceHistory: histories.get(symbol) ?? [],
-        estimates: await provider.getAnalystEstimates(symbol).catch(() => null),
+        estimates: skipEstimates
+          ? null
+          : await estimatesProvider.getAnalystEstimates(symbol).catch(() => null),
         filingCurrency,
         statementSources: {
           income: statementSources.get(`income:annual:${symbol}`) ?? null,

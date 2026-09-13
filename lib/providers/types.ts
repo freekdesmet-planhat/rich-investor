@@ -161,15 +161,32 @@ export interface SearchResult {
  * ratio engine falls back to historical growth alone. The shape is part of the
  * interface so a provider that does supply estimates needs no changes elsewhere.
  */
+export interface EstimatePoint {
+  /** Fiscal period end, ISO `YYYY-MM-DD`. */
+  fiscalYearEnd: string;
+  eps: number | null;
+  revenue: number | null;
+  analystCount: number | null;
+}
+
 export interface AnalystEstimates {
   symbol: string;
   /** Consensus EPS for the next fiscal year. */
   nextYearEps: number | null;
-  /** Consensus EPS growth for the next fiscal year, as a fraction (0.18 = 18%). */
+  /**
+   * Consensus EPS growth implied by two consecutive estimate years.
+   *
+   * The growth the book's forward PEG wants is measured from *actual* trailing
+   * EPS to next year's estimate, which needs a figure this provider does not
+   * hold; the ratio engine computes that itself and uses this only as a
+   * fallback when trailing EPS is unusable.
+   */
   nextYearEpsGrowth: number | null;
   nextYearRevenueGrowth: number | null;
   analystCount: number | null;
   targetPrice: number | null;
+  /** Full consensus series, nearest fiscal year first. */
+  series: EstimatePoint[];
 }
 
 /**
