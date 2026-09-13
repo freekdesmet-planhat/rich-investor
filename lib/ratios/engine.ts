@@ -21,6 +21,7 @@ import {
   afterLastBreak,
   annualSeries,
   averageAnnual,
+  averageForBasis,
   cagr,
   detectSeriesBreak,
   drawdownFromHigh,
@@ -67,6 +68,12 @@ export interface RatioResult {
   color: RatioColor;
   targetLabel: string;
   targetSource: 'book' | 'app_default';
+  /**
+   * The currency the value is denominated in, or null when it is a pure ratio
+   * or a percentage. Recorded so a stored figure can never be read in the wrong
+   * currency later.
+   */
+  currency: string | null;
   thresholds: Record<string, unknown>;
   /** Last 5 fiscal years, oldest first. */
   history: SeriesPoint[];
@@ -114,6 +121,7 @@ const gray = (
   color: 'gray',
   targetLabel: target.label,
   targetSource: target.source,
+  currency: null,
   thresholds: {},
   history,
   notApplicable: reason === 'not_applicable',
@@ -316,6 +324,7 @@ export function computePe(ctx: RatioContext, d: Derived): RatioResult {
     color: bandLower(value, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -410,6 +419,7 @@ export function computePeg(
     color: bandLower(value, threshold, orangeLimit),
     targetLabel: target.label,
     targetSource: t.source,
+    currency: null,
     thresholds: { threshold, orangeLimit, category },
     history: d.epsSeries,
     notApplicable: false,
@@ -452,6 +462,7 @@ export function computeEvEbit(ctx: RatioContext, d: Derived): RatioResult {
     color: bandLower(value, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -488,6 +499,7 @@ export function computePFcf(ctx: RatioContext, d: Derived): RatioResult {
       color: 'red',
       targetLabel: t.label,
       targetSource: t.source,
+      currency: null,
       thresholds: t.value,
       history: [],
       notApplicable: false,
@@ -505,6 +517,7 @@ export function computePFcf(ctx: RatioContext, d: Derived): RatioResult {
     color: bandLower(value, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -535,6 +548,7 @@ export function computeEarningsQuality(ctx: RatioContext, d: Derived): RatioResu
       color: 'red',
       targetLabel: t.label,
       targetSource: t.source,
+      currency: null,
       thresholds: t.value,
       history: [],
       notApplicable: false,
@@ -556,6 +570,7 @@ export function computeEarningsQuality(ctx: RatioContext, d: Derived): RatioResu
     color: bandHigher(value, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -574,9 +589,10 @@ export function computeRoe(ctx: RatioContext): RatioResult {
   const { income, balance } = ctx.bundle.statements;
 
   const history = returnSeries(income.annual, balance.annual, 'stockholdersEquity');
+  const netIncome = trailingFlow(income.quarterly, income.annual, 'netIncome');
   const current = ratio(
-    trailingFlow(income.quarterly, income.annual, 'netIncome').value,
-    averageAnnual(balance.annual, 'stockholdersEquity'),
+    netIncome.value,
+    averageForBasis(balance.quarterly, balance.annual, 'stockholdersEquity', netIncome.basis),
   );
 
   if (current == null) return gray('roe', target, 'missing_data', {}, history);
@@ -603,6 +619,7 @@ export function computeRoe(ctx: RatioContext): RatioResult {
     color,
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history,
     notApplicable: false,
@@ -620,8 +637,14 @@ export function computeRoa(ctx: RatioContext, d?: Derived): RatioResult {
   const target = { label: t.label, source: t.source };
   const { income, balance } = ctx.bundle.statements;
 
-  const netIncome = trailingFlow(income.quarterly, income.annual, 'netIncome').value;
-  const rawAverageAssets = averageAnnual(balance.annual, 'totalAssets');
+  const netIncomeTrailing = trailingFlow(income.quarterly, income.annual, 'netIncome');
+  const netIncome = netIncomeTrailing.value;
+  const rawAverageAssets = averageForBasis(
+    balance.quarterly,
+    balance.annual,
+    'totalAssets',
+    netIncomeTrailing.basis,
+  );
   const rawHistory = returnSeries(income.annual, balance.annual, 'totalAssets');
   const rawValue = ratio(netIncome, rawAverageAssets);
 
@@ -634,6 +657,7 @@ export function computeRoa(ctx: RatioContext, d?: Derived): RatioResult {
       color: bandHigher(rawValue, t.value.green, t.value.orange),
       targetLabel: t.label,
       targetSource: t.source,
+      currency: null,
       thresholds: t.value,
       history: rawHistory,
       notApplicable: false,
@@ -678,6 +702,7 @@ export function computeRoa(ctx: RatioContext, d?: Derived): RatioResult {
       color: bandHigher(rawValue, t.value.green, t.value.orange),
       targetLabel: t.label,
       targetSource: t.source,
+      currency: null,
       thresholds: t.value,
       history: rawHistory,
       notApplicable: false,
@@ -708,6 +733,7 @@ export function computeRoa(ctx: RatioContext, d?: Derived): RatioResult {
     color: bandHigher(adjustedValue, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: adjustedHistory,
     notApplicable: false,
@@ -840,6 +866,7 @@ function growthRatio(
     color: bandHigher(growth.value, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: series,
     notApplicable: false,
@@ -897,6 +924,7 @@ export function computeGrossMargin(ctx: RatioContext, d: Derived): RatioResult {
     color,
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: series,
     notApplicable: false,
@@ -920,6 +948,7 @@ export function computeNetMargin(ctx: RatioContext, d: Derived): RatioResult {
     color: bandHigher(current, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: series,
     notApplicable: false,
@@ -960,6 +989,7 @@ export function computeDebt(ctx: RatioContext, d: Derived): RatioResult {
     color,
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -1009,6 +1039,7 @@ export function computeDividendYield(ctx: RatioContext): RatioResult {
     color,
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -1043,6 +1074,7 @@ export function computePayoutRatio(ctx: RatioContext, d: Derived): RatioResult {
     color,
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -1085,6 +1117,7 @@ export function computeRndAdjustedPe(ctx: RatioContext, d: Derived): RatioResult
     color: bandLower(value, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -1111,6 +1144,7 @@ export function computePs(ctx: RatioContext, d: Derived): RatioResult {
     color: 'gray',
     targetLabel: 'informational',
     targetSource: 'book',
+    currency: null,
     thresholds: {},
     history: [],
     notApplicable: false,
@@ -1128,6 +1162,7 @@ export function computePb(ctx: RatioContext, d: Derived): RatioResult {
     color: 'gray',
     targetLabel: 'informational; relevant for banks and insurers',
     targetSource: 'book',
+    currency: null,
     thresholds: {},
     history: [],
     notApplicable: false,
@@ -1194,6 +1229,7 @@ export function computeInventoryReceivables(ctx: RatioContext, d: Derived): Rati
     color: outpacing ? 'red' : 'green',
     targetLabel: target.label,
     targetSource: 'book',
+    currency: null,
     thresholds: {},
     history: inventory,
     notApplicable: false,
@@ -1236,6 +1272,7 @@ export function computeDrawdown(ctx: RatioContext): RatioResult {
     color,
     targetLabel: t.label,
     targetSource: t.source,
+    currency: null,
     thresholds: t.value,
     history: [],
     notApplicable: false,
@@ -1269,6 +1306,7 @@ export function computeMarketCap(ctx: RatioContext): RatioResult {
     color: ctx.marketCapUsd >= t.value.minimumUsd ? 'green' : 'red',
     targetLabel: t.label,
     targetSource: t.source,
+    currency: 'USD',
     thresholds: t.value,
     history: [],
     notApplicable: false,

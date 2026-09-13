@@ -145,6 +145,45 @@ export function averageAnnual(
 }
 
 /**
+ * Average of a balance-sheet level over the period the numerator covers.
+ *
+ * Return ratios divide a flow by the base that produced it, so the two must
+ * span the same window. Pairing a TTM numerator with the average of the last
+ * two *annual* balance sheets leaves the numerator running months ahead of the
+ * denominator, which understates the base badly for a fast-growing company:
+ * NVDA's ROA came out at 121% because $192.9bn of trailing profit was divided
+ * by an asset base last measured at the start of that run.
+ *
+ * When the numerator is TTM and quarterly balances are available, the average
+ * is taken over the matching four-quarter span instead.
+ */
+export function averageForBasis(
+  quarterly: FinancialStatement | null,
+  annual: FinancialStatement | null,
+  metric: MetricName,
+  basis: Basis,
+): number | null {
+  if (basis === 'ttm' && quarterly) {
+    const points = quarterly.periods
+      .filter((p) => isNum(p.metrics[metric]))
+      .sort((a, b) => b.endDate.localeCompare(a.endDate));
+
+    // Newest and the one four quarters back: the two ends of the TTM window.
+    if (points.length >= 5) {
+      const latest = points[0].metrics[metric] as number;
+      const yearAgo = points[4].metrics[metric] as number;
+      return (latest + yearAgo) / 2;
+    }
+    if (points.length >= 2) {
+      const latest = points[0].metrics[metric] as number;
+      const oldest = points[points.length - 1].metrics[metric] as number;
+      return (latest + oldest) / 2;
+    }
+  }
+  return averageAnnual(annual, metric);
+}
+
+/**
  * Compound annual growth rate as a fraction (0.24 = 24%/yr).
  *
  * Returns null when the starting value is not positive: a CAGR out of a loss

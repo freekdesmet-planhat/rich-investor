@@ -15,6 +15,7 @@ import { createFxRates } from '@/lib/providers/fx';
 import { createMarketDataService, type SymbolBundle } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
 import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/engine';
+import { checkInvariants, formatViolations, type InvariantViolation } from '@/lib/ratios/invariants';
 import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { evaluateSignal, type SignalStatus } from '@/lib/signal/buyWorthy';
 import { explainSignal } from '@/lib/signal/explain';
@@ -50,6 +51,8 @@ export interface PipelineRow {
   whyNl: string;
   isStale: boolean;
   errors: string[];
+  /** Arithmetic invariants this ticker broke, if any. Never silent. */
+  violations: InvariantViolation[];
 }
 
 interface MappingRow {
@@ -146,6 +149,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
   const rows: PipelineRow[] = [];
   const ratioRows: Record<string, unknown>[] = [];
   const signalRows: Record<string, unknown>[] = [];
+  const allViolations: InvariantViolation[] = [];
 
   for (const symbol of symbols) {
     const bundle = bundles.get(symbol);
@@ -171,6 +175,15 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
 
     const lynch = classifyLynch(ctx, { industry: meta?.industry ?? null, thresholds });
     const ratios = computeAllRatios(ctx, pegCategoryFor(lynch.category));
+
+    // Invariants run before the signal is built, so a broken number never
+    // reaches a buy decision without being reported first.
+    const violations = checkInvariants(ctx, ratios);
+    if (violations.length > 0) {
+      log(`INVARIANT VIOLATION for ${symbol}:\n${formatViolations(violations)}`);
+      allViolations.push(...violations);
+    }
+
     const signal = evaluateSignal(ctx, ratios, lynch.category);
 
     const explanation = explainSignal({
@@ -195,6 +208,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
         target_label: result.targetLabel,
         target_source: result.targetSource,
         thresholds: result.thresholds,
+        currency: result.currency,
         history: result.history,
         not_applicable: result.notApplicable,
         unavailable_reason: result.unavailableReason,
@@ -237,7 +251,15 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
       whyNl: explanation.nl,
       isStale: bundle.isStale,
       errors: bundle.errors,
+      violations,
     });
+  }
+
+  if (allViolations.length > 0) {
+    log(
+      `\n${allViolations.length} invariant violation(s) across ` +
+        `${new Set(allViolations.map((v) => v.symbol)).size} ticker(s) — see above`,
+    );
   }
 
   // --- persist --------------------------------------------------------------

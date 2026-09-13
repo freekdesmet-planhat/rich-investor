@@ -660,3 +660,61 @@ describe('inventory and receivables — which figure is shown', () => {
     expect(result.value).toBeCloseTo(213 / 130 - 1, 4);
   });
 });
+
+describe('statement merging across providers', () => {
+  /**
+   * Providers date the same fiscal year differently: Apple's FY2025 ends
+   * 2025-09-27 in its filing and 2025-09-30 in Yahoo's calendar. Merging on the
+   * exact date gave AAPL 23 periods instead of 19, so a "5-year" window covered
+   * about three real years and every CAGR came out wrong.
+   */
+  it('treats period ends within a fortnight as the same fiscal period', async () => {
+    const { createMarketDataService } = await import('@/lib/providers/marketData');
+
+    const makeSource = (name: string, dates: string[], metrics: Record<string, number>) => ({
+      name,
+      covers: async () => true,
+      getStatements: async () =>
+        new Map([
+          [
+            'TEST',
+            {
+              symbol: 'TEST',
+              kind: 'income' as const,
+              frequency: 'annual' as const,
+              periods: dates.map((endDate) => ({ endDate, metrics: { ...metrics } })),
+            },
+          ],
+        ]),
+    });
+
+    const service = createMarketDataService({
+      provider: {
+        name: 'stub',
+        getQuotes: async () => new Map(),
+        getStatements: async () => new Map(),
+        getPriceHistory: async () => [],
+        getNews: async () => [],
+        search: async () => [],
+        getAnalystEstimates: async () => null,
+      },
+      fundamentalsProviders: [
+        // Filing dates, with net income only.
+        makeSource('filings', ['2025-09-27', '2024-09-28', '2023-09-30'], { netIncome: 100 }),
+        // Normalised calendar dates, three days later, carrying the EPS.
+        makeSource('calendar', ['2025-09-30', '2024-09-30', '2023-09-30'], { dilutedEps: 5 }),
+      ],
+      skipEstimates: true,
+    });
+
+    const bundle = await service.getBundle('TEST', '1y');
+    const periods = bundle.statements.income.annual!.periods;
+
+    // Three fiscal years, not six rows.
+    expect(periods).toHaveLength(3);
+    // The first provider's date wins, and both metrics land on one period.
+    expect(periods[0].endDate).toBe('2025-09-27');
+    expect(periods[0].metrics.netIncome).toBe(100);
+    expect(periods[0].metrics.dilutedEps).toBe(5);
+  });
+});

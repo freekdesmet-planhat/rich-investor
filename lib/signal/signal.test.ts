@@ -10,6 +10,7 @@ import { buildContext, computeAllRatios, type RatioKey, type RatioResult } from 
 import { evaluateSignal, type SignalResult } from './buyWorthy';
 import { explainSignal, explainForEmail } from './explain';
 import { classifyLynch } from './lynch';
+import { checkInvariants } from '@/lib/ratios/invariants';
 import type { SymbolBundle } from '@/lib/providers/marketData';
 import type { FinancialStatement, MetricName, PricePoint } from '@/lib/providers/types';
 
@@ -533,5 +534,157 @@ describe('adjusted ROA is bounded by equity', () => {
     expect(ratios.roa.value!).toBeLessThan(ratios.roe.value!);
     // Sanity: a plausible figure, not a runaway one.
     expect(ratios.roa.value!).toBeLessThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Standing invariants — run against every fixture, not just the case that broke
+// ---------------------------------------------------------------------------
+
+describe('standing invariants', () => {
+  const scenarios: Array<[string, SymbolBundle, { isFinancial?: boolean; isPaymentProcessor?: boolean }]> = [
+    ['ordinary company', idealBundle(), {}],
+    ['payment processor', idealBundle(), { isPaymentProcessor: true }],
+    ['financial institution', idealBundle(), { isFinancial: true }],
+    [
+      'float-heavy balance sheet',
+      idealBundle({
+        statements: {
+          ...idealBundle().statements,
+          balance: {
+            annual: statement('balance', [
+              ['2024-12-31', { stockholdersEquity: 5_400_000_000, totalAssets: 11_400_000_000, cash: 10_500_000_000, totalDebt: 400_000_000 }],
+              ['2025-12-31', { stockholdersEquity: 5_910_000_000, totalAssets: 12_260_000_000, cash: 11_430_000_000, totalDebt: 400_000_000 }],
+            ]),
+            quarterly: null,
+          },
+        },
+      }),
+      { isPaymentProcessor: true },
+    ],
+    [
+      'cross-listed, no FX rate available',
+      idealBundle({ filingCurrency: 'EUR' }),
+      {},
+    ],
+  ];
+
+  for (const [name, bundle, options] of scenarios) {
+    it(`holds for ${name}`, () => {
+      const ctx = buildContext(bundle, { focusSector: 'information_technology', ...options });
+      const lynch = classifyLynch(ctx);
+      const ratios = computeAllRatios(ctx, 'high_growth');
+      const violations = checkInvariants(ctx, ratios);
+
+      expect(
+        violations.map((v) => `${v.rule}: ${v.message}`),
+      ).toEqual([]);
+      expect(lynch.category).toBeTruthy();
+    });
+  }
+
+  it('catches an ROA above ROE when one slips through', () => {
+    // Hand-built impossible pair, to prove the check fires rather than assuming.
+    const ctx = buildContext(idealBundle(), { focusSector: 'information_technology' });
+    const ratios = computeAllRatios(ctx, 'high_growth');
+    const broken = {
+      ...ratios,
+      roa: { ...ratios.roa, value: 2.61 },
+      roe: { ...ratios.roe, value: 0.22 },
+    };
+
+    const violations = checkInvariants(ctx, broken);
+    expect(violations.map((v) => v.rule)).toContain('roa_not_above_roe');
+    expect(violations.map((v) => v.rule)).toContain('roa_implausible');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Semiconductors are not cyclicals
+// ---------------------------------------------------------------------------
+
+describe('semiconductors are not classified as cyclical', () => {
+  /**
+   * The book names microchips and chip equipment as its best-performing
+   * subsector, and Nvidia, AMD, Broadcom and Applied Materials as the companies
+   * behind it. Their earnings are genuinely volatile, but volatility alone does
+   * not make a classic cyclical.
+   */
+  const volatile = () => {
+    const bundle = idealBundle();
+    bundle.statements.income.annual = statement('income', [
+      ['2021-12-31', { netIncome: 1_000_000_000, dilutedEps: 1, revenue: 3_000_000_000 }],
+      ['2022-12-31', { netIncome: 2_500_000_000, dilutedEps: 2.5, revenue: 5_000_000_000 }],
+      ['2023-12-31', { netIncome: 1_400_000_000, dilutedEps: 1.4, revenue: 4_000_000_000 }],
+      ['2024-12-31', { netIncome: 3_600_000_000, dilutedEps: 3.6, revenue: 7_000_000_000 }],
+      ['2025-12-31', { netIncome: 5_000_000_000, dilutedEps: 5, revenue: 9_000_000_000 }],
+    ]);
+    return bundle;
+  };
+
+  it('classifies a volatile semiconductor company by its growth, not as cyclical', () => {
+    const ctx = buildContext(volatile(), { focusSector: 'information_technology' });
+    const result = classifyLynch(ctx, { industry: 'Semiconductors & Semiconductor Equipment' });
+
+    expect(result.category).not.toBe('cyclical');
+    expect(['high_growth', 'average_growth']).toContain(result.category);
+    expect(result.outsideFocus).toBe(false);
+  });
+
+  it('still classifies an equally volatile carmaker as cyclical', () => {
+    const ctx = buildContext(volatile(), { focusSector: 'outside_focus' });
+    expect(classifyLynch(ctx, { industry: 'Automobiles' }).category).toBe('cyclical');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// EPS gaps
+// ---------------------------------------------------------------------------
+
+describe('growth measurement when EPS history is incomplete', () => {
+  it('uses the longest consecutive EPS run when a year is missing at an endpoint', () => {
+    const bundle = idealBundle();
+    bundle.statements.income.annual = statement('income', [
+      ['2019-12-31', { netIncome: 900_000_000, dilutedEps: 0.9, revenue: 3_000_000_000 }],
+      // 2020 and 2021 missing entirely
+      ['2022-12-31', { netIncome: 2_000_000_000, dilutedEps: 2, revenue: 5_000_000_000 }],
+      ['2023-12-31', { netIncome: 2_600_000_000, dilutedEps: 2.6, revenue: 6_000_000_000 }],
+      ['2024-12-31', { netIncome: 3_300_000_000, dilutedEps: 3.3, revenue: 7_000_000_000 }],
+      ['2025-12-31', { netIncome: 4_200_000_000, dilutedEps: 4.2, revenue: 8_000_000_000 }],
+    ]);
+    const ctx = buildContext(bundle, { focusSector: 'information_technology' });
+    const result = classifyLynch(ctx, { industry: 'Software' });
+
+    expect(result.epsCagr).not.toBeNull();
+    expect(result.category).not.toBe('unknown');
+  });
+
+  it('falls back to revenue growth, labelled, when EPS is absent entirely', () => {
+    const bundle = idealBundle();
+    bundle.statements.income.annual = statement('income', [
+      ['2021-12-31', { netIncome: 1_000_000_000, revenue: 3_000_000_000 }],
+      ['2022-12-31', { netIncome: 1_300_000_000, revenue: 3_900_000_000 }],
+      ['2023-12-31', { netIncome: 1_700_000_000, revenue: 5_000_000_000 }],
+      ['2024-12-31', { netIncome: 2_200_000_000, revenue: 6_400_000_000 }],
+      ['2025-12-31', { netIncome: 2_900_000_000, revenue: 8_200_000_000 }],
+    ]);
+    const ctx = buildContext(bundle, { focusSector: 'information_technology' });
+    const result = classifyLynch(ctx, { industry: 'Software' });
+
+    expect(result.growthBasis).toBe('revenue');
+    expect(result.basisNoteKey).toBe('lynch.basis_revenue');
+    expect(result.category).not.toBe('unknown');
+  });
+
+  it('stays unknown when there is nothing to measure', () => {
+    const bundle = idealBundle();
+    bundle.statements.income.annual = statement('income', [
+      ['2025-12-31', { netIncome: 1_000_000_000 }],
+    ]);
+    const ctx = buildContext(bundle, { focusSector: 'information_technology' });
+    const result = classifyLynch(ctx, { industry: 'Software' });
+
+    expect(result.category).toBe('unknown');
+    expect(result.growthBasis).toBe('none');
   });
 });

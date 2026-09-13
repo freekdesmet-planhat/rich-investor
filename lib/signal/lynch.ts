@@ -29,9 +29,107 @@ export interface LynchResult {
   /** Translation key for the label shown at the top of the detail page. */
   labelKey: string;
   reasons: string[];
+  /**
+   * Which series the growth figure came from. 'revenue' means the EPS history
+   * was too incomplete to measure and the classification is weaker — it is used
+   * for the Lynch category only, never for PEG or the buy signal.
+   */
+  growthBasis: GrowthBasis;
+  /** Translation key for the caveat shown next to the category, when any. */
+  basisNoteKey: string | null;
 }
 
-/** Industries whose earnings swing with the economic cycle (section 6.4). */
+export type GrowthBasis = 'eps' | 'eps_partial' | 'revenue' | 'none';
+
+/**
+ * Picks the best growth measurement available, in the order the spec sets out.
+ *
+ * 1. the full EPS window
+ * 2. the longest consecutive EPS run inside it, if at least 3 years
+ * 3. revenue growth, for classification only
+ * 4. nothing
+ */
+function measureGrowth(
+  epsSeries: SeriesPoint[],
+  revenueSeries: SeriesPoint[],
+): {
+  growth: { value: number | null; years: number };
+  series: SeriesPoint[];
+  basis: GrowthBasis;
+  noteKey: string | null;
+} {
+  const full = cagr(epsSeries);
+  if (full.value != null) {
+    return { growth: full, series: epsSeries, basis: 'eps', noteKey: null };
+  }
+
+  const run = longestConsecutiveRun(epsSeries);
+  const partial = cagr(run);
+  if (partial.value != null && run.length >= 3) {
+    return {
+      growth: partial,
+      series: run,
+      basis: 'eps_partial',
+      noteKey: 'lynch.basis_eps_partial',
+    };
+  }
+
+  const revenue = cagr(revenueSeries);
+  if (revenue.value != null) {
+    return {
+      growth: revenue,
+      series: revenueSeries,
+      basis: 'revenue',
+      noteKey: 'lynch.basis_revenue',
+    };
+  }
+
+  return {
+    growth: { value: null, years: 0 },
+    series: epsSeries,
+    basis: 'none',
+    noteKey: null,
+  };
+}
+
+/**
+ * The longest run of consecutive fiscal years in a series.
+ *
+ * Periods roughly 12 months apart count as consecutive; a wider step means a
+ * year is missing and the run restarts.
+ */
+function longestConsecutiveRun(series: SeriesPoint[]): SeriesPoint[] {
+  if (series.length < 2) return series;
+
+  let best: SeriesPoint[] = [];
+  let current: SeriesPoint[] = [series[0]];
+
+  for (let i = 1; i < series.length; i++) {
+    const months =
+      (Date.parse(series[i].period) - Date.parse(series[i - 1].period)) / (30.44 * 86_400_000);
+    if (months >= 9 && months <= 15) {
+      current.push(series[i]);
+    } else {
+      if (current.length > best.length) best = current;
+      current = [series[i]];
+    }
+  }
+  if (current.length > best.length) best = current;
+  return best;
+}
+
+/**
+ * Industries whose earnings swing with the economic cycle (section 6.4):
+ * the book's own list is auto, construction, commodities and industrials.
+ *
+ * Semiconductors are deliberately absent. Their earnings are genuinely
+ * volatile, but the book puts microchips and chip equipment at the opposite
+ * end — the best-performing subsector it covers, naming Nvidia, AMD, Broadcom
+ * and Applied Materials as the companies behind that. Volatility alone does not
+ * separate a classic cyclical from a structurally volatile secular grower, and
+ * classifying these as cyclical barred exactly the book's headline examples
+ * from ever earning a buy signal.
+ */
 const CYCLICAL_INDUSTRIES = [
   /auto/i,
   /construction/i,
@@ -43,7 +141,7 @@ const CYCLICAL_INDUSTRIES = [
   /oil|gas|energy/i,
   /paper|forest/i,
   /steel/i,
-  /semiconductor/i,
+  /industrial conglomerates/i,
 ];
 
 function stdDev(values: number[]): number | null {
@@ -74,8 +172,17 @@ export function classifyLynch(
     annualSeries(ctx.bundle.statements.income.annual, 'dilutedEps'),
     5,
   );
-  const growth = cagr(epsSeries);
-  const volatility = stdDev(yearOverYearGrowth(epsSeries));
+  const revenueSeries = lastNYears(
+    annualSeries(ctx.bundle.statements.income.annual, 'revenue'),
+    5,
+  );
+
+  // A CAGR needs only its two endpoints, so a gap in the middle of the window
+  // should not block it — only a gap at an endpoint should. Fall back through
+  // EPS -> longest consecutive EPS run -> revenue, and label which one fired.
+  const measured = measureGrowth(epsSeries, revenueSeries);
+  const growth = measured.growth;
+  const volatility = stdDev(yearOverYearGrowth(measured.series));
 
   const base = (
     category: LynchCategory,
@@ -89,6 +196,8 @@ export function classifyLynch(
     outsideFocus,
     labelKey,
     reasons,
+    growthBasis: measured.basis,
+    basisNoteKey: measured.noteKey,
   });
 
   // Banks and insurers first: their ratios mean something different entirely.

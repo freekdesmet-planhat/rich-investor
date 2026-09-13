@@ -21,6 +21,7 @@ import {
   type FundamentalsProvider,
   type HistoryRange,
   type MarketDataProvider,
+  type MetricName,
   type NewsItem,
   type PricePoint,
   type Quote,
@@ -199,38 +200,42 @@ export function createMarketDataService(options: MarketDataOptions = {}): Market
       KINDS.flatMap((kind) =>
         FREQUENCIES.map(async (frequency) => {
           const key = `${kind}:${frequency}`;
-          const merged = new Map<string, FinancialStatement>();
+
+          // Collect every source's answer, in priority order, then merge them
+          // metric by metric rather than taking one source wholesale.
+          const answers: Array<{ name: string; statements: Map<string, FinancialStatement> }> = [];
 
           for (const source of fundamentalsProviders) {
             const list = covered.get(source) ?? [];
             if (list.length === 0) continue;
             try {
-              for (const [symbol, statement] of await source.getStatements(list, kind, frequency)) {
-                if (!merged.has(symbol)) {
-                  merged.set(symbol, statement);
-                  sources.set(`${key}:${symbol}`, source.name);
-                }
-              }
+              answers.push({ name: source.name, statements: await source.getStatements(list, kind, frequency) });
             } catch (error) {
               errors.push(`${source.name} ${key}: ${(error as Error).message}`);
             }
           }
 
-          // Whatever the deep-history sources could not supply.
-          const remaining = symbols.filter((s) => !merged.has(s));
-          if (remaining.length > 0) {
-            try {
-              for (const [symbol, statement] of await provider.getStatements(
-                remaining,
-                kind,
-                frequency,
-              )) {
-                merged.set(symbol, statement);
-                sources.set(`${key}:${symbol}`, provider.name);
-              }
-            } catch (error) {
-              errors.push(`${provider.name} ${key}: ${(error as Error).message}`);
-            }
+          try {
+            answers.push({
+              name: provider.name,
+              statements: await provider.getStatements(symbols, kind, frequency),
+            });
+          } catch (error) {
+            errors.push(`${provider.name} ${key}: ${(error as Error).message}`);
+          }
+
+          const merged = new Map<string, FinancialStatement>();
+          for (const symbol of symbols) {
+            const candidates = answers
+              .map((a) => ({ name: a.name, statement: a.statements.get(symbol) }))
+              .filter((c): c is { name: string; statement: FinancialStatement } =>
+                Boolean(c.statement),
+              );
+            if (candidates.length === 0) continue;
+
+            const { statement, contributors } = mergeStatements(candidates);
+            merged.set(symbol, statement);
+            sources.set(`${key}:${symbol}`, contributors.join('+'));
           }
 
           results.set(key, merged);
@@ -377,6 +382,84 @@ export function createMarketDataService(options: MarketDataOptions = {}): Market
 
     getNews: (symbol, limit) => provider.getNews(symbol, limit),
     search: (query, limit) => provider.search(query, limit),
+  };
+}
+
+
+/**
+ * Merges one symbol's statement across providers, metric by metric.
+ *
+ * All-or-nothing selection loses data whenever the deepest source is missing a
+ * single field. Visa is the case that forced this: EDGAR returns 19 years of
+ * revenue and net income for it, but no EPS and no share count at all, because
+ * Visa is a multi-class filer and reports EPS only under dimensional axes that
+ * the companyfacts API does not expose. Taking EDGAR wholesale left Visa with
+ * no EPS series, no growth rate, and a Lynch category of "unknown" — for one of
+ * the book's named favourites.
+ *
+ * Earlier providers win per (period, metric); later ones only fill gaps. The
+ * period set is the union, so EDGAR's depth survives while the shallower source
+ * supplies the fields it is missing.
+ */
+function mergeStatements(
+  candidates: Array<{ name: string; statement: FinancialStatement }>,
+): { statement: FinancialStatement; contributors: string[] } {
+  const [primary] = candidates;
+  if (candidates.length === 1) {
+    return { statement: primary.statement, contributors: [primary.name] };
+  }
+
+  // Providers date the same fiscal year differently: Apple's FY2025 ends
+  // 2025-09-27 in its filing and 2025-09-30 in Yahoo's normalised calendar.
+  // Keying the merge on the exact date therefore produced two rows for one
+  // year — AAPL came out with 23 periods instead of 19, so a "5-year" window
+  // spanned about three real years and every CAGR was wrong.
+  //
+  // Periods within a fortnight of each other are the same fiscal period, and
+  // the first provider's date is the one kept.
+  const ALIGNMENT_DAYS = 15;
+  const buckets: Array<{ endDate: string; metrics: Partial<Record<MetricName, number>> }> = [];
+  const contributors = new Set<string>();
+
+  const findBucket = (endDate: string) => {
+    const target = Date.parse(endDate);
+    return buckets.find(
+      (b) => Math.abs(Date.parse(b.endDate) - target) <= ALIGNMENT_DAYS * 86_400_000,
+    );
+  };
+
+  for (const { name, statement } of candidates) {
+    for (const period of statement.periods) {
+      let bucket = findBucket(period.endDate);
+      if (!bucket) {
+        bucket = { endDate: period.endDate, metrics: {} };
+        buckets.push(bucket);
+      }
+      for (const [metric, value] of Object.entries(period.metrics) as Array<
+        [MetricName, number]
+      >) {
+        if (bucket.metrics[metric] === undefined && Number.isFinite(value)) {
+          bucket.metrics[metric] = value;
+          contributors.add(name);
+        }
+      }
+    }
+  }
+
+  const periods = buckets
+    .filter((b) => Object.keys(b.metrics).length > 0)
+    .sort((a, b) => b.endDate.localeCompare(a.endDate));
+
+  return {
+    statement: {
+      symbol: primary.statement.symbol,
+      kind: primary.statement.kind,
+      frequency: primary.statement.frequency,
+      periods,
+      currency: candidates.find((c) => c.statement.currency)?.statement.currency,
+    },
+    // Ordered by provider priority, so the label reads "sec-edgar+yahoo-finance2".
+    contributors: candidates.map((c) => c.name).filter((n) => contributors.has(n)),
   };
 }
 
