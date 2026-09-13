@@ -18,6 +18,7 @@ import {
   averageAnnual,
   cagr,
   drawdownFromHigh,
+  lastNYears,
   latestGrowth,
   ratio,
   trailingFlow,
@@ -73,8 +74,9 @@ function analyse(bundle: SymbolBundle) {
   const netDebt =
     totalDebt.value != null && cashPos.value != null ? totalDebt.value - cashPos.value : null;
 
-  const epsSeries = annualSeries(income.annual, 'dilutedEps');
-  const revenueSeries = annualSeries(income.annual, 'revenue');
+  // The book's rules are written for a 5-year window; EDGAR supplies far more.
+  const epsSeries = lastNYears(annualSeries(income.annual, 'dilutedEps'), 5);
+  const revenueSeries = lastNYears(annualSeries(income.annual, 'revenue'), 5);
   const epsCagr = cagr(epsSeries);
   const pe = ratio(price, dilutedEps.value);
 
@@ -85,7 +87,7 @@ function analyse(bundle: SymbolBundle) {
       : null;
 
   const roeSeries = (() => {
-    const ni = annualSeries(income.annual, 'netIncome');
+    const ni = lastNYears(annualSeries(income.annual, 'netIncome'), 5);
     const eq = annualSeries(balance.annual, 'stockholdersEquity');
     return ni
       .map((point) => {
@@ -103,11 +105,14 @@ function analyse(bundle: SymbolBundle) {
     symbol: bundle.symbol,
     name: bundle.quote?.name ?? null,
     currency: bundle.quote?.currency ?? null,
+    filingCurrency: bundle.filingCurrency,
+    statementSources: bundle.statementSources,
     price,
     marketCap,
     // Which trailing basis each figure used — 'annual' means no quarterly data.
     basis: { revenue: revenue.basis, netIncome: netIncome.basis, ocf: ocf.basis },
-    annualPeriods: income.annual?.periods.map((p) => p.endDate) ?? [],
+    annualPeriodCount: income.annual?.periods.length ?? 0,
+    annualPeriods: (income.annual?.periods ?? []).slice(0, 6).map((p) => p.endDate),
     quarterlyPeriods: income.quarterly?.periods.map((p) => p.endDate) ?? [],
 
     ratios: {
@@ -190,7 +195,18 @@ async function main() {
     console.log(
       `price ${num(a.price)} ${a.currency ?? ''}   market cap ${money(a.marketCap, a.currency)}`,
     );
-    console.log(`annual periods:    ${a.annualPeriods.join(', ') || '—'}`);
+    const mismatch = a.filingCurrency && a.currency && a.filingCurrency !== a.currency;
+    console.log(
+      `quote currency:    ${a.currency ?? '—'}   filing currency: ${a.filingCurrency ?? '—'}` +
+        (mismatch ? '   <-- MISMATCH, price ratios need FX conversion' : ''),
+    );
+    console.log(
+      `statement source:  income=${a.statementSources.income ?? '—'} ` +
+        `balance=${a.statementSources.balance ?? '—'} cash=${a.statementSources.cash ?? '—'}`,
+    );
+    console.log(
+      `annual periods:    ${a.annualPeriodCount} available, newest: ${a.annualPeriods.join(', ') || '—'}`,
+    );
     console.log(`quarterly periods: ${a.quarterlyPeriods.join(', ') || '— (none available)'}`);
     console.log(
       `trailing basis:    revenue=${a.basis.revenue} netIncome=${a.basis.netIncome} ocf=${a.basis.ocf}`,

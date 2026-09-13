@@ -173,6 +173,24 @@ export interface AnalystEstimates {
 }
 
 /**
+ * A source of historical statements only.
+ *
+ * Kept separate from MarketDataProvider so a deep-history source (SEC EDGAR)
+ * can be layered over a quote source (finance-query) without having to
+ * implement prices, news or search.
+ */
+export interface FundamentalsProvider {
+  readonly name: string;
+  /** True when this source can serve the symbol at all (e.g. it has a CIK). */
+  covers(symbol: string): Promise<boolean>;
+  getStatements(
+    symbols: string[],
+    kind: StatementKind,
+    frequency: StatementFrequency,
+  ): Promise<Map<string, FinancialStatement>>;
+}
+
+/**
  * Every provider implements this. Batch methods take many symbols and return a
  * Map keyed by symbol; a symbol the provider had no data for is absent from the
  * Map rather than present-but-empty, so callers must handle misses explicitly.

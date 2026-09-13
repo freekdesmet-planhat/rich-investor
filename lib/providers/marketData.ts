@@ -12,9 +12,11 @@
  * (scripts, tests) without Supabase configured.
  */
 import { financeQueryProvider } from './financeQuery';
+import { secEdgarProvider } from './secEdgar';
 import {
   type AnalystEstimates,
   type FinancialStatement,
+  type FundamentalsProvider,
   type HistoryRange,
   type MarketDataProvider,
   type NewsItem,
@@ -36,6 +38,15 @@ export interface SymbolBundle {
   };
   priceHistory: PricePoint[];
   estimates: AnalystEstimates | null;
+  /**
+   * The currency the statements are reported in, when a source could establish
+   * it. Differs from quote.currency for cross-listed companies (ASML reports in
+   * EUR, trades in USD), and the ratio engine must convert before dividing a
+   * price by a per-share figure.
+   */
+  filingCurrency: string | null;
+  /** Which source supplied the statements, per kind. */
+  statementSources: Record<StatementKind, string | null>;
   /** True when any part of this bundle came from an older cached snapshot. */
   isStale: boolean;
   /** The snapshot date actually used, when isStale. Drives the UI banner. */
@@ -75,6 +86,15 @@ export interface MarketDataService {
 export function createMarketDataService(
   provider: MarketDataProvider = financeQueryProvider,
   cache: BundleCache = nullCache,
+  /**
+   * Deep-history sources, tried in order before the primary provider.
+   *
+   * SEC EDGAR leads because it returns the full filing history (the book's
+   * rules need 5 years; finance-query returns 4) and states the filing
+   * currency outright. Symbols it does not cover — EU-only listings — fall
+   * through to the primary provider's shorter history.
+   */
+  fundamentalsProviders: FundamentalsProvider[] = [secEdgarProvider],
 ): MarketDataService {
   /**
    * Fetches every statement kind/frequency for the whole symbol list. Each of
@@ -83,23 +103,68 @@ export function createMarketDataService(
    */
   async function fetchStatements(symbols: string[]) {
     const results = new Map<string, Map<string, FinancialStatement>>();
+    const sources = new Map<string, string>();
     const errors: string[] = [];
+
+    // Which symbols each deep-history source can serve.
+    const covered = new Map<FundamentalsProvider, string[]>();
+    for (const source of fundamentalsProviders) {
+      const list: string[] = [];
+      for (const symbol of symbols) {
+        try {
+          if (await source.covers(symbol)) list.push(symbol);
+        } catch (error) {
+          errors.push(`${source.name} coverage check: ${(error as Error).message}`);
+          break;
+        }
+      }
+      covered.set(source, list);
+    }
 
     await Promise.all(
       KINDS.flatMap((kind) =>
         FREQUENCIES.map(async (frequency) => {
           const key = `${kind}:${frequency}`;
-          try {
-            results.set(key, await provider.getStatements(symbols, kind, frequency));
-          } catch (error) {
-            results.set(key, new Map());
-            errors.push(`${key}: ${(error as Error).message}`);
+          const merged = new Map<string, FinancialStatement>();
+
+          for (const source of fundamentalsProviders) {
+            const list = covered.get(source) ?? [];
+            if (list.length === 0) continue;
+            try {
+              for (const [symbol, statement] of await source.getStatements(list, kind, frequency)) {
+                if (!merged.has(symbol)) {
+                  merged.set(symbol, statement);
+                  sources.set(`${key}:${symbol}`, source.name);
+                }
+              }
+            } catch (error) {
+              errors.push(`${source.name} ${key}: ${(error as Error).message}`);
+            }
           }
+
+          // Whatever the deep-history sources could not supply.
+          const remaining = symbols.filter((s) => !merged.has(s));
+          if (remaining.length > 0) {
+            try {
+              for (const [symbol, statement] of await provider.getStatements(
+                remaining,
+                kind,
+                frequency,
+              )) {
+                merged.set(symbol, statement);
+                sources.set(`${key}:${symbol}`, provider.name);
+              }
+            } catch (error) {
+              errors.push(`${provider.name} ${key}: ${(error as Error).message}`);
+            }
+          }
+
+          results.set(key, merged);
         }),
       ),
     );
 
-    return { results, errors };
+    return { results, sources, errors };
   }
 
   async function getBundles(
@@ -119,7 +184,11 @@ export function createMarketDataService(
       sharedErrors.push(`quotes: ${(error as Error).message}`);
     }
 
-    const { results: statements, errors: statementErrors } = await fetchStatements(symbols);
+    const {
+      results: statements,
+      sources: statementSources,
+      errors: statementErrors,
+    } = await fetchStatements(symbols);
     sharedErrors.push(...statementErrors);
 
     // Price history is per-symbol only; run it concurrently but bounded.
@@ -141,17 +210,36 @@ export function createMarketDataService(
       const pick = (kind: StatementKind, frequency: StatementFrequency) =>
         statements.get(`${kind}:${frequency}`)?.get(symbol) ?? null;
 
+      const income = { annual: pick('income', 'annual'), quarterly: pick('income', 'quarterly') };
+      const balance = {
+        annual: pick('balance', 'annual'),
+        quarterly: pick('balance', 'quarterly'),
+      };
+      const cash = { annual: pick('cash', 'annual'), quarterly: pick('cash', 'quarterly') };
+
+      // Filing currency comes from whichever statement reported one; EDGAR
+      // always does, finance-query never does, in which case we fall back to
+      // the quote currency and note the assumption.
+      const filingCurrency =
+        income.annual?.currency ??
+        balance.annual?.currency ??
+        cash.annual?.currency ??
+        quotes.get(symbol)?.currency ??
+        null;
+
       const bundle: SymbolBundle = {
         symbol,
         asOf,
         quote: quotes.get(symbol) ?? null,
-        statements: {
-          income: { annual: pick('income', 'annual'), quarterly: pick('income', 'quarterly') },
-          balance: { annual: pick('balance', 'annual'), quarterly: pick('balance', 'quarterly') },
-          cash: { annual: pick('cash', 'annual'), quarterly: pick('cash', 'quarterly') },
-        },
+        statements: { income, balance, cash },
         priceHistory: histories.get(symbol) ?? [],
         estimates: await provider.getAnalystEstimates(symbol).catch(() => null),
+        filingCurrency,
+        statementSources: {
+          income: statementSources.get(`income:annual:${symbol}`) ?? null,
+          balance: statementSources.get(`balance:annual:${symbol}`) ?? null,
+          cash: statementSources.get(`cash:annual:${symbol}`) ?? null,
+        },
         isStale: false,
         staleAsOf: null,
         errors,

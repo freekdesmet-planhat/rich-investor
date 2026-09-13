@@ -43,6 +43,18 @@ export function annualSeries(
     .sort((a, b) => a.period.localeCompare(b.period));
 }
 
+/**
+ * Trims a series to the last `years` fiscal years.
+ *
+ * EDGAR returns the full filing history (19 years for ASML), but the book's
+ * rules are written for a 5-year window, and a CAGR measured over 18 years
+ * answers a different question than the one being asked. `years` counts
+ * intervals, so 5 years keeps 6 points where they exist.
+ */
+export function lastNYears(series: SeriesPoint[], years: number): SeriesPoint[] {
+  return series.slice(-(years + 1));
+}
+
 /** Newest annual value for one metric. */
 export function latestAnnual(
   statement: FinancialStatement | null,

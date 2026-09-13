@@ -28,10 +28,18 @@ interface SnapshotRow {
   cash_quarterly: SymbolBundle['statements']['cash']['quarterly'];
   estimates: SymbolBundle['estimates'];
   price_history: SymbolBundle['priceHistory'];
+  filing_currency: string | null;
+  statement_sources: SymbolBundle['statementSources'];
   provider: string;
   is_stale: boolean;
   fetch_errors: string[];
 }
+
+const NO_SOURCES: SymbolBundle['statementSources'] = {
+  income: null,
+  balance: null,
+  cash: null,
+};
 
 export function createSupabaseCache(
   client: SupabaseClient,
@@ -60,6 +68,8 @@ export function createSupabaseCache(
         },
         priceHistory: data.price_history ?? [],
         estimates: data.estimates ?? null,
+        filingCurrency: data.filing_currency ?? null,
+        statementSources: data.statement_sources ?? NO_SOURCES,
         isStale: false,
         staleAsOf: null,
         errors: [],
@@ -90,6 +100,8 @@ export function createSupabaseCache(
         cash_quarterly: bundle.statements.cash.quarterly,
         estimates: bundle.estimates,
         price_history: bundle.priceHistory,
+        filing_currency: bundle.filingCurrency,
+        statement_sources: bundle.statementSources,
         provider: providerName,
         is_stale: false,
         fetch_errors: bundle.errors,
