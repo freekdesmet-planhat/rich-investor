@@ -27,12 +27,14 @@
     "@types/node": "^24.13.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",
+    "unbzip2-stream": "^1.4.3",
     "vitest": "^5.0.0"
   }
 }
