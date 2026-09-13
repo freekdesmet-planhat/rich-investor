@@ -1,286 +1,281 @@
 /**
- * Build-step 2 checkpoint.
+ * Build-step 2 / 4 checkpoint.
  *
- * Fetches everything through the provider layer and prints the raw computed
- * ratios for ASML, META and ADYEN.AS so they can be sanity-checked against
- * Yahoo Finance before any further work is built on top.
+ * Runs the real ratio engine over live provider data for ASML, META and
+ * ADYEN.AS and prints every ratio with its colour, target and the figures
+ * behind it, so the output can be sanity-checked against Yahoo Finance.
  *
- * The ratio maths here is deliberately the plain textbook form, so what is
- * printed can be checked by hand. The tested ratio engine with colour codes and
- * the book's targets is build step 4; this script exists to prove the provider
- * layer returns correct, correctly-normalised inputs.
- *
- *   npx tsx scripts/checkpoint-provider.ts            # table
- *   npx tsx scripts/checkpoint-provider.ts --json     # full JSON
+ *   npx tsx --env-file=.env.local scripts/checkpoint-provider.ts
+ *   npx tsx --env-file=.env.local scripts/checkpoint-provider.ts --json
  */
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createFxRates } from '@/lib/providers/fx';
+import { createMarketDataService } from '@/lib/providers/marketData';
+import { createSupabaseCache } from '@/lib/providers/supabaseCache';
 import {
-  annualSeries,
-  averageAnnual,
-  cagr,
-  drawdownFromHigh,
-  lastNYears,
-  latestGrowth,
-  ratio,
-  trailingFlow,
-  trailingStock,
-} from '@/lib/ratios/fundamentals';
-import { createMarketDataService, type SymbolBundle } from '@/lib/providers/marketData';
+  buildContext,
+  computeAllRatios,
+  derive,
+  growthCategory,
+  type RatioResult,
+} from '@/lib/ratios/engine';
+import { annualSeries, cagr, lastNYears } from '@/lib/ratios/fundamentals';
+import {
+  resolveFocusSector,
+  DEFAULT_SECTOR_RULES,
+  type FocusSector,
+  type SectorRule,
+} from '@/lib/sectors/mapping';
+
+interface MappingRow {
+  symbol: string | null;
+  sector: string | null;
+  industry: string | null;
+  focus_sector: FocusSector;
+  specificity: number;
+  is_excluded: boolean;
+}
+
+interface UniverseRow {
+  symbol: string;
+  sector: string | null;
+  industry: string | null;
+}
 
 const SYMBOLS = ['ASML', 'META', 'ADYEN.AS'];
 
-const pct = (v: number | null, digits = 1) => (v == null ? '—' : `${(v * 100).toFixed(digits)}%`);
-const num = (v: number | null, digits = 2) => (v == null ? '—' : v.toFixed(digits));
-const money = (v: number | null, currency: string | null) =>
-  v == null ? '—' : `${currency ?? ''} ${(v / 1e9).toFixed(1)}B`.trim();
+const COLOR_MARK: Record<string, string> = {
+  green: '[+]',
+  orange: '[~]',
+  red: '[-]',
+  gray: '[ ]',
+};
 
-function analyse(bundle: SymbolBundle) {
-  const { income, balance, cash } = bundle.statements;
-  const price = bundle.quote?.price ?? null;
-  const marketCap = bundle.quote?.marketCap ?? null;
+const RATIO_LABELS: Record<string, string> = {
+  pe: 'P/E (5.1)',
+  peg: 'PEG (5.2)',
+  ev_ebit: 'EV/EBIT (5.3)',
+  p_fcf: 'P/FCF (5.4)',
+  earnings_quality: 'OCF / net income (5.5)',
+  roe: 'ROE (5.6)',
+  roa: 'ROA (5.7)',
+  eps_growth: 'EPS growth, 5y CAGR (5.8)',
+  revenue_growth: 'Revenue growth, 5y CAGR (5.9)',
+  gross_margin: 'Gross margin (5.10)',
+  net_margin: 'Net margin (5.10)',
+  debt: 'Net debt / EBITDA (5.11)',
+  dividend_yield: 'Dividend yield (5.12)',
+  payout_ratio: 'Payout ratio (5.13)',
+  rnd_adjusted_pe: 'R&D-adjusted P/E (5.14)',
+  p_s: 'P/S (5.15)',
+  p_b: 'P/B (5.16)',
+  inventory_receivables: 'Inventory vs revenue (5.17)',
+  drawdown_5y: 'Drawdown from 5y high (5.18)',
+  market_cap: 'Market cap (5.19)',
+};
 
-  // --- trailing inputs -----------------------------------------------------
-  const revenue = trailingFlow(income.quarterly, income.annual, 'revenue');
-  const netIncome = trailingFlow(income.quarterly, income.annual, 'netIncome');
-  const grossProfit = trailingFlow(income.quarterly, income.annual, 'grossProfit');
-  const ebit = trailingFlow(income.quarterly, income.annual, 'ebit');
-  const ebitda = trailingFlow(income.quarterly, income.annual, 'ebitda');
-  const rnd = trailingFlow(income.quarterly, income.annual, 'researchAndDevelopment');
-  const dilutedEps = trailingFlow(income.quarterly, income.annual, 'dilutedEps');
-  const dilutedShares = trailingStock(income.quarterly, income.annual, 'dilutedShares');
+function formatValue(r: RatioResult): string {
+  if (r.value == null) return r.unavailableReason === 'not_applicable' ? 'n/a' : '—';
+  switch (r.unit) {
+    case 'percent':
+      return `${(r.value * 100).toFixed(1)}%`;
+    case 'currency':
+      return `$${(r.value / 1e9).toFixed(1)}B`;
+    default:
+      return r.value.toFixed(2);
+  }
+}
 
-  const totalDebt = trailingStock(balance.quarterly, balance.annual, 'totalDebt');
-  const cashPos = trailingStock(balance.quarterly, balance.annual, 'cash');
-  const totalAssets = trailingStock(balance.quarterly, balance.annual, 'totalAssets');
-  const equity = trailingStock(balance.quarterly, balance.annual, 'stockholdersEquity');
-  const inventory = annualSeries(balance.annual, 'inventory');
-  const receivables = annualSeries(balance.annual, 'receivables');
+const money = (v: number | null | undefined, currency: string | null) =>
+  v == null ? '—' : `${currency ?? ''} ${(v / 1e9).toFixed(2)}B`.trim();
 
-  const ocf = trailingFlow(cash.quarterly, cash.annual, 'operatingCashFlow');
-  const capex = trailingFlow(cash.quarterly, cash.annual, 'capitalExpenditure');
-  const dividendsPaid = trailingFlow(cash.quarterly, cash.annual, 'dividendsPaid');
+/**
+ * Resolves the focus sector from the `universe` table, not from the quote.
+ *
+ * The two use different taxonomies: FinanceDatabase says "Information
+ * Technology" / "Semiconductors & Semiconductor Equipment" where the quote
+ * provider says "Technology" / "Semiconductor Equipment & Materials". The
+ * sector mapping is written against FinanceDatabase's vocabulary, so resolving
+ * against the quote's labels puts every ticker outside the focus.
+ */
+async function loadFocusSectors(
+  symbols: string[],
+  client: SupabaseClient | null,
+): Promise<Map<string, FocusSector>> {
+  const out = new Map<string, FocusSector>();
+  if (!client) return out;
 
-  // --- derived -------------------------------------------------------------
-  const fcf =
-    ocf.value != null && capex.value != null
-      ? // capex is reported negative by the provider
-        ocf.value + (capex.value > 0 ? -capex.value : capex.value)
-      : null;
+  const { data: mapRows } = await client
+    .from('sector_mapping')
+    .select('symbol,sector,industry,focus_sector,specificity,is_excluded')
+    .returns<MappingRow[]>();
 
-  const enterpriseValue =
-    marketCap != null && totalDebt.value != null && cashPos.value != null
-      ? marketCap + totalDebt.value - cashPos.value
-      : null;
+  const rules: SectorRule[] = (mapRows ?? []).length
+    ? (mapRows ?? []).map((r) => ({
+        symbol: r.symbol ?? undefined,
+        sector: r.sector ?? undefined,
+        industry: r.industry ?? undefined,
+        focusSector: r.focus_sector,
+        specificity: r.specificity,
+        isExcluded: r.is_excluded,
+      }))
+    : DEFAULT_SECTOR_RULES;
 
-  const netDebt =
-    totalDebt.value != null && cashPos.value != null ? totalDebt.value - cashPos.value : null;
+  const { data: rows } = await client
+    .from('universe')
+    .select('symbol,sector,industry')
+    .in('symbol', symbols)
+    .returns<UniverseRow[]>();
 
-  // The book's rules are written for a 5-year window; EDGAR supplies far more.
-  const epsSeries = lastNYears(annualSeries(income.annual, 'dilutedEps'), 5);
-  const revenueSeries = lastNYears(annualSeries(income.annual, 'revenue'), 5);
-  const epsCagr = cagr(epsSeries);
-  const pe = ratio(price, dilutedEps.value);
-
-  // R&D-adjusted P/E (5.14): add R&D back to earnings before dividing.
-  const rndAdjustedEps =
-    netIncome.value != null && rnd.value != null && dilutedShares.value
-      ? (netIncome.value + rnd.value) / dilutedShares.value
-      : null;
-
-  const roeSeries = (() => {
-    const ni = lastNYears(annualSeries(income.annual, 'netIncome'), 5);
-    const eq = annualSeries(balance.annual, 'stockholdersEquity');
-    return ni
-      .map((point) => {
-        const match = eq.find((e) => e.period === point.period);
-        return match && match.value > 0
-          ? { period: point.period, value: point.value / match.value }
-          : null;
-      })
-      .filter((x): x is { period: string; value: number } => x !== null);
-  })();
-
-  const drawdown = drawdownFromHigh(bundle.priceHistory, price);
-
-  return {
-    symbol: bundle.symbol,
-    name: bundle.quote?.name ?? null,
-    currency: bundle.quote?.currency ?? null,
-    filingCurrency: bundle.filingCurrency,
-    statementSources: bundle.statementSources,
-    price,
-    marketCap,
-    // Which trailing basis each figure used — 'annual' means no quarterly data.
-    basis: { revenue: revenue.basis, netIncome: netIncome.basis, ocf: ocf.basis },
-    annualPeriodCount: income.annual?.periods.length ?? 0,
-    annualPeriods: (income.annual?.periods ?? []).slice(0, 6).map((p) => p.endDate),
-    quarterlyPeriods: income.quarterly?.periods.map((p) => p.endDate) ?? [],
-
-    ratios: {
-      pe,
-      pegTrailing: pe != null && epsCagr.value ? pe / (epsCagr.value * 100) : null,
-      evEbit: ratio(enterpriseValue, ebit.value),
-      pFcf: ratio(marketCap, fcf),
-      ocfOverNetIncome: ratio(ocf.value, netIncome.value),
-      roe: ratio(netIncome.value, averageAnnual(balance.annual, 'stockholdersEquity')),
-      roa: ratio(netIncome.value, averageAnnual(balance.annual, 'totalAssets')),
-      epsCagr: epsCagr.value,
-      epsCagrYears: epsCagr.years,
-      epsGrowthLatest: latestGrowth(epsSeries),
-      revenueGrowthLatest: latestGrowth(revenueSeries),
-      revenueCagr: cagr(revenueSeries).value,
-      grossMargin: ratio(grossProfit.value, revenue.value),
-      netMargin: ratio(netIncome.value, revenue.value),
-      netDebtToEbitda: ratio(netDebt, ebitda.value),
-      dividendYield: ratio(bundle.quote?.dividendPerShare ?? null, price),
-      payoutRatio:
-        dividendsPaid.value != null && netIncome.value
-          ? Math.abs(dividendsPaid.value) / netIncome.value
-          : null,
-      rndAdjustedPe: ratio(price, rndAdjustedEps),
-      rndOverRevenue: ratio(rnd.value, revenue.value),
-      inventoryGrowth: latestGrowth(inventory),
-      receivablesGrowth: latestGrowth(receivables),
-      drawdown5y: drawdown.drawdown,
-      recoveryNeeded: drawdown.recoveryNeeded,
-    },
-
-    inputs: {
-      revenue: revenue.value,
-      netIncome: netIncome.value,
-      grossProfit: grossProfit.value,
-      ebit: ebit.value,
-      ebitda: ebitda.value,
-      rnd: rnd.value,
-      dilutedEps: dilutedEps.value,
-      dilutedShares: dilutedShares.value,
-      totalDebt: totalDebt.value,
-      cash: cashPos.value,
-      equity: equity.value,
-      totalAssets: totalAssets.value,
-      operatingCashFlow: ocf.value,
-      capex: capex.value,
-      freeCashFlow: fcf,
-      enterpriseValue,
-      netDebt,
-      fiveYearHigh: drawdown.high,
-      fiveYearHighDate: drawdown.highDate,
-      priceHistoryPoints: bundle.priceHistory.length,
-      roeByYear: roeSeries,
-    },
-
-    estimates: bundle.estimates,
-    errors: bundle.errors,
-    isStale: bundle.isStale,
-  };
+  for (const row of rows ?? []) {
+    out.set(
+      row.symbol,
+      resolveFocusSector(rules, {
+        symbol: row.symbol,
+        sector: row.sector,
+        industry: row.industry,
+      }).focusSector,
+    );
+  }
+  return out;
 }
 
 async function main() {
-  const service = createMarketDataService();
-  console.log(`Provider: ${service.providerName}\nSymbols:  ${SYMBOLS.join(', ')}\n`);
+  // Cache into Supabase when configured, so the checkpoint also exercises the
+  // snapshot write path the daily job will use.
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const client = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+  const cache = client ? createSupabaseCache(client) : undefined;
+
+  const service = createMarketDataService(cache ? { cache } : {});
+  console.log(`Symbols: ${SYMBOLS.join(', ')}`);
+  console.log(`Snapshot cache: ${cache ? 'Supabase daily_snapshots' : 'disabled'}\n`);
 
   const bundles = await service.getBundles(SYMBOLS, '5y');
-  const analysed = SYMBOLS.map((s) => {
-    const bundle = bundles.get(s);
-    return bundle ? analyse(bundle) : null;
-  }).filter((x): x is NonNullable<typeof x> => x !== null);
 
-  if (process.argv.includes('--json')) {
-    console.log(JSON.stringify(analysed, null, 2));
-    return;
+  // Load every FX pair the three tickers need, in one request.
+  const fx = createFxRates();
+  const pairs: Array<[string, string]> = [];
+  for (const bundle of bundles.values()) {
+    const quote = bundle.quote?.currency;
+    if (!quote) continue;
+    if (bundle.filingCurrency) pairs.push([quote, bundle.filingCurrency]);
+    pairs.push([quote, 'USD']);
   }
+  await fx.load(pairs);
 
-  for (const a of analysed) {
-    console.log('='.repeat(72));
-    console.log(`${a.symbol}  ${a.name ?? ''}`);
-    console.log('='.repeat(72));
-    console.log(
-      `price ${num(a.price)} ${a.currency ?? ''}   market cap ${money(a.marketCap, a.currency)}`,
-    );
-    const mismatch = a.filingCurrency && a.currency && a.filingCurrency !== a.currency;
-    console.log(
-      `quote currency:    ${a.currency ?? '—'}   filing currency: ${a.filingCurrency ?? '—'}` +
-        (mismatch ? '   <-- MISMATCH, price ratios need FX conversion' : ''),
-    );
-    console.log(
-      `statement source:  income=${a.statementSources.income ?? '—'} ` +
-        `balance=${a.statementSources.balance ?? '—'} cash=${a.statementSources.cash ?? '—'}`,
-    );
-    console.log(
-      `annual periods:    ${a.annualPeriodCount} available, newest: ${a.annualPeriods.join(', ') || '—'}`,
-    );
-    console.log(`quarterly periods: ${a.quarterlyPeriods.join(', ') || '— (none available)'}`);
-    console.log(
-      `trailing basis:    revenue=${a.basis.revenue} netIncome=${a.basis.netIncome} ocf=${a.basis.ocf}`,
-    );
-    const est = a.estimates;
-    console.log(
-      `analyst estimates: ` +
-        (est
-          ? `next FY ${est.series[0]?.fiscalYearEnd} EPS ${num(est.nextYearEps)} ` +
-            `(${est.analystCount ?? '?'} analysts), target ${num(est.targetPrice)}`
-          : 'not available for this ticker'),
-    );
-    if (a.errors.length) console.log(`notes: ${a.errors.join(' | ')}`);
-    console.log();
+  const focusSectors = await loadFocusSectors(SYMBOLS, client);
 
-    const r = a.ratios;
-    const rows: Array<[string, string]> = [
-      ['P/E (5.1)', num(r.pe)],
-      ['PEG, trailing EPS CAGR (5.2)', num(r.pegTrailing)],
-      ['EV/EBIT (5.3)', num(r.evEbit)],
-      ['P/FCF (5.4)', num(r.pFcf)],
-      ['OCF / net income (5.5)', num(r.ocfOverNetIncome)],
-      ['ROE (5.6)', pct(r.roe)],
-      ['ROA (5.7)', pct(r.roa)],
-      [`EPS CAGR over ${num(r.epsCagrYears, 1)}y (5.8)`, pct(r.epsCagr)],
-      ['EPS growth, last year (5.8)', pct(r.epsGrowthLatest)],
-      ['Revenue growth, last year (5.9)', pct(r.revenueGrowthLatest)],
-      ['Revenue CAGR (5.9)', pct(r.revenueCagr)],
-      ['Gross margin (5.10)', pct(r.grossMargin)],
-      ['Net margin (5.10)', pct(r.netMargin)],
-      ['Net debt / EBITDA (5.11)', num(r.netDebtToEbitda)],
-      ['Dividend yield (5.12)', pct(r.dividendYield)],
-      ['Payout ratio (5.13)', pct(r.payoutRatio)],
-      ['R&D-adjusted P/E (5.14)', num(r.rndAdjustedPe)],
-      ['R&D / revenue (5.14)', pct(r.rndOverRevenue)],
-      ['Inventory growth (5.17)', pct(r.inventoryGrowth)],
-      ['Receivables growth (5.17)', pct(r.receivablesGrowth)],
-      ['Drawdown from 5y high (5.18)', pct(r.drawdown5y)],
-      ['Recovery needed (5.18)', pct(r.recoveryNeeded)],
-    ];
-    for (const [label, value] of rows) console.log(`  ${label.padEnd(34)} ${value.padStart(12)}`);
+  const output: unknown[] = [];
 
-    console.log('\n  underlying figures');
-    const i = a.inputs;
-    const inputRows: Array<[string, string]> = [
-      ['revenue (TTM)', money(i.revenue, a.currency)],
-      ['gross profit', money(i.grossProfit, a.currency)],
-      ['net income', money(i.netIncome, a.currency)],
-      ['EBIT', money(i.ebit, a.currency)],
-      ['EBITDA', money(i.ebitda, a.currency)],
-      ['R&D', money(i.rnd, a.currency)],
-      ['diluted EPS', num(i.dilutedEps)],
-      ['diluted shares', money(i.dilutedShares, '')],
-      ['operating cash flow', money(i.operatingCashFlow, a.currency)],
-      ['capex', money(i.capex, a.currency)],
-      ['free cash flow', money(i.freeCashFlow, a.currency)],
-      ['total debt', money(i.totalDebt, a.currency)],
-      ['cash', money(i.cash, a.currency)],
-      ['net debt', money(i.netDebt, a.currency)],
-      ['equity', money(i.equity, a.currency)],
-      ['total assets', money(i.totalAssets, a.currency)],
-      ['enterprise value', money(i.enterpriseValue, a.currency)],
-      ['5y high', `${num(i.fiveYearHigh)} (${i.fiveYearHighDate ?? '—'})`],
-      ['price history points', String(i.priceHistoryPoints)],
-    ];
-    for (const [label, value] of inputRows) {
-      console.log(`  ${label.padEnd(34)} ${value.padStart(12)}`);
+  for (const symbol of SYMBOLS) {
+    const bundle = bundles.get(symbol);
+    if (!bundle) {
+      console.log(`${symbol}: no data\n`);
+      continue;
     }
 
-    console.log('\n  ROE by fiscal year');
-    for (const point of i.roeByYear) console.log(`  ${point.period.padEnd(34)} ${pct(point.value).padStart(12)}`);
+    const focusSector = focusSectors.get(symbol) ?? 'outside_focus';
+    const ctx = buildContext(bundle, { focusSector, fx });
+
+    // The growth category sets the PEG threshold (1 / 0.7 / 0.5). The full
+    // Lynch classification is build step 5; this is its growth axis only.
+    const epsCagr = cagr(
+      lastNYears(annualSeries(bundle.statements.income.annual, 'dilutedEps'), 5),
+    ).value;
+    const category = growthCategory(epsCagr);
+
+    const ratios = computeAllRatios(ctx, category);
+    const d = derive(ctx);
+
+    if (process.argv.includes('--json')) {
+      output.push({ symbol, focusSector, category, ratios });
+      continue;
+    }
+
+    const line = '='.repeat(78);
+    console.log(line);
+    console.log(`${symbol}  ${bundle.quote?.name ?? ''}`);
+    console.log(line);
+    console.log(`focus sector:      ${focusSector}   growth category: ${category}`);
+    console.log(
+      `price:             ${bundle.quote?.price?.toFixed(2) ?? '—'} ${ctx.quoteCurrency ?? ''}` +
+        `   market cap ${money(bundle.quote?.marketCap, ctx.quoteCurrency)}`,
+    );
+    console.log(
+      `currency:          quote ${ctx.quoteCurrency} / filing ${ctx.filingCurrency}` +
+        (ctx.quoteCurrency !== ctx.filingCurrency
+          ? `   FX ${ctx.fxApplied?.toFixed(4)} -> price ${ctx.price?.toFixed(2)} ${ctx.filingCurrency}`
+          : '   (no conversion needed)'),
+    );
+    console.log(
+      `sources:           statements ${bundle.statementSources.income ?? '—'}` +
+        `   estimates ${bundle.estimatesSource ?? 'none'}`,
+    );
+    console.log(
+      `annual periods:    ${bundle.statements.income.annual?.periods.length ?? 0}` +
+        `   quarterly ${bundle.statements.income.quarterly?.periods.length ?? 0}` +
+        `   trailing basis ${d.revenue.basis}`,
+    );
+    if (bundle.errors.length) console.log(`notes:             ${bundle.errors.join(' | ')}`);
     console.log();
+
+    for (const [key, label] of Object.entries(RATIO_LABELS)) {
+      const r = ratios[key as keyof typeof ratios];
+      const mark = COLOR_MARK[r.color] ?? '[ ]';
+      const reason =
+        r.value == null && r.unavailableReason && r.unavailableReason !== 'not_applicable'
+          ? `  (${r.unavailableReason})`
+          : '';
+      console.log(
+        `  ${mark} ${label.padEnd(32)} ${formatValue(r).padStart(11)}   target ${r.targetLabel}` +
+          ` [${r.targetSource === 'book' ? 'book' : 'app'}]${reason}`,
+      );
+    }
+
+    const dd = ratios.drawdown_5y.detail as Record<string, number | string | null>;
+    const peg = ratios.peg.detail as Record<string, unknown>;
+
+    console.log('\n  underlying figures');
+    for (const [label, value] of [
+      ['revenue', money(d.revenue.value, ctx.filingCurrency)],
+      ['gross profit', money(d.grossProfit.value, ctx.filingCurrency)],
+      ['net income', money(d.netIncome.value, ctx.filingCurrency)],
+      ['EBIT', money(d.ebit.value, ctx.filingCurrency)],
+      ['EBITDA', money(d.ebitda, ctx.filingCurrency)],
+      ['R&D', money(d.rnd.value, ctx.filingCurrency)],
+      ['diluted EPS', d.dilutedEps.value?.toFixed(2) ?? '—'],
+      ['operating cash flow', money(d.ocf.value, ctx.filingCurrency)],
+      ['capex', money(d.capex.value, ctx.filingCurrency)],
+      ['free cash flow', money(d.freeCashFlow, ctx.filingCurrency)],
+      ['net debt', money(d.netDebt, ctx.filingCurrency)],
+      ['equity', money(d.equity.value, ctx.filingCurrency)],
+      ['enterprise value', money(d.enterpriseValue, ctx.filingCurrency)],
+      ['5y high', `${dd.high ?? '—'} (${dd.highDate ?? '—'})`],
+      [
+        'recovery needed',
+        dd.recoveryNeeded != null ? `${(Number(dd.recoveryNeeded) * 100).toFixed(1)}%` : '—',
+      ],
+      ['EPS CAGR years', peg.cagrYears != null ? Number(peg.cagrYears).toFixed(1) : '—'],
+      ['forward PEG (estimates)', peg.forwardPeg != null ? Number(peg.forwardPeg).toFixed(2) : '—'],
+    ] as Array<[string, string]>) {
+      console.log(`  ${label.padEnd(34)} ${value.padStart(16)}`);
+    }
+
+    const roe = ratios.roe;
+    console.log('\n  ROE by fiscal year');
+    for (const point of roe.history) {
+      console.log(
+        `  ${point.period.padEnd(34)} ${`${(point.value * 100).toFixed(1)}%`.padStart(16)}`,
+      );
+    }
+    console.log(
+      `  -> ${roe.detail.qualifyingYears}/${roe.detail.yearsAvailable} years at or above 15%\n`,
+    );
   }
+
+  if (process.argv.includes('--json')) console.log(JSON.stringify(output, null, 2));
 }
 
 main().catch((error) => {

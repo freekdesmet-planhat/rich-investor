@@ -167,6 +167,52 @@ export function latestGrowth(series: SeriesPoint[]): number | null {
   return last.value / prev.value - 1;
 }
 
+/**
+ * Detects a definitional break in a series — a step so large it means the
+ * company changed what it reports, not how it performed.
+ *
+ * Adyen is the case this exists for: revenue reads €8.94bn for 2022 and €1.86bn
+ * for 2023, because it switched from gross to net revenue. A CAGR across that
+ * step returns −33%/yr against real growth of about +20%. With only four or
+ * five annual points, one break poisons the whole trend, so the engine suppress
+ * es the trend rather than publishing a confident wrong number.
+ *
+ * The test is deliberately blunt: a year-on-year move beyond `factor` in either
+ * direction, for a metric that does not plausibly move that far. Real collapses
+ * do happen, which is why this marks the series as unreliable rather than
+ * silently dropping points.
+ */
+export function detectSeriesBreak(
+  series: SeriesPoint[],
+  factor = 3,
+): { hasBreak: boolean; at: string | null; from: number | null; to: number | null } {
+  const none = { hasBreak: false, at: null, from: null, to: null };
+  if (series.length < 2) return none;
+
+  for (let i = 1; i < series.length; i++) {
+    const prev = series[i - 1].value;
+    const next = series[i].value;
+    if (prev <= 0 || next <= 0) continue;
+
+    const change = next / prev;
+    if (change >= factor || change <= 1 / factor) {
+      return { hasBreak: true, at: series[i].period, from: prev, to: next };
+    }
+  }
+  return none;
+}
+
+/**
+ * Trims a series back to the longest run that contains no definitional break,
+ * keeping the most recent side — the figures still on the current basis.
+ */
+export function afterLastBreak(series: SeriesPoint[], factor = 3): SeriesPoint[] {
+  const breakPoint = detectSeriesBreak(series, factor);
+  if (!breakPoint.hasBreak || !breakPoint.at) return series;
+  const index = series.findIndex((p) => p.period === breakPoint.at);
+  return index === -1 ? series : series.slice(index);
+}
+
 export function yearsBetween(from: string, to: string): number {
   const ms = Date.parse(to) - Date.parse(from);
   return ms / (365.25 * 24 * 60 * 60 * 1000);
