@@ -71,6 +71,7 @@ const CONCEPTS: Partial<Record<MetricName, string[]>> = {
     'SellingGeneralAndAdministrativeExpense',
     'GeneralAndAdministrativeExpense',
   ],
+  operatingExpenses: ['OperatingExpenses', 'CostsAndExpenses'],
   interestExpense: ['InterestExpense', 'InterestExpenseNonoperating', 'InterestIncomeExpenseNet'],
   basicEps: ['EarningsPerShareBasic'],
   dilutedEps: ['EarningsPerShareDiluted'],
@@ -102,6 +103,11 @@ const CONCEPTS: Partial<Record<MetricName, string[]>> = {
   retainedEarnings: ['RetainedEarningsAccumulatedDeficit'],
   netPPE: ['PropertyPlantAndEquipmentNet'],
   sharesOutstanding: ['CommonStockSharesOutstanding', 'CommonStockSharesIssued'],
+  restrictedCash: [
+    'RestrictedCashAndCashEquivalentsAtCarryingValue',
+    'RestrictedCashAndCashEquivalentsCurrent',
+    'RestrictedCash',
+  ],
 
   // --- cash flow ---
   operatingCashFlow: [
@@ -147,6 +153,7 @@ const METRICS_BY_KIND: Record<StatementKind, MetricName[]> = {
     'taxProvision',
     'researchAndDevelopment',
     'sellingGeneralAdmin',
+    'operatingExpenses',
     'interestExpense',
     'basicEps',
     'dilutedEps',
@@ -168,6 +175,7 @@ const METRICS_BY_KIND: Record<StatementKind, MetricName[]> = {
     'retainedEarnings',
     'netPPE',
     'sharesOutstanding',
+    'restrictedCash',
   ],
   cash: [
     'operatingCashFlow',

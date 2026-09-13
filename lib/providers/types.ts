@@ -31,6 +31,7 @@ export const INCOME_METRICS = [
   'researchAndDevelopment',
   'sellingGeneralAdmin',
   'totalExpenses',
+  'operatingExpenses',
   'interestExpense',
   'interestIncome',
   'basicEps',
@@ -59,6 +60,12 @@ export const BALANCE_METRICS = [
   'investedCapital',
   'netPPE',
   'sharesOutstanding',
+  /**
+   * Cash a company holds but cannot deploy — for payment processors this is
+   * the settlement float owed to merchants. Reported explicitly by some
+   * (Visa), buried in cash by others (Adyen, PayPal).
+   */
+  'restrictedCash',
 ] as const;
 
 export const CASH_METRICS = [

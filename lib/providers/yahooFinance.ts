@@ -66,6 +66,7 @@ const FIELDS: Record<StatementKind, Partial<Record<MetricName, string[]>>> = {
     researchAndDevelopment: ['researchAndDevelopment'],
     sellingGeneralAdmin: ['sellingGeneralAndAdministration'],
     totalExpenses: ['totalExpenses'],
+    operatingExpenses: ['operatingExpense'],
     interestExpense: ['interestExpense', 'interestExpenseNonOperating'],
     interestIncome: ['interestIncome', 'interestIncomeNonOperating'],
     basicEps: ['basicEPS'],
@@ -93,6 +94,7 @@ const FIELDS: Record<StatementKind, Partial<Record<MetricName, string[]>>> = {
     investedCapital: ['investedCapital'],
     netPPE: ['netPPE'],
     sharesOutstanding: ['ordinarySharesNumber', 'shareIssued'],
+    restrictedCash: ['restrictedCash'],
   },
   cash: {
     operatingCashFlow: ['operatingCashFlow', 'cashFlowFromContinuingOperatingActivities'],

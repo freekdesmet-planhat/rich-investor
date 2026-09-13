@@ -82,6 +82,12 @@ export interface RatioContext {
   focusSector: FocusSector;
   /** True for banks and insurers: EV/EBIT and P/FCF are meaningless there. */
   isFinancial: boolean;
+  /**
+   * True for payment networks and processors. They stay in focus, but their
+   * total assets and receivables carry customer settlement balances, so ROA is
+   * adjusted and the inventory/receivables check does not apply.
+   */
+  isPaymentProcessor: boolean;
   /** Price converted into the filing currency. Null when no rate was available. */
   price: number | null;
   marketCap: number | null;
@@ -138,6 +144,7 @@ export function buildContext(
   options: {
     focusSector?: FocusSector;
     isFinancial?: boolean;
+    isPaymentProcessor?: boolean;
     thresholds?: Thresholds;
     fx?: FxRates;
   } = {},
@@ -145,6 +152,7 @@ export function buildContext(
   const {
     focusSector = 'outside_focus',
     isFinancial = false,
+    isPaymentProcessor = false,
     thresholds = DEFAULT_THRESHOLDS,
     fx = identityFx,
   } = options;
@@ -171,6 +179,7 @@ export function buildContext(
     symbol: bundle.symbol,
     focusSector,
     isFinancial,
+    isPaymentProcessor,
     price,
     marketCap,
     marketCapUsd,
@@ -376,10 +385,20 @@ export function computePeg(
   const orangeLimit = threshold * t.value.orangeMultiplier;
 
   // Forward variant (5.2), when a source supplied estimates.
+  //
+  // Consensus EPS is quoted in the *trading* currency, while trailing EPS comes
+  // from the statements in the filing currency. For ASML (USD listing, EUR
+  // filings) comparing them directly overstated expected growth by the whole FX
+  // factor — 88% against an actual 62%.
   const estimates = ctx.bundle.estimates;
+  const nextYearEpsInFilingCurrency =
+    estimates?.nextYearEps != null && ctx.fxApplied != null
+      ? estimates.nextYearEps * ctx.fxApplied
+      : null;
+
   const forwardGrowth =
-    estimates?.nextYearEps != null && d.dilutedEps.value && d.dilutedEps.value > 0
-      ? estimates.nextYearEps / d.dilutedEps.value - 1
+    nextYearEpsInFilingCurrency != null && d.dilutedEps.value && d.dilutedEps.value > 0
+      ? nextYearEpsInFilingCurrency / d.dilutedEps.value - 1
       : (estimates?.nextYearEpsGrowth ?? null);
   const forwardPeg =
     forwardGrowth != null && forwardGrowth > 0 ? pe.value / (forwardGrowth * 100) : null;
@@ -402,6 +421,8 @@ export function computePeg(
       category,
       forwardGrowth,
       forwardPeg,
+      nextYearEps: estimates?.nextYearEps ?? null,
+      nextYearEpsInFilingCurrency,
       estimatesSource: ctx.bundle.estimatesSource,
       seriesBreak: epsBreak.hasBreak ? epsBreak : null,
     },
@@ -594,34 +615,177 @@ export function computeRoe(ctx: RatioContext): RatioResult {
 // 5.7 ROA
 // ---------------------------------------------------------------------------
 
-export function computeRoa(ctx: RatioContext): RatioResult {
+export function computeRoa(ctx: RatioContext, d?: Derived): RatioResult {
   const t = ctx.thresholds.roa;
   const target = { label: t.label, source: t.source };
   const { income, balance } = ctx.bundle.statements;
 
-  const history = returnSeries(income.annual, balance.annual, 'totalAssets');
-  const current = ratio(
-    trailingFlow(income.quarterly, income.annual, 'netIncome').value,
-    averageAnnual(balance.annual, 'totalAssets'),
-  );
+  const netIncome = trailingFlow(income.quarterly, income.annual, 'netIncome').value;
+  const rawAverageAssets = averageAnnual(balance.annual, 'totalAssets');
+  const rawHistory = returnSeries(income.annual, balance.annual, 'totalAssets');
+  const rawValue = ratio(netIncome, rawAverageAssets);
 
-  if (current == null) return gray('roa', target, 'missing_data', {}, history);
+  if (!ctx.isPaymentProcessor) {
+    if (rawValue == null) return gray('roa', target, 'missing_data', {}, rawHistory);
+    return {
+      key: 'roa',
+      value: rawValue,
+      unit: 'percent',
+      color: bandHigher(rawValue, t.value.green, t.value.orange),
+      targetLabel: t.label,
+      targetSource: t.source,
+      thresholds: t.value,
+      history: rawHistory,
+      notApplicable: false,
+      unavailableReason: null,
+      detail: {
+        qualifyingYears: rawHistory.filter((p) => p.value >= t.value.green).length,
+        yearsAvailable: rawHistory.length,
+        isAdjusted: false,
+      },
+    };
+  }
 
-  const qualifyingYears = history.filter((p) => p.value >= t.value.green).length;
+  // --- payment processors ---------------------------------------------------
+  // Settlement float sits inside total assets and has nothing to do with
+  // operating performance, so it is deducted before the ratio is taken.
+  const settlement = settlementFunds(ctx, d);
+
+  // Floor the deduction at shareholders' equity.
+  //
+  // Settlement float is liability-funded by definition — it is money owed back
+  // to merchants — so it can only ever be subtracted from the liability-funded
+  // part of the balance sheet. Equity-funded assets belong to the company
+  // whatever the float is doing. Without this floor the excess-cash proxy
+  // stripped almost the whole balance sheet and put Adyen's ROA at 261%, which
+  // flipped it to buy-worthy on a fabricated figure. The floor also restores
+  // the relationship that must hold anyway: ROA cannot exceed ROE.
+  const equity = d?.equity.value ?? null;
+  const adjustedAverageAssets =
+    rawAverageAssets != null && settlement.amount != null
+      ? Math.max(rawAverageAssets - settlement.amount, equity ?? 1, 1)
+      : null;
+
+  const adjustedValue = ratio(netIncome, adjustedAverageAssets);
+
+  if (adjustedValue == null) {
+    // Fall back to the raw figure rather than reporting nothing, but say so.
+    if (rawValue == null) return gray('roa', target, 'missing_data', {}, rawHistory);
+    return {
+      key: 'roa',
+      value: rawValue,
+      unit: 'percent',
+      color: bandHigher(rawValue, t.value.green, t.value.orange),
+      targetLabel: t.label,
+      targetSource: t.source,
+      thresholds: t.value,
+      history: rawHistory,
+      notApplicable: false,
+      unavailableReason: null,
+      detail: {
+        isAdjusted: false,
+        adjustmentFailed: true,
+        note: 'settlement_balance_unavailable',
+        yearsAvailable: rawHistory.length,
+      },
+    };
+  }
+
+  const adjustedHistory = rawHistory.map((point) => ({
+    period: point.period,
+    // Scale each year by the same adjustment factor; per-year settlement
+    // balances are not reliably available, so the shape is indicative.
+    value:
+      rawAverageAssets && adjustedAverageAssets
+        ? point.value * (rawAverageAssets / adjustedAverageAssets)
+        : point.value,
+  }));
 
   return {
     key: 'roa',
-    value: current,
+    value: adjustedValue,
     unit: 'percent',
-    color: bandHigher(current, t.value.green, t.value.orange),
+    color: bandHigher(adjustedValue, t.value.green, t.value.orange),
     targetLabel: t.label,
     targetSource: t.source,
     thresholds: t.value,
-    history,
+    history: adjustedHistory,
     notApplicable: false,
     unavailableReason: null,
-    detail: { qualifyingYears, yearsAvailable: history.length },
+    detail: {
+      isAdjusted: true,
+      rawValue,
+      adjustedValue,
+      totalAssets: rawAverageAssets,
+      adjustedAssets: adjustedAverageAssets,
+      settlementFunds: settlement.amount,
+      settlementBasis: settlement.basis,
+      isApproximation: settlement.basis !== 'reported',
+      equityFloorApplied:
+        rawAverageAssets != null &&
+        settlement.amount != null &&
+        equity != null &&
+        rawAverageAssets - settlement.amount < equity,
+      qualifyingYears: adjustedHistory.filter((p) => p.value >= t.value.green).length,
+      yearsAvailable: adjustedHistory.length,
+      noteKey: 'roa_payment_processor_adjusted',
+    },
   };
+}
+
+/**
+ * Estimates the customer settlement balance sitting inside total assets.
+ *
+ * Preferred: the reported restricted-cash line, which is what Visa uses for
+ * exactly this. Most processors do not break it out — Adyen and PayPal fold it
+ * into cash and payables — so the fallback is the excess-cash proxy: cash
+ * beyond six months of operating expenses is not working capital for an
+ * asset-light processor, it is float. The result is labelled an approximation
+ * wherever it is shown.
+ */
+function settlementFunds(
+  ctx: RatioContext,
+  d?: Derived,
+): { amount: number | null; basis: 'reported' | 'excess_cash_proxy' | 'none' } {
+  const { balance, income } = ctx.bundle.statements;
+
+  const totalAssets = trailingStock(balance.quarterly, balance.annual, 'totalAssets').value;
+  const reported = trailingStock(balance.quarterly, balance.annual, 'restrictedCash').value;
+
+  // Only trust the reported line when it is large enough to *be* the float.
+  // Adyen reports EUR 331m of restricted cash against EUR 11.8bn of assets —
+  // a real line item, but ordinary escrow, not the merchant settlement balance
+  // that distorts the ratio. Taking it at face value moved ROA by 0.3pp and
+  // silently skipped the proxy that was supposed to handle exactly this case.
+  const MATERIALITY = 0.1;
+  if (
+    reported != null &&
+    reported > 0 &&
+    totalAssets != null &&
+    reported / totalAssets >= MATERIALITY
+  ) {
+    return { amount: reported, basis: 'reported' };
+  }
+
+  const cash = d?.cash.value ?? trailingStock(balance.quarterly, balance.annual, 'cash').value;
+  if (cash == null) return { amount: null, basis: 'none' };
+
+  // Operating expenses, or revenue minus EBIT when not reported separately.
+  const opex =
+    trailingFlow(income.quarterly, income.annual, 'operatingExpenses').value ??
+    (() => {
+      const revenue = d?.revenue.value ?? trailingFlow(income.quarterly, income.annual, 'revenue').value;
+      const ebit = d?.ebit.value ?? trailingFlow(income.quarterly, income.annual, 'ebit').value;
+      return revenue != null && ebit != null ? revenue - ebit : null;
+    })();
+
+  if (opex == null || opex <= 0) return { amount: null, basis: 'none' };
+
+  const sixMonthsOpex = opex / 2;
+  const excess = cash - sixMonthsOpex;
+  return excess > 0
+    ? { amount: excess, basis: 'excess_cash_proxy' }
+    : { amount: null, basis: 'none' };
 }
 
 function returnSeries(
@@ -980,6 +1144,17 @@ export function computeInventoryReceivables(ctx: RatioContext, d: Derived): Rati
   const target = { label: 'not growing faster than revenue', source: 'book' as const };
   const { balance } = ctx.bundle.statements;
 
+  // Receivables for a payment processor are settlement balances that scale with
+  // transaction volume, not a collection-risk signal. Renormalising against
+  // total payment volume would be the alternative, but no provider exposes TPV
+  // cleanly, so n/a is the honest answer rather than a fragile proxy.
+  if (ctx.isPaymentProcessor) {
+    return gray('inventory_receivables', target, 'not_applicable', {
+      noteKey: 'inventory_payment_processor_na',
+      reason: 'settlement_balances',
+    });
+  }
+
   const inventory = annualSeries(balance.annual, 'inventory');
   const receivables = annualSeries(balance.annual, 'receivables');
   const revenueGrowth = latestGrowth(d.revenueSeries);
@@ -1120,7 +1295,7 @@ export function computeAllRatios(
     computePFcf(ctx, d),
     computeEarningsQuality(ctx, d),
     computeRoe(ctx),
-    computeRoa(ctx),
+    computeRoa(ctx, d),
     computeEpsGrowth(ctx, d),
     computeRevenueGrowth(ctx, d),
     computeGrossMargin(ctx, d),

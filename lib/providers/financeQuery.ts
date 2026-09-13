@@ -67,6 +67,7 @@ const INCOME_MAP: Record<string, MetricName> = {
   ResearchAndDevelopment: 'researchAndDevelopment',
   SellingGeneralAndAdministration: 'sellingGeneralAdmin',
   TotalExpenses: 'totalExpenses',
+  OperatingExpense: 'operatingExpenses',
   InterestExpense: 'interestExpense',
   InterestIncome: 'interestIncome',
   BasicEPS: 'basicEps',
@@ -98,6 +99,7 @@ const BALANCE_MAP: Record<string, MetricName> = {
   NetPPE: 'netPPE',
   OrdinarySharesNumber: 'sharesOutstanding',
   ShareIssued: 'sharesOutstanding',
+  RestrictedCash: 'restrictedCash',
 };
 
 const CASH_MAP: Record<string, MetricName> = {

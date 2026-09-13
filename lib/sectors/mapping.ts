@@ -27,6 +27,14 @@ export interface SectorRule {
   specificity: number;
   /** True for sectors the book explicitly rules out, so the UI can say why. */
   isExcluded?: boolean;
+  /**
+   * Payment network or processor. Stays fully in focus, but its balance sheet
+   * carries customer settlement balances, so ROA is adjusted and the
+   * inventory/receivables check does not apply.
+   */
+  isPaymentProcessor?: boolean;
+  /** Matched the keyword rule automatically and awaits manual confirmation. */
+  needsReview?: boolean;
   note?: string;
 }
 
@@ -37,10 +45,16 @@ const industryRule = (
   note?: string,
 ): SectorRule => ({ sector, industry, focusSector, specificity: 10, note });
 
-const symbolRule = (symbol: string, focusSector: FocusSector, note: string): SectorRule => ({
+const symbolRule = (
+  symbol: string,
+  focusSector: FocusSector,
+  note: string,
+  isPaymentProcessor = false,
+): SectorRule => ({
   symbol,
   focusSector,
   specificity: 100,
+  isPaymentProcessor,
   note,
 });
 
@@ -168,6 +182,16 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
     'financial_services_non_bank',
     'FinanceDatabase files Adyen under Information Technology / Software, but ' +
       'the book treats it as a payment processor.',
+    true,
+  ),
+  symbolRule('V', 'financial_services_non_bank', 'Payment network (book, section 4).', true),
+  symbolRule('MA', 'financial_services_non_bank', 'Payment network (book, section 4).', true),
+  symbolRule('PYPL', 'financial_services_non_bank', 'Payment processor (book, section 4).', true),
+  symbolRule(
+    'AXP',
+    'financial_services_non_bank',
+    'Payment network and card issuer (book, section 4).',
+    true,
   ),
   symbolRule(
     'EL.PA',
@@ -177,11 +201,34 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
   ),
 ];
 
+/**
+ * Industries whose members are likely payment processors.
+ *
+ * A match never tags a company outright — it sets `needsReview`, so the first
+ * classification of any company is confirmed by a person. These industries hold
+ * plenty of non-processors (consumer lenders, exchanges), and the adjustment
+ * changes which ratios are scored, so a false positive is not cheap.
+ */
+const PAYMENT_KEYWORDS = [/payment/i, /financial data & stock exchanges/i, /transaction/i];
+
+export function looksLikePaymentProcessor(input: {
+  industry: string | null;
+  name?: string | null;
+}): boolean {
+  const haystack = `${input.industry ?? ''} ${input.name ?? ''}`;
+  return PAYMENT_KEYWORDS.some((pattern) => pattern.test(haystack));
+}
+
 /** Resolves the focus sector for one company. Most specific rule wins. */
 export function resolveFocusSector(
   rules: SectorRule[],
   input: { symbol: string; sector: string | null; industry: string | null },
-): { focusSector: FocusSector; isExcluded: boolean; rule: SectorRule | null } {
+): {
+  focusSector: FocusSector;
+  isExcluded: boolean;
+  isPaymentProcessor: boolean;
+  rule: SectorRule | null;
+} {
   let best: SectorRule | null = null;
 
   for (const rule of rules) {
@@ -198,6 +245,7 @@ export function resolveFocusSector(
   return {
     focusSector: best?.focusSector ?? 'outside_focus',
     isExcluded: best?.isExcluded ?? false,
+    isPaymentProcessor: best?.isPaymentProcessor ?? false,
     rule: best,
   };
 }
