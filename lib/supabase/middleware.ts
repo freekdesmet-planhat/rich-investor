@@ -11,12 +11,34 @@ import { createServerClient } from '@supabase/ssr';
 
 const PUBLIC_PATHS = ['/login', '/auth/callback', '/auth/error'];
 
+/**
+ * Reads a public Supabase variable, naming it if it is missing.
+ *
+ * NEXT_PUBLIC_* values are inlined into the bundle at build time, so a
+ * deployment whose build ran before these were configured carries `undefined`
+ * here no matter what the runtime environment holds. Passing that straight to
+ * createServerClient produces "Your project's URL and Key are required to
+ * create a Supabase client!" on every single request, which names neither the
+ * variable nor the fact that a rebuild is what fixes it.
+ */
+function requirePublicEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `${name} is not set. Public variables are inlined at build time, so set ` +
+        `it in the build environment and redeploy — setting it only at runtime ` +
+        `will not change an existing build.`,
+    );
+  }
+  return value;
+}
+
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requirePublicEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requirePublicEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
     {
       cookies: {
         getAll: () => request.cookies.getAll(),

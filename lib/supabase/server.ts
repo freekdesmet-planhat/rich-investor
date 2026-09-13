@@ -12,7 +12,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`Missing ${name}`);
+  if (!value) {
+    throw new Error(
+      `${name} is not set. Public variables are inlined at build time, so set ` +
+        `it in the build environment and redeploy.`,
+    );
+  }
   return value;
 }
 

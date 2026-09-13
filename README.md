@@ -366,6 +366,16 @@ npx tsx --env-file=.env.local scripts/run-scan.ts --limit 60 # a batch of the un
    plugin, security headers and redirects.
 2. Add every required environment variable under **Site settings →
    Environment variables**.
+
+   > **The `NEXT_PUBLIC_*` values must exist before the build runs.** Next.js
+   > inlines them into the bundle — including the edge middleware, which runs on
+   > every request — so a deploy whose build happened before they were set
+   > carries `undefined` regardless of what the runtime environment holds. The
+   > symptom is `Your project's URL and Key are required to create a Supabase
+   > client!` on every page. The fix is a **rebuild**, not a restart: set the
+   > variables, then **Deploys → Trigger deploy → Clear cache and deploy site**.
+   > In Netlify, leave their scope as *All* (or at least include *Builds*);
+   > scoping them to Functions only reproduces the same failure.
 3. Set `NEXT_PUBLIC_SITE_URL` to the deployed URL and add
    `https://<site>/auth/callback` to Supabase's redirect allowlist.
 4. Deploy.
@@ -461,6 +471,32 @@ the build if they drift.
 | `scripts/sync-allowlist.ts` | `ALLOWED_EMAILS` → `allowed_users` |
 | `scripts/verify-universe.ts` | Checks the sector mapping against the seed list |
 | `scripts/checkpoint-provider.ts` | Prints every computed ratio for three tickers, for hand-checking |
+
+---
+
+## Troubleshooting
+
+**`Your project's URL and Key are required to create a Supabase client!`**
+`NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` was missing when
+the bundle was built. Set both in the build environment and redeploy with the
+cache cleared — see the note under [Deploying](#deploying-to-netlify). Locally,
+this means `.env.local` is missing or lacks those two keys; `.env.local` is
+gitignored, so a fresh clone has to start from `cp .env.example .env.local`.
+Both clients now name the missing variable instead of raising that generic
+message.
+
+**Signing in does nothing / the magic link 404s.** Email sign-in is not enabled,
+or the callback URL is not on Supabase's allowlist. Both live under
+Authentication → Providers → Email and Authentication → URL Configuration.
+
+**Alerts are not arriving.** Without `RESEND_API_KEY` the mailer logs instead of
+sending and records `skipped` in `notifications_log` with the reason. With a key
+but no verified domain, Resend's default sender only delivers to your own
+account address.
+
+**The nightly job never runs.** Check `select * from cron.job_run_details order
+by start_time desc limit 5;`. A 401 means `CRON_SECRET` differs between Netlify
+and the argument passed to `schedule_nightly_scan`.
 
 ---
 
