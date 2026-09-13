@@ -40,9 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local env
+# local env — real secrets never committed, but the template is
 .env
 .env*.local
+!.env.example
 
 # supabase
 supabase/.temp
@@ -52,3 +53,6 @@ supabase/.temp
 
 # next build
 .next/
+
+# The template documents required config and is safe to commit.
+!.env.example

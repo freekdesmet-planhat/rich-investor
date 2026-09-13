@@ -315,8 +315,13 @@ export default async function StockPage({
         <section className="mt-8">
           <AiThesisCard
             symbol={symbol}
-            lang={locale}
-            thesis={summary?.thesis ?? null}
+            // Prefer the active language; fall back to the other rather than
+            // showing an empty card, and say which one is on screen.
+            thesis={
+              (locale === 'nl' ? summary?.thesis_nl : summary?.thesis_en) ??
+              (locale === 'nl' ? summary?.thesis_en : summary?.thesis_nl) ??
+              null
+            }
             isMock={summary?.is_mock ?? false}
             // A thesis written against an older signal may no longer describe
             // the figures on the page, so the card says so rather than pretending.
@@ -336,9 +341,9 @@ export default async function StockPage({
               error: tThesis('error'),
               signedOut: tThesis('signedOut'),
               langMismatch:
-                summary && summary.lang !== locale
+                summary && !(locale === 'nl' ? summary.thesis_nl : summary.thesis_en)
                   ? tThesis('langMismatch', {
-                      lang: summary.lang === 'nl' ? 'Nederlands' : 'English',
+                      lang: locale === 'nl' ? 'English' : 'Nederlands',
                     })
                   : null,
             }}

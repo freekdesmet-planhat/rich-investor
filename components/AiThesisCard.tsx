@@ -109,7 +109,6 @@ function GenerateButton({ hasThesis, labels }: { hasThesis: boolean; labels: The
  */
 export function AiThesisCard({
   symbol,
-  lang,
   thesis,
   isMock,
   isStale,
@@ -118,7 +117,6 @@ export function AiThesisCard({
   labels,
 }: {
   symbol: string;
-  lang: string;
   thesis: string | null;
   isMock: boolean;
   isStale: boolean;
@@ -137,7 +135,6 @@ export function AiThesisCard({
 
       <form action={action}>
         <input type="hidden" name="symbol" value={symbol} />
-        <input type="hidden" name="lang" value={lang} />
 
         <Body
           thesis={thesis}

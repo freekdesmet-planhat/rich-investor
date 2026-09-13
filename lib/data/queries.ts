@@ -238,8 +238,8 @@ export async function getReviews(
 
 export interface TickerSummary {
   symbol: string;
-  thesis: string;
-  lang: string;
+  thesis_en: string | null;
+  thesis_nl: string | null;
   model: string | null;
   is_mock: boolean;
   signal_as_of: string | null;
@@ -250,7 +250,7 @@ export interface TickerSummary {
 export async function getTickerSummary(symbol: string): Promise<TickerSummary | null> {
   const { data } = await (await client())
     .from('ticker_summaries')
-    .select('symbol,thesis,lang,model,is_mock,signal_as_of,generated_at')
+    .select('symbol,thesis_en,thesis_nl,model,is_mock,signal_as_of,generated_at')
     .eq('symbol', symbol)
     .maybeSingle<TickerSummary>();
   return data ?? null;

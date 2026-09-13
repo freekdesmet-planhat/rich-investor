@@ -37,6 +37,25 @@ const SUPABASE_STUBS = `
   do $$ begin
     create role service_role;
   exception when duplicate_object then null; end $$;
+
+  -- pg_cron and pg_net are Supabase-platform extensions that PGlite cannot
+  -- install. Stubbing their schemas keeps the scheduling migration meaningful
+  -- here: the function bodies that call them still have to parse and resolve.
+  create schema if not exists cron;
+  create schema if not exists net;
+
+  create table if not exists cron.job (jobid bigint, jobname text);
+
+  create or replace function cron.schedule(job_name text, schedule text, command text)
+  returns bigint language sql as $$ select 1::bigint $$;
+
+  create or replace function cron.unschedule(job_name text)
+  returns boolean language sql as $$ select true $$;
+
+  create or replace function net.http_post(
+    url text, headers jsonb default '{}'::jsonb,
+    body jsonb default '{}'::jsonb, timeout_milliseconds int default 5000
+  ) returns bigint language sql as $$ select 1::bigint $$;
 `;
 
 async function main() {
@@ -47,7 +66,14 @@ async function main() {
   if (files.length === 0) throw new Error(`No migrations found in ${MIGRATIONS_DIR}`);
 
   for (const file of files) {
-    const sql = await readFile(path.join(MIGRATIONS_DIR, file), 'utf8');
+    let sql = await readFile(path.join(MIGRATIONS_DIR, file), 'utf8');
+
+    // The stubs above stand in for these, so the CREATE EXTENSION itself is the
+    // one statement that cannot run locally.
+    sql = sql.replace(
+      /create extension if not exists (pg_cron|pg_net)\s*;/gi,
+      '-- $& (stubbed for local validation)',
+    );
     try {
       await db.exec(sql);
       console.log(`  ok   ${file}`);

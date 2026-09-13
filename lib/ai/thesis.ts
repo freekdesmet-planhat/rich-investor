@@ -6,10 +6,14 @@
  * nightly job — so the cost is one call per click rather than one per ticker
  * per day.
  *
+ * Both languages come from a single call and are stored together (section 2):
+ * generated content must never exist in one language without the other, and
+ * asking twice would double the cost for the same analysis.
+ *
  * Without ANTHROPIC_API_KEY the module returns a fixed placeholder and says so,
  * both in the return value and in the console. The rest of the app works
- * unchanged (section 1), and the stored row is flagged `is_mock` so a
- * placeholder can never be mistaken for a real thesis.
+ * unchanged, and the stored row is flagged `is_mock` so a placeholder can never
+ * be mistaken for a real thesis.
  */
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -22,8 +26,14 @@ import Anthropic from '@anthropic-ai/sdk';
  */
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5';
 
-/** Short by construction: the card is a summary, not an essay. */
-const MAX_TOKENS = 300;
+/**
+ * Room for two summaries plus the JSON envelope.
+ *
+ * Each language is capped at 150 words by the system prompt; 600 tokens leaves
+ * headroom so neither is truncated mid-sentence, which would be worse than
+ * either being shorter.
+ */
+const MAX_TOKENS = 600;
 
 const SYSTEM_PROMPT =
   "You are a pragmatic, no-nonsense equity analyst applying Peter Lynch's " +
@@ -31,10 +41,12 @@ const SYSTEM_PROMPT =
   'fundamental bull and bear case for the provided company. Focus strictly on ' +
   'earnings growth consistency, debt resilience, cash flow quality, and the ' +
   'valuation (PEG). Ignore technical analysis. Keep it concise, direct, and ' +
-  'under 150 words.';
-
-const DUTCH_SUFFIX =
-  '\n\nWrite your answer in Dutch, in the same direct register.';
+  'under 150 words per language.\n\n' +
+  'Respond with valid JSON only, matching exactly this shape:\n' +
+  '{"en": "<the summary in English>", "nl": "<the same summary in Dutch>"}\n\n' +
+  'The Dutch is a natural rendering for a Dutch investor, not a literal ' +
+  'translation, and must make the same points as the English. Output no prose ' +
+  'outside the JSON object and no code fences.';
 
 export interface ThesisContext {
   symbol: string;
@@ -59,7 +71,8 @@ export interface ThesisContext {
 }
 
 export interface ThesisResult {
-  thesis: string;
+  en: string;
+  nl: string;
   model: string;
   isMock: boolean;
   inputTokens: number | null;
@@ -101,69 +114,112 @@ export function buildUserMessage(context: ThesisContext): string {
   ].join('\n');
 }
 
-function mockThesis(context: ThesisContext, lang: 'en' | 'nl'): ThesisResult {
-  const summary =
-    lang === 'nl'
-      ? `Voorbeeldtekst — er is geen ANTHROPIC_API_KEY ingesteld, dus er is geen ` +
-        `analyse gegenereerd. ${context.symbol} voldoet aan ${context.conditionsMet} van ` +
-        `${context.conditionsApplicable} voorwaarden, met een PEG van ${num(context.peg)} en ` +
-        `een rendement op eigen vermogen van ${pct(context.roe)}. Stel de sleutel in om een ` +
-        `echte samenvatting te krijgen.`
-      : `Placeholder — ANTHROPIC_API_KEY is not set, so no analysis was generated. ` +
-        `${context.symbol} meets ${context.conditionsMet} of ${context.conditionsApplicable} ` +
-        `conditions, with a PEG of ${num(context.peg)} and a return on equity of ` +
-        `${pct(context.roe)}. Set the key to get a real summary.`;
+/**
+ * Pulls `{en, nl}` out of the model's reply.
+ *
+ * The prompt asks for bare JSON, but a stray code fence or a sentence before
+ * the object is the classic failure mode, so the first balanced object in the
+ * text is used rather than assuming the whole reply parses. Returns null when
+ * nothing usable is found, and the caller decides what to do about it.
+ */
+export function parseThesisJson(raw: string): { en: string; nl: string } | null {
+  const withoutFence = raw
+    .replace(/^\s*```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim();
 
-  console.warn(
-    `[thesis] ANTHROPIC_API_KEY is not set — returning a placeholder for ${context.symbol}.`,
-  );
+  const candidates = [withoutFence];
+  const start = withoutFence.indexOf('{');
+  const end = withoutFence.lastIndexOf('}');
+  if (start !== -1 && end > start) candidates.push(withoutFence.slice(start, end + 1));
 
-  return { thesis: summary, model: 'mock', isMock: true, inputTokens: null, outputTokens: null };
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as { en?: unknown; nl?: unknown };
+      const en = typeof parsed.en === 'string' ? parsed.en.trim() : '';
+      const nl = typeof parsed.nl === 'string' ? parsed.nl.trim() : '';
+      // Both must be present: half a bilingual summary is not a summary.
+      if (en && nl) return { en, nl };
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return null;
 }
 
-export async function generateThesis(
-  context: ThesisContext,
-  lang: 'en' | 'nl' = 'en',
-): Promise<ThesisResult> {
+function mockThesis(context: ThesisContext): ThesisResult {
+  const shared = `${context.symbol}`;
+  console.warn(
+    `[thesis] ANTHROPIC_API_KEY is not set — returning a placeholder for ${shared}.`,
+  );
+
+  return {
+    en:
+      `Placeholder — ANTHROPIC_API_KEY is not set, so no analysis was generated. ` +
+      `${context.symbol} meets ${context.conditionsMet} of ${context.conditionsApplicable} ` +
+      `conditions, with a PEG of ${num(context.peg)} and a return on equity of ` +
+      `${pct(context.roe)}. Set the key to get a real summary.`,
+    nl:
+      `Voorbeeldtekst — er is geen ANTHROPIC_API_KEY ingesteld, dus er is geen analyse ` +
+      `gegenereerd. ${context.symbol} voldoet aan ${context.conditionsMet} van ` +
+      `${context.conditionsApplicable} voorwaarden, met een PEG van ${num(context.peg)} en ` +
+      `een rendement op eigen vermogen van ${pct(context.roe)}. Stel de sleutel in om een ` +
+      `echte samenvatting te krijgen.`,
+    model: 'mock',
+    isMock: true,
+    inputTokens: null,
+    outputTokens: null,
+  };
+}
+
+export async function generateThesis(context: ThesisContext): Promise<ThesisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return mockThesis(context, lang);
+  if (!apiKey) return mockThesis(context);
 
   const client = new Anthropic({ apiKey });
 
+  let response;
   try {
-    const response = await client.messages.create({
+    response = await client.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: lang === 'nl' ? SYSTEM_PROMPT + DUTCH_SUFFIX : SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT,
       // Summarising figures that are already computed is not a reasoning task,
-      // and a 300-token ceiling would otherwise be spent thinking rather than
-      // answering.
+      // and the token budget is better spent on the two summaries themselves.
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: buildUserMessage(context) }],
     });
-
-    const thesis = response.content
-      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-      .map((block) => block.text)
-      .join('\n')
-      .trim();
-
-    if (!thesis) {
-      throw new Error(`no text returned (stop_reason: ${response.stop_reason})`);
-    }
-
-    return {
-      thesis,
-      model: response.model,
-      isMock: false,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    };
   } catch (error) {
-    // A failed call must not take the page down; the card shows the reason.
     if (error instanceof Anthropic.APIError) {
       throw new Error(`Anthropic API error ${error.status}: ${error.message}`);
     }
     throw error;
   }
+
+  const raw = response.content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('\n')
+    .trim();
+
+  if (!raw) throw new Error(`no text returned (stop_reason: ${response.stop_reason})`);
+
+  const parsed = parseThesisJson(raw);
+  if (!parsed) {
+    // Truncation is the likeliest cause, and it is worth naming: a silent
+    // half-summary would be stored as though it were complete.
+    throw new Error(
+      response.stop_reason === 'max_tokens'
+        ? 'the reply was cut off before both languages were complete'
+        : 'the reply was not the requested {en, nl} JSON',
+    );
+  }
+
+  return {
+    ...parsed,
+    model: response.model,
+    isMock: false,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
 }

@@ -6,7 +6,12 @@
  * real analysis.
  */
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { buildUserMessage, generateThesis, type ThesisContext } from './thesis';
+import {
+  buildUserMessage,
+  generateThesis,
+  parseThesisJson,
+  type ThesisContext,
+} from './thesis';
 
 const context = (overrides: Partial<ThesisContext> = {}): ThesisContext => ({
   symbol: 'ADYEN.AS',
@@ -88,8 +93,21 @@ describe('without an API key', () => {
 
     expect(result.isMock).toBe(true);
     expect(result.model).toBe('mock');
-    expect(result.thesis).toContain('ANTHROPIC_API_KEY is not set');
+    expect(result.en).toContain('ANTHROPIC_API_KEY is not set');
     expect(warn).toHaveBeenCalled();
+  });
+
+  /** Section 2: generated content never exists in one language without the other. */
+  it('still produces both languages', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await generateThesis(context());
+
+    expect(result.en.length).toBeGreaterThan(40);
+    expect(result.nl.length).toBeGreaterThan(40);
+    expect(result.nl).toContain('Voorbeeldtekst');
+    expect(result.en).not.toBe(result.nl);
   });
 
   it('still cites the real figures, so the placeholder is not fiction', async () => {
@@ -98,19 +116,9 @@ describe('without an API key', () => {
 
     const result = await generateThesis(context());
 
-    expect(result.thesis).toContain('ADYEN.AS');
-    expect(result.thesis).toContain('9 of 9');
-    expect(result.thesis).toContain('1.17');
-  });
-
-  it('produces the placeholder in Dutch when asked', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const result = await generateThesis(context(), 'nl');
-
-    expect(result.thesis).toContain('Voorbeeldtekst');
-    expect(result.isMock).toBe(true);
+    expect(result.en).toContain('ADYEN.AS');
+    expect(result.en).toContain('9 of 9');
+    expect(result.en).toContain('1.17');
   });
 
   it('reports no token usage, since nothing was spent', async () => {
@@ -121,5 +129,40 @@ describe('without an API key', () => {
 
     expect(result.inputTokens).toBeNull();
     expect(result.outputTokens).toBeNull();
+  });
+});
+
+describe('parsing the dual-language reply', () => {
+  it('reads a bare JSON object', () => {
+    expect(parseThesisJson('{"en":"Bull case.","nl":"Bullcase."}')).toEqual({
+      en: 'Bull case.',
+      nl: 'Bullcase.',
+    });
+  });
+
+  /** The classic failure: the model wraps its JSON in a code fence. */
+  it('reads JSON wrapped in a code fence', () => {
+    const raw = '```json\n{"en":"Bull case.","nl":"Bullcase."}\n```';
+    expect(parseThesisJson(raw)?.en).toBe('Bull case.');
+  });
+
+  it('reads JSON preceded by a stray sentence', () => {
+    const raw = 'Here is the summary:\n{"en":"Bull case.","nl":"Bullcase."}';
+    expect(parseThesisJson(raw)?.nl).toBe('Bullcase.');
+  });
+
+  /** Half a bilingual summary is not a summary — the caller must know. */
+  it('rejects a reply missing one language', () => {
+    expect(parseThesisJson('{"en":"Only English."}')).toBeNull();
+    expect(parseThesisJson('{"en":"","nl":"Alleen Nederlands."}')).toBeNull();
+  });
+
+  it('rejects text that is not JSON at all', () => {
+    expect(parseThesisJson('The bull case is strong.')).toBeNull();
+    expect(parseThesisJson('')).toBeNull();
+  });
+
+  it('rejects a reply truncated mid-object', () => {
+    expect(parseThesisJson('{"en":"Bull case.","nl":"Bullca')).toBeNull();
   });
 });

@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { generateThesis, type ThesisContext } from '@/lib/ai/thesis';
-import type { Lang } from '@/lib/i18n/config';
 
 export interface ThesisState {
   status: 'idle' | 'done' | 'error';
@@ -40,7 +39,6 @@ export async function generateThesisAction(
   formData: FormData,
 ): Promise<ThesisState> {
   const symbol = String(formData.get('symbol') ?? '');
-  const lang = (String(formData.get('lang') ?? 'en') === 'nl' ? 'nl' : 'en') as Lang;
   if (!symbol) return { status: 'error', message: 'missing_symbol' };
 
   const supabase = await createClient();
@@ -100,13 +98,13 @@ export async function generateThesisAction(
   };
 
   try {
-    const result = await generateThesis(context, lang);
+    const result = await generateThesis(context);
 
     const { error } = await supabase.from('ticker_summaries').upsert(
       {
         symbol,
-        thesis: result.thesis,
-        lang,
+        thesis_en: result.en,
+        thesis_nl: result.nl,
         model: result.model,
         is_mock: result.isMock,
         signal_as_of: signal.as_of,

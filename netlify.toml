@@ -1,0 +1,103 @@
+# Netlify configuration.
+#
+# The Next.js runtime plugin handles the build output — `publish` is set to
+# `.next` for clarity, but the plugin is what actually wires the server routes,
+# middleware and image handling. Every page here is server-rendered (auth,
+# per-user data), so there is no static export to point at.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Matches the local toolchain; the Supabase and yahoo-finance2 clients both
+  # rely on Node 20+ fetch semantics.
+  NODE_VERSION = "22"
+  # The build only needs prod dependencies plus the Next/TypeScript toolchain.
+  NPM_FLAGS = "--include=dev"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# ---------------------------------------------------------------------------
+# Security headers
+#
+# The app renders financial data behind a login, so the defaults are tightened:
+# no framing, no MIME sniffing, no referrer leakage to third parties, and no
+# access to camera, microphone or geolocation, none of which it uses.
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    # Connections are limited to Supabase; everything else is fetched
+    # server-side, so the browser never needs to reach a market-data host.
+    Content-Security-Policy = """
+      default-src 'self'; \
+      script-src 'self' 'unsafe-inline'; \
+      style-src 'self' 'unsafe-inline'; \
+      img-src 'self' data: https:; \
+      font-src 'self' data:; \
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co; \
+      frame-ancestors 'none'; \
+      base-uri 'self'; \
+      form-action 'self'"""
+
+# The nightly job is called by Postgres, never by a browser, and must not be
+# cached or indexed.
+[[headers]]
+  for = "/api/cron/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+# The whole app is private, so keep it out of search results entirely.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# ---------------------------------------------------------------------------
+# Redirects
+# ---------------------------------------------------------------------------
+# Supabase sends magic links to /auth/callback; this keeps older links that
+# point at the bare confirm path working.
+[[redirects]]
+  from = "/auth/confirm"
+  to = "/auth/callback"
+  status = 301
+  force = true
+
+# ---------------------------------------------------------------------------
+# Environment variables — set these in Netlify, not here.
+#
+# Site settings → Environment variables. Values are never committed; this block
+# documents what the deployment expects. See README.md for what each one does.
+#
+#   Required
+#     NEXT_PUBLIC_SUPABASE_URL        Supabase project URL (exposed to browser)
+#     NEXT_PUBLIC_SUPABASE_ANON_KEY   Supabase anon key (exposed to browser)
+#     SUPABASE_URL                    Same URL, for server-side use
+#     SUPABASE_ANON_KEY               Same anon key, for server-side use
+#     SUPABASE_SERVICE_ROLE_KEY       Bypasses RLS — server only, never public
+#     ALLOWED_EMAILS                  Comma-separated sign-in whitelist
+#     NEXT_PUBLIC_SITE_URL            Absolute site URL, for magic-link redirects
+#     CRON_SECRET                     Shared secret for /api/cron/nightly-scan
+#
+#   Email alerts
+#     RESEND_API_KEY                  Resend API key
+#     RESEND_FROM                     Verified sender, e.g. "Rich Investor <alerts@…>"
+#     NOTIFY_EMAILS                   Fallback recipients before settings exist
+#
+#   Optional
+#     ANTHROPIC_API_KEY               Enables real AI thesis summaries
+#     ANTHROPIC_MODEL                 Override the default model
+#     FMP_API_KEY                     Analyst estimates for the tickers FMP covers
+#     SEC_USER_AGENT                  Contact string the SEC requires for EDGAR
+#     SCAN_BATCH_SIZE                 Candidates evaluated per nightly run
+#     FINANCE_QUERY_BASE_URL          Point at a self-hosted finance-query
+# ---------------------------------------------------------------------------
