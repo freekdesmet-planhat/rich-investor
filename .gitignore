@@ -49,3 +49,6 @@ supabase/.temp
 
 # cached datasets
 .cache/
+
+# next build
+.next/

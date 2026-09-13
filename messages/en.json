@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Rich Investor",
+    "tagline": "Personal stock analysis, on the framework from Rijke Belegger, Arme Belegger",
+    "disclaimer": "This is a personal analysis tool, not investment advice."
+  },
+  "nav": {
+    "watchlist": "Watchlist",
+    "suggestions": "Suggestions",
+    "market": "Market context",
+    "settings": "Settings"
+  },
+  "language": { "label": "Language", "en": "English", "nl": "Nederlands" },
+  "status": {
+    "buy_worthy": "Buy-worthy, over to your qualitative review",
+    "almost": "Almost there, keep watching",
+    "watching": "Watching",
+    "conditionsMet": "{met} of {total} conditions met"
+  },
+  "sector": {
+    "information_technology": "Information technology",
+    "luxury_consumer": "Luxury goods and consumer discretionary",
+    "entertainment_media": "Entertainment and interactive media",
+    "financial_services_non_bank": "Financial services, non-bank",
+    "outside_focus": "Outside the book's focus sectors"
+  },
+  "ratio": {
+    "explain": "What does this mean?",
+    "target": "Target",
+    "source": { "book": "from the book", "app_default": "app default" },
+    "fiveYears": "Last 5 years",
+    "unavailable": {
+      "missing_data": "No data available",
+      "not_applicable": "Not applicable to this company",
+      "negative_base": "Not meaningful: the figure it divides by is negative",
+      "series_break": "Trend suppressed: the company changed what it reports",
+      "no_fx_rate": "No exchange rate available to reconcile the currencies"
+    },
+    "adjusted": {
+      "label": "adjusted",
+      "raw": "Raw",
+      "roaNote": "Raw ROA is distorted by settlement balances typical of payment processors; adjusted ROA is used for the buy-worthy check.",
+      "approximation": "The adjustment is an approximation."
+    }
+  },
+  "signal": {
+    "why": "Why",
+    "checklist": "Buy-worthy checklist",
+    "pegBasis": {
+      "trailing": "passed on realised growth",
+      "forward": "passed on expected growth only",
+      "both": "passed on both realised and expected growth",
+      "none": "not passed"
+    }
+  },
+  "data": {
+    "staleBanner": "Data from {date}, data source temporarily unavailable.",
+    "source": "Source",
+    "asOf": "As of {date}"
+  },
+  "review": {
+    "title": "My qualitative review",
+    "assessment": {
+      "label": "Is the problem temporary or structural?",
+      "temporary": "Temporary problem",
+      "structural": "Structural problem",
+      "not_assessed": "Not yet assessed"
+    },
+    "catalysts": "Catalysts",
+    "sellSignals": "Sell signals",
+    "notes": "Notes",
+    "marksQuestion": "Looking back on this moment five years from now, would you have wanted to buy more shares or fewer?"
+  }
+}

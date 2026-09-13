@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Rijke Belegger",
+    "tagline": "Persoonlijke aandelenanalyse, op basis van Rijke Belegger, Arme Belegger",
+    "disclaimer": "Dit is een persoonlijke analysetool, geen beleggingsadvies."
+  },
+  "nav": {
+    "watchlist": "Volglijst",
+    "suggestions": "Suggesties",
+    "market": "Marktcontext",
+    "settings": "Instellingen"
+  },
+  "language": { "label": "Taal", "en": "English", "nl": "Nederlands" },
+  "status": {
+    "buy_worthy": "Koopwaardig, nu jouw kwalitatieve beoordeling",
+    "almost": "Bijna zover, blijven volgen",
+    "watching": "Volgen",
+    "conditionsMet": "{met} van {total} voorwaarden behaald"
+  },
+  "sector": {
+    "information_technology": "Informatietechnologie",
+    "luxury_consumer": "Luxegoederen en consumentengoederen",
+    "entertainment_media": "Entertainment en interactieve media",
+    "financial_services_non_bank": "Financiële dienstverlening, niet-bancair",
+    "outside_focus": "Buiten de focussectoren van het boek"
+  },
+  "ratio": {
+    "explain": "Wat betekent dit?",
+    "target": "Doel",
+    "source": { "book": "uit het boek", "app_default": "standaardinstelling" },
+    "fiveYears": "Afgelopen 5 jaar",
+    "unavailable": {
+      "missing_data": "Geen gegevens beschikbaar",
+      "not_applicable": "Niet van toepassing op dit bedrijf",
+      "negative_base": "Niet zinvol: het getal waardoor gedeeld wordt is negatief",
+      "series_break": "Trend onderdrukt: het bedrijf rapporteert iets anders dan voorheen",
+      "no_fx_rate": "Geen wisselkoers beschikbaar om de valuta's op elkaar af te stemmen"
+    },
+    "adjusted": {
+      "label": "gecorrigeerd",
+      "raw": "Ruw",
+      "roaNote": "De ruwe ROA wordt vertekend door settlementsaldi die typisch zijn voor betaalbedrijven; voor de koopwaardigheidstoets wordt de gecorrigeerde ROA gebruikt.",
+      "approximation": "De correctie is een benadering."
+    }
+  },
+  "signal": {
+    "why": "Waarom",
+    "checklist": "Checklist koopwaardigheid",
+    "pegBasis": {
+      "trailing": "gehaald op gerealiseerde groei",
+      "forward": "alleen gehaald op verwachte groei",
+      "both": "gehaald op zowel gerealiseerde als verwachte groei",
+      "none": "niet gehaald"
+    }
+  },
+  "data": {
+    "staleBanner": "Gegevens van {date}, gegevensbron tijdelijk niet beschikbaar.",
+    "source": "Bron",
+    "asOf": "Peildatum {date}"
+  },
+  "review": {
+    "title": "Mijn kwalitatieve beoordeling",
+    "assessment": {
+      "label": "Is het probleem tijdelijk of structureel?",
+      "temporary": "Tijdelijk probleem",
+      "structural": "Structureel probleem",
+      "not_assessed": "Nog niet beoordeeld"
+    },
+    "catalysts": "Katalysatoren",
+    "sellSignals": "Verkoopsignalen",
+    "notes": "Notities",
+    "marksQuestion": "Als je over vijf jaar op dit moment terugkijkt, had je dan meer of minder aandelen willen kopen?"
+  }
+}
