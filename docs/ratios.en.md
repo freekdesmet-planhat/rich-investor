@@ -393,3 +393,88 @@ denominator.
 
 Too much debt is a no-go criterion for the book. For banks and insurers this
 condition does not apply.
+
+---
+
+## catalyst:management_reaffirms_targets
+**Name:** Management reaffirms its long-term targets
+**Target:** —
+
+Management is standing by the targets it gave earlier. That is one of the
+strongest signs a setback is seen as temporary by the people with the most
+information.
+
+## catalyst:management_buying_shares
+**Name:** Management is buying its own shares
+**Target:** —
+
+Directors buying with their own money are putting conviction behind their words.
+
+## catalyst:buybacks
+**Name:** Share buybacks
+**Target:** —
+
+The company is buying back stock, which raises earnings per share and signals
+that management considers the price low.
+
+## catalyst:dividend_increase
+**Name:** Dividend increase
+**Target:** —
+
+Raising the dividend during a price fall signals confidence in the cash flow.
+
+## catalyst:sector_still_growing
+**Name:** The sector is still growing
+**Target:** —
+
+The problem is with this company, not with the market it operates in.
+
+## catalyst:founder_or_long_tenured_ceo
+**Name:** Founder or long-tenured CEO still at the helm
+**Target:** —
+
+Continuity at the top, with an owner's view of the long term.
+
+## catalyst:problem_confined_to_one_cycle
+**Name:** The problem is confined to one cycle
+**Target:** —
+
+Demand or supply, not both at once. The book treats that as the difference
+between a temporary dip and a structural problem.
+
+## sell_signal:deteriorating_performance
+**Name:** Structurally deteriorating performance
+**Target:** —
+
+Not one weak quarter, but a line that keeps heading the wrong way.
+
+## sell_signal:large_acquisition_high_premium
+**Name:** A large acquisition at a high premium
+**Target:** —
+
+The book is wary of companies that buy growth rather than earn it.
+
+## sell_signal:involuntary_cfo_departure
+**Name:** Involuntary CFO departure
+**Target:** —
+
+A finance chief who does not leave of their own accord is rarely good news.
+
+## sell_signal:declining_solvency
+**Name:** Sharply declining solvency
+**Target:** —
+
+The debt position is worsening fast enough to remove the room to manoeuvre.
+
+## sell_signal:unusual_insider_selling
+**Name:** Unusually large insider selling
+**Target:** —
+
+Directors selling at the same time and in size usually know something.
+
+## sell_signal:no_visible_future_growth
+**Name:** I no longer see where future earnings growth would come from
+**Target:** —
+
+The book puts this deliberately in the first person: if *you* can no longer tell
+the story, that alone is a reason to sell.

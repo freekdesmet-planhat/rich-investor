@@ -5,8 +5,11 @@ import { PriceChart } from '@/components/PriceChart';
 import { RatioCard } from '@/components/RatioCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
+import { createClient } from '@/lib/supabase/server';
 import {
   getRatios,
+  getReviews,
   getSignal,
   getSnapshot,
   getTranslations as getDocTranslations,
@@ -65,10 +68,17 @@ export default async function StockPage({
   const signal = await getSignal(symbol);
   if (!signal) notFound();
 
-  const [ratios, snapshot, docs, tRatio, tSignal, tData, tSector, tStatus] = await Promise.all([
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [ratios, snapshot, docs, reviewData, tRatio, tSignal, tData, tSector, tStatus] =
+    await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
     getDocTranslations(locale),
+    getReviews(symbol),
     getTranslations('ratio'),
     getTranslations('signal'),
     getTranslations('data'),
@@ -82,6 +92,19 @@ export default async function StockPage({
     high?: number | null;
     highDate?: string | null;
   };
+
+  // Notes belong to whoever wrote them, so each review carries only its own.
+  const toRecord = (review: (typeof reviewData.reviews)[number]): ReviewRecord => ({
+    ...review,
+    notes: reviewData.notes
+      .filter((n) => n.review_id === review.id)
+      .map((n) => ({ note: n.note, noted_on: n.noted_on })),
+    authorLabel: review.user_id === user?.id ? (user?.email ?? '') : review.user_id.slice(0, 8),
+    isMine: review.user_id === user?.id,
+  });
+
+  const mine = reviewData.reviews.find((r) => r.user_id === user?.id);
+  const others = reviewData.reviews.filter((r) => r.user_id !== user?.id).map(toRecord);
 
   const name = snapshot?.quote?.name ?? symbol;
   const lynch = docs.get(`lynch:${signal.lynch_category}`);
@@ -283,6 +306,16 @@ export default async function StockPage({
             </div>
           </section>
         )}
+
+        {/* --- the judgement the app cannot make (section 8) ------------------ */}
+        <QualitativeReview
+          symbol={symbol}
+          mine={mine ? toRecord(mine) : null}
+          others={others}
+          conditionsMet={signal.conditions_met}
+          conditionsApplicable={signal.conditions_applicable}
+          docs={docs}
+        />
 
         {/* --- provenance ---------------------------------------------------- */}
         <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">

@@ -67,8 +67,18 @@
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",
+    "intro": "De app heeft alles gedaan wat meetbaar is. Dit deel kan zij niet voor je beantwoorden.",
+    "yours": "Jouw beoordeling",
+    "theirs": "Beoordeling van {email}",
+    "noneYet": "Nog niet beoordeeld",
+    "save": "Beoordeling opslaan",
+    "saving": "Opslaan…",
+    "saved": "Opgeslagen",
+    "lastUpdated": "Laatst bijgewerkt {date}",
+    "checklistReminder": "{met} van {total} kwantitatieve voorwaarden behaald. De beoordeling hieronder is de laatste stap vóór een koopbeslissing.",
     "assessment": {
       "label": "Is het probleem tijdelijk of structureel?",
+      "help": "De volgende vraag van het boek zelf: een terugval van één of enkele kwartalen, waarbij het groeiverhaal overeind blijft, is iets anders dan structureel verslechterende resultaten.",
       "temporary": "Tijdelijk probleem",
       "structural": "Structureel probleem",
       "not_assessed": "Nog niet beoordeeld"
@@ -76,6 +86,9 @@
     "catalysts": "Katalysatoren",
     "sellSignals": "Verkoopsignalen",
     "notes": "Notities",
+    "notesPlaceholder": "Wat je concludeerde, en waarom.",
+    "addNote": "Notitie toevoegen",
+    "marksLabel": "De vaste vraag van Howard Marks",
     "marksQuestion": "Als je over vijf jaar op dit moment terugkijkt, had je dan meer of minder aandelen willen kopen?"
   },
   "auth": {
@@ -92,5 +105,17 @@
     "tryAgain": "Opnieuw proberen",
     "signOut": "Uitloggen",
     "signedInAs": "Ingelogd als {email}"
+  },
+  "suggestions": {
+    "title": "Suggesties",
+    "empty": "Nu even niets. De nachtelijke scan meldt alles wat de kwantitatieve drempel al haalt.",
+    "accept": "Aan volglijst toevoegen",
+    "dismiss": "Afwijzen",
+    "dismissedFor": "{days} dagen afgewezen",
+    "suggestedOn": "Gevonden op {date}",
+    "pending": "Wacht op jouw beslissing",
+    "recentlyDecided": "Recent beslist",
+    "accepted": "Toegevoegd",
+    "rejected": "Afgewezen"
   }
 }

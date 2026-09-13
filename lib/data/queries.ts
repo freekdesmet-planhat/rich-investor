@@ -189,3 +189,49 @@ export async function getTranslations(lang: Lang): Promise<Map<string, Translati
   }
   return out;
 }
+
+export interface ReviewRow {
+  id: string;
+  user_id: string;
+  symbol: string;
+  assessment: 'temporary' | 'structural' | 'not_assessed';
+  catalysts: string[];
+  sell_signals: string[];
+  marks_answer: string | null;
+  assessed_at: string | null;
+  updated_at: string;
+}
+
+export interface NoteRow {
+  review_id: string;
+  user_id: string;
+  note: string;
+  noted_on: string;
+}
+
+/**
+ * Every household member's review of one ticker, with their notes.
+ *
+ * RLS lets both members read each other's reviews but only write their own, so
+ * this returns the full set and the caller separates "mine" from "theirs".
+ */
+export async function getReviews(
+  symbol: string,
+): Promise<{ reviews: ReviewRow[]; notes: NoteRow[] }> {
+  const supabase = await client();
+
+  const { data: reviews } = await supabase
+    .from('qualitative_reviews')
+    .select('id,user_id,symbol,assessment,catalysts,sell_signals,marks_answer,assessed_at,updated_at')
+    .eq('symbol', symbol)
+    .returns<ReviewRow[]>();
+
+  const { data: notes } = await supabase
+    .from('qualitative_notes')
+    .select('review_id,user_id,note,noted_on')
+    .eq('symbol', symbol)
+    .order('noted_on', { ascending: false })
+    .returns<NoteRow[]>();
+
+  return { reviews: reviews ?? [], notes: notes ?? [] };
+}

@@ -67,8 +67,18 @@
   },
   "review": {
     "title": "My qualitative review",
+    "intro": "The app has done everything it can measure. This part it cannot answer for you.",
+    "yours": "Your review",
+    "theirs": "{email}'s review",
+    "noneYet": "Not yet assessed",
+    "save": "Save review",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "lastUpdated": "Last updated {date}",
+    "checklistReminder": "{met} of {total} quantitative conditions met. The review below is the final step before a buy decision.",
     "assessment": {
       "label": "Is the problem temporary or structural?",
+      "help": "The book's own next question: a slowdown over one or a few quarters, with the growth story intact, is not the same as structurally deteriorating results.",
       "temporary": "Temporary problem",
       "structural": "Structural problem",
       "not_assessed": "Not yet assessed"
@@ -76,6 +86,9 @@
     "catalysts": "Catalysts",
     "sellSignals": "Sell signals",
     "notes": "Notes",
+    "notesPlaceholder": "What you concluded, and why.",
+    "addNote": "Add note",
+    "marksLabel": "Howard Marks' standing question",
     "marksQuestion": "Looking back on this moment five years from now, would you have wanted to buy more shares or fewer?"
   },
   "auth": {
@@ -92,5 +105,17 @@
     "tryAgain": "Try again",
     "signOut": "Sign out",
     "signedInAs": "Signed in as {email}"
+  },
+  "suggestions": {
+    "title": "Suggestions",
+    "empty": "Nothing new right now. The nightly scan files anything that already clears the quantitative bar.",
+    "accept": "Add to watchlist",
+    "dismiss": "Dismiss",
+    "dismissedFor": "Dismissed for {days} days",
+    "suggestedOn": "Found {date}",
+    "pending": "Waiting for your decision",
+    "recentlyDecided": "Recently decided",
+    "accepted": "Added",
+    "rejected": "Dismissed"
   }
 }

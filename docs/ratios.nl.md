@@ -400,3 +400,88 @@ noemer.
 
 Te veel schuld is voor het boek een no-gocriterium. Bij banken en verzekeraars is
 deze voorwaarde niet van toepassing.
+
+---
+
+## catalyst:management_reaffirms_targets
+**Naam:** Management herbevestigt de langetermijndoelen
+**Doel:** —
+
+Het management houdt vast aan de eerder afgegeven doelen. Dat is een van de
+sterkste aanwijzingen dat een terugval als tijdelijk wordt gezien door de mensen
+met de meeste informatie.
+
+## catalyst:management_buying_shares
+**Naam:** Management koopt zelf aandelen
+**Doel:** —
+
+Bestuurders die met eigen geld bijkopen, zetten hun overtuiging achter hun woorden.
+
+## catalyst:buybacks
+**Naam:** Inkoop van eigen aandelen
+**Doel:** —
+
+Het bedrijf koopt eigen aandelen in, wat de winst per aandeel verhoogt en laat
+zien dat het management de koers laag vindt.
+
+## catalyst:dividend_increase
+**Naam:** Dividendverhoging
+**Doel:** —
+
+Een verhoging tijdens een koersdaling is een signaal van vertrouwen in de kasstroom.
+
+## catalyst:sector_still_growing
+**Naam:** De sector groeit nog
+**Doel:** —
+
+Het probleem zit bij dit bedrijf, niet bij de markt waarin het opereert.
+
+## catalyst:founder_or_long_tenured_ceo
+**Naam:** Oprichter of langzittende CEO nog aan het roer
+**Doel:** —
+
+Continuïteit aan de top, met een eigenaarsblik op de lange termijn.
+
+## catalyst:problem_confined_to_one_cycle
+**Naam:** Het probleem beperkt zich tot één cyclus
+**Doel:** —
+
+Vraag óf aanbod, niet allebei tegelijk. Het boek ziet dat als het verschil tussen
+een tijdelijke dip en een structureel probleem.
+
+## sell_signal:deteriorating_performance
+**Naam:** Structureel verslechterende prestaties
+**Doel:** —
+
+Niet één zwak kwartaal, maar een lijn die de verkeerde kant op blijft gaan.
+
+## sell_signal:large_acquisition_high_premium
+**Naam:** Grote overname tegen een hoge premie
+**Doel:** —
+
+Het boek is wantrouwig richting bedrijven die groei kopen in plaats van verdienen.
+
+## sell_signal:involuntary_cfo_departure
+**Naam:** Onvrijwillig vertrek van de CFO
+**Doel:** —
+
+Een financieel directeur die niet uit eigen beweging vertrekt, is zelden goed nieuws.
+
+## sell_signal:declining_solvency
+**Naam:** Sterk dalende solvabiliteit
+**Doel:** —
+
+De schuldpositie verslechtert in een tempo dat de speelruimte wegneemt.
+
+## sell_signal:unusual_insider_selling
+**Naam:** Ongebruikelijk veel verkopen door insiders
+**Doel:** —
+
+Bestuurders die tegelijk en in omvang verkopen, weten doorgaans iets.
+
+## sell_signal:no_visible_future_growth
+**Naam:** Ik zie niet meer waar toekomstige winstgroei vandaan moet komen
+**Doel:** —
+
+Het boek zet dit bewust in de eerste persoon: als jíj het verhaal niet meer kunt
+navertellen, is dat op zichzelf een reden om te verkopen.

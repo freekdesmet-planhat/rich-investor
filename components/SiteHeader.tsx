@@ -5,7 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/login/actions';
 
 export async function SiteHeader() {
-  const [t, tAuth] = await Promise.all([getTranslations('app'), getTranslations('auth')]);
+  const [t, tAuth, tNav] = await Promise.all([
+    getTranslations('app'),
+    getTranslations('auth'),
+    getTranslations('nav'),
+  ]);
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,6 +26,20 @@ export async function SiteHeader() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-2">
+          <nav className="flex items-center gap-1 text-xs">
+            <Link
+              href="/"
+              className="rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              {tNav('watchlist')}
+            </Link>
+            <Link
+              href="/suggestions"
+              className="rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              {tNav('suggestions')}
+            </Link>
+          </nav>
           <LanguageSwitcher />
           {user?.email && (
             <form action={signOut}>
