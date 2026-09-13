@@ -20,6 +20,7 @@ import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { evaluateSignal, type SignalStatus } from '@/lib/signal/buyWorthy';
 import { explainSignal } from '@/lib/signal/explain';
 import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
+import { refreshMacroContext } from '@/lib/macro/store';
 import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
 import {
   DEFAULT_SECTOR_RULES,
@@ -37,6 +38,8 @@ export interface PipelineOptions {
   skipEstimates?: boolean;
   /** Set for a dry run: computes and stores, but sends no alerts. */
   skipNotifications?: boolean;
+  /** Skip the market-wide refresh; the per-ticker work does not depend on it. */
+  skipMacro?: boolean;
   onProgress?: (message: string) => void;
 }
 
@@ -93,6 +96,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     thresholdOverrides,
     skipEstimates = false,
     skipNotifications = false,
+    skipMacro = false,
     onProgress,
   } = options;
   const log = onProgress ?? (() => {});
@@ -136,6 +140,16 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
   const previousStatus = new Map<string, SignalStatus>();
   for (const row of previousRows ?? []) {
     if (!previousStatus.has(row.symbol)) previousStatus.set(row.symbol, row.status);
+  }
+
+  // Market-wide context first, and never fatally: it is a separate concern from
+  // the per-ticker pipeline, so a FRED outage must not cost a night of signals.
+  if (!skipMacro) {
+    try {
+      await refreshMacroContext(client, log);
+    } catch (error) {
+      log(`macro refresh failed (continuing): ${(error as Error).message}`);
+    }
   }
 
   // --- market data ----------------------------------------------------------

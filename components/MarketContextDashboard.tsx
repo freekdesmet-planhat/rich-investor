@@ -1,0 +1,140 @@
+import { getLocale, getTranslations } from 'next-intl/server';
+import {
+  buffettTone,
+  concentrationTone,
+  yieldTone,
+  type MacroTone,
+} from '@/lib/macro/fetch';
+import { createClient } from '@/lib/supabase/server';
+import type { Lang } from '@/lib/i18n/config';
+import { formatNumber } from '@/lib/i18n/format';
+import { MacroCard } from './MacroCard';
+
+interface MacroRow {
+  date: string;
+  buffett_indicator: number | null;
+  yield_spread_10y2y: number | null;
+  spy_rsp_spread: number | null;
+  sp500_pe: number | null;
+  errors: string[] | null;
+}
+
+/**
+ * The market-wide block (section 5.20), above the watchlist.
+ *
+ * Deliberately the first thing on the page and deliberately not per-stock: the
+ * book frames this as weather rather than a signal — it tells you how hard the
+ * hunting will be, not what to buy. Nothing here feeds the buy-worthy logic.
+ *
+ * Renders nothing at all when no snapshot exists yet, rather than a row of
+ * empty cards.
+ */
+export async function MarketContextDashboard() {
+  const locale = (await getLocale()) as Lang;
+  const [t, tRatio] = await Promise.all([getTranslations('macro'), getTranslations('ratio')]);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('macro_context')
+    .select('date,buffett_indicator,yield_spread_10y2y,spy_rsp_spread,sp500_pe,errors')
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle<MacroRow>();
+
+  if (!data) return null;
+
+  const spread = data.yield_spread_10y2y;
+  const concentration = data.spy_rsp_spread;
+
+  const cards: Array<{
+    key: string;
+    name: string;
+    help: string;
+    value: string;
+    tone: MacroTone;
+    note?: string;
+  }> = [
+    {
+      key: 'buffett',
+      name: t('buffett.name'),
+      help: t('buffett.help'),
+      value:
+        data.buffett_indicator != null
+          ? `${formatNumber(data.buffett_indicator, locale, 0)}%`
+          : t('unavailable'),
+      tone: buffettTone(data.buffett_indicator),
+    },
+    {
+      key: 'yieldSpread',
+      name: t('yieldSpread.name'),
+      help: t('yieldSpread.help'),
+      value: spread != null ? `${formatNumber(spread, locale, 2)}` : t('unavailable'),
+      tone: yieldTone(spread),
+      note:
+        spread == null
+          ? undefined
+          : spread < 0
+            ? t('yieldSpread.inverted')
+            : t('yieldSpread.normal'),
+    },
+    {
+      key: 'concentration',
+      name: t('concentration.name'),
+      help: t('concentration.help'),
+      value:
+        concentration != null
+          ? `${concentration > 0 ? '+' : ''}${formatNumber(concentration, locale, 1)} pp`
+          : t('unavailable'),
+      tone: concentrationTone(concentration),
+      note:
+        concentration == null
+          ? undefined
+          : concentration > 5
+            ? t('concentration.narrow')
+            : t('concentration.broad'),
+    },
+    {
+      key: 'sp500Pe',
+      name: t('sp500Pe.name'),
+      help: t('sp500Pe.help'),
+      value: data.sp500_pe != null ? formatNumber(data.sp500_pe, locale, 1) : t('unavailable'),
+      tone: 'neutral',
+    },
+  ];
+
+  return (
+    <section className="mb-8">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('title')}</h2>
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          {t('asOf', { date: data.date })}
+        </p>
+      </div>
+      <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {cards.map((card) => (
+          <MacroCard
+            key={card.key}
+            name={card.name}
+            help={card.help}
+            value={card.value}
+            tone={card.tone}
+            note={card.note}
+            explainLabel={tRatio('explain')}
+          />
+        ))}
+      </div>
+
+      {data.errors && data.errors.length > 0 && (
+        <ul className="mt-2 space-y-0.5">
+          {data.errors.map((error, i) => (
+            <li key={i} className="text-xs text-slate-400 dark:text-slate-500">
+              {error}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

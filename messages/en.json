@@ -117,5 +117,31 @@
     "recentlyDecided": "Recently decided",
     "accepted": "Added",
     "rejected": "Dismissed"
+  },
+  "macro": {
+    "title": "Market context",
+    "subtitle": "The book's temperature gauge: not a timing tool, an indication of how much effort finding a buy-worthy stock will take.",
+    "asOf": "As of {date}",
+    "unavailable": "Not available",
+    "buffett": {
+      "name": "Buffett indicator",
+      "help": "Total US market capitalisation divided by GDP. Buffett called 70–80% cheap; above 150% the market is expensive, and it passed 200% in 2025. It says nothing about when to act — only how hard the hunting will be."
+    },
+    "yieldSpread": {
+      "name": "Yield curve (10y − 2y)",
+      "help": "The gap between 10-year and 2-year Treasury yields. Negative means an inverted curve. The book's point is about direction rather than level: since the 1960s the S&P 500 averaged 14.5%/year through falling-rate periods against 0.8% through rising ones.",
+      "inverted": "Inverted",
+      "normal": "Normal"
+    },
+    "concentration": {
+      "name": "Index concentration",
+      "help": "One-year return of the cap-weighted S&P 500 minus the equal-weighted one. A wide positive gap means the index is being carried by its largest members. The book notes only 28% of constituents beat the index in 2024, a record low.",
+      "narrow": "Narrow breadth",
+      "broad": "Broad breadth"
+    },
+    "sp500Pe": {
+      "name": "S&P 500 P/E",
+      "help": "Trailing price-to-earnings for the index as a whole, as a baseline to read a single company's multiple against. Taken from SPY, which tracks the index and reports one where the index itself does not."
+    }
   }
 }

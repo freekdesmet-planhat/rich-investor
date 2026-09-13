@@ -117,5 +117,31 @@
     "recentlyDecided": "Recent beslist",
     "accepted": "Toegevoegd",
     "rejected": "Afgewezen"
+  },
+  "macro": {
+    "title": "Marktcontext",
+    "subtitle": "De temperatuurmeter van het boek: geen timinginstrument, maar een indicatie van hoeveel moeite het kost om een koopwaardig aandeel te vinden.",
+    "asOf": "Peildatum {date}",
+    "unavailable": "Niet beschikbaar",
+    "buffett": {
+      "name": "Buffett-indicator",
+      "help": "De totale Amerikaanse beurswaarde gedeeld door het bbp. Buffett noemde 70–80% goedkoop; boven 150% is de markt duur, en in 2025 ging de meter door de 200%. Hij zegt niets over wannéér je moet handelen — alleen hoe zwaar het zoeken wordt."
+    },
+    "yieldSpread": {
+      "name": "Rentecurve (10j − 2j)",
+      "help": "Het verschil tussen de 10-jaars en 2-jaars staatsrente. Negatief betekent een omgekeerde curve. Het boek kijkt naar de richting, niet naar het niveau: sinds de jaren zestig leverde de S&P 500 gemiddeld 14,5% per jaar op in periodes van dalende rente, tegenover 0,8% bij stijgende rente.",
+      "inverted": "Omgekeerd",
+      "normal": "Normaal"
+    },
+    "concentration": {
+      "name": "Concentratie in de index",
+      "help": "Het rendement over één jaar van de naar beurswaarde gewogen S&P 500 min dat van de gelijkgewogen variant. Een groot positief verschil betekent dat de index door zijn grootste leden wordt gedragen. Het boek noemt dat in 2024 slechts 28% van de aandelen de index versloeg, een dieptepunt.",
+      "narrow": "Smalle basis",
+      "broad": "Brede basis"
+    },
+    "sp500Pe": {
+      "name": "K/W van de S&P 500",
+      "help": "De koers-winstverhouding van de index als geheel, als ijkpunt om de waardering van één bedrijf tegen af te zetten. Afgeleid van SPY, die de index volgt en wél een K/W rapporteert waar de index zelf dat niet doet."
+    }
   }
 }

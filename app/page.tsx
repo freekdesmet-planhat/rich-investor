@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { MarketContextDashboard } from '@/components/MarketContextDashboard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getCompanyNames, getLatestSignals, type SignalRow } from '@/lib/data/queries';
@@ -46,6 +47,10 @@ export default async function WatchlistPage() {
       <SiteHeader />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
+        {/* Market weather first: the book reads it as context for the hunt,
+            not as a signal, so it sits above the watchlist rather than in it. */}
+        <MarketContextDashboard />
+
         <div className="mb-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <h1 className="text-xl font-semibold">{(await getTranslations('nav'))('watchlist')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
