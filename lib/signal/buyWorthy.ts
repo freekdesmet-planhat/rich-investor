@@ -110,7 +110,6 @@ export function evaluateSignal(
   ctx: RatioContext,
   ratios: Record<RatioKey, RatioResult>,
   lynchCategory: LynchCategory,
-  options: { previousStatus?: SignalStatus | null } = {},
 ): SignalResult {
   const conditions: ConditionResult[] = [];
 

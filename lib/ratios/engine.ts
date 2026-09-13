@@ -20,9 +20,7 @@
 import {
   afterLastBreak,
   annualSeries,
-  averageAnnual,
   averageForBasis,
-  cagr,
   trendGrowth,
   detectSeriesBreak,
   drawdownFromHigh,

@@ -327,3 +327,76 @@ De groei bleef net onder de grens van deze categorie en is binnen de marge van
 één procentpunt naar boven afgerond. De percentages van Lynch komen uit een
 kwalitatieve methode; een verschil van een tiende procentpunt hoort niet te
 bepalen welke PEG-grens geldt.
+
+---
+
+## condition:focus_sector
+**Naam:** Focussector
+**Doel:** valt binnen een van de vier focussectoren (uit het boek)
+
+Het boek beperkt zich tot vier sectoren: informatietechnologie, luxegoederen en
+consumentengoederen, entertainment en interactieve media, en niet-bancaire
+financiële dienstverlening. Aandelen daarbuiten mag je zelf toevoegen, maar ze
+krijgen een oranje label en geen koopsignaal.
+
+## condition:lynch_category
+**Naam:** Groeicategorie
+**Doel:** hoge of gemiddelde winstgroei (uit het boek)
+
+Alleen bedrijven met hoge of gemiddelde winstgroei komen in aanmerking voor een
+koopsignaal. Cyclische bedrijven, turnarounds en financiële instellingen vallen
+buiten de focus van het boek; bedrijven met lage groei alleen met een
+uitdrukkelijke waarschuwing.
+
+## condition:market_cap
+**Naam:** Beurswaarde
+**Doel:** ten minste 10 miljard dollar (uit het boek)
+
+De rijke belegger kiest grote, gevestigde bedrijven. Die herstellen sneller en
+met meer zekerheid na een diepe daling, en blijven daarna doorgroeien.
+
+## condition:drawdown
+**Naam:** Daling vanaf de top van vijf jaar
+**Doel:** ten minste 50% onder de hoogste slotkoers van vijf jaar (uit het boek)
+
+Het kernsignaal van het boek. Dalingen van 50 tot 70% bij kwaliteitsbedrijven
+zijn zeldzaam zonder structureel probleem, en juist daar ligt het statistische
+voordeel. Instelbaar, met een ondergrens van 35%.
+
+## condition:peg
+**Naam:** PEG-ratio
+**Doel:** onder de grens van de groeicategorie, gerealiseerd óf verwacht (uit het boek)
+
+De voorwaarde slaagt als de PEG op basis van de gerealiseerde winstgroei óf op
+basis van de verwachte groei onder de grens blijft. Welke van de twee het deed,
+staat bij het signaal vermeld — slaagt alleen de verwachte variant, dan rust het
+oordeel op een verwachting die nog niet in de cijfers zichtbaar is.
+
+## condition:pe
+**Naam:** Koers-winstverhouding
+**Doel:** ≤ 30, of ≤ 20 na correctie voor R&D (uit het boek)
+
+Het plafond van 30 geldt ook voor hardgroeiers. Voor technologiebedrijven met
+hoge R&D-uitgaven telt de gecorrigeerde variant mee als alternatief.
+
+## condition:returns
+**Naam:** Rendement op eigen vermogen en activa
+**Doel:** ROE > 15% en ROA > 10%, meerdere jaren achtereen (uit het boek)
+
+Beide moeten consistent gehaald worden, niet alleen in het laatste jaar. Bij
+betaalbedrijven wordt de ROA gecorrigeerd voor settlementsaldi.
+
+## condition:cash_flow
+**Naam:** Kwaliteit van de kasstroom
+**Doel:** vrije kasstroom positief en operationele kasstroom ≥ 70% van de nettowinst (uit het boek)
+
+Winst die niet in kas binnenkomt is geen winst waar je op kunt bouwen. Bij banken
+en verzekeraars is deze voorwaarde niet van toepassing en telt hij niet mee in de
+noemer.
+
+## condition:debt
+**Naam:** Schuldniveau
+**Doel:** nettoschuld/EBITDA ≤ 2,5 (standaardinstelling van de app)
+
+Te veel schuld is voor het boek een no-gocriterium. Bij banken en verzekeraars is
+deze voorwaarde niet van toepassing.

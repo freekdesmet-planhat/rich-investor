@@ -450,6 +450,7 @@ export class FinanceQueryProvider implements MarketDataProvider {
    * every earningsTrend/forwardEps field and /v2/recommendations is a
    * similar-stocks list, not analyst figures.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- interface shape
   async getAnalystEstimates(_symbol: string): Promise<AnalystEstimates | null> {
     return null;
   }

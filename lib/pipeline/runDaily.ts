@@ -12,7 +12,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createFxRates } from '@/lib/providers/fx';
-import { createMarketDataService, type SymbolBundle } from '@/lib/providers/marketData';
+import { createMarketDataService } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
 import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/engine';
 import { checkInvariants, formatViolations, type InvariantViolation } from '@/lib/ratios/invariants';

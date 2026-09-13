@@ -321,3 +321,75 @@ Growth fell just short of this category's threshold and was resolved upward
 within a one-percentage-point margin. Lynch's percentages come from a qualitative
 method; a tenth of a percentage point should not decide which PEG threshold
 applies.
+
+---
+
+## condition:focus_sector
+**Name:** Focus sector
+**Target:** falls within one of the four focus sectors (from the book)
+
+The book limits itself to four sectors: information technology, luxury and
+consumer discretionary goods, entertainment and interactive media, and non-bank
+financial services. You can add stocks outside them yourself, but they carry an
+orange label and never receive a buy signal.
+
+## condition:lynch_category
+**Name:** Growth category
+**Target:** high or average earnings growth (from the book)
+
+Only companies with high or average earnings growth qualify for a buy signal.
+Cyclicals, turnarounds and financial institutions sit outside the book's focus;
+low-growth companies only with an explicit warning.
+
+## condition:market_cap
+**Name:** Market capitalisation
+**Target:** at least $10 billion (from the book)
+
+The rich investor chooses large, established companies. They recover faster and
+with more certainty after a deep fall, and keep compounding afterwards.
+
+## condition:drawdown
+**Name:** Decline from the 5-year high
+**Target:** at least 50% below the highest closing price in five years (from the book)
+
+The book's core signal. Falls of 50 to 70% in quality companies are rare without
+a structural problem, and that is exactly where the statistical edge lies.
+Adjustable, with a floor of 35%.
+
+## condition:peg
+**Name:** PEG ratio
+**Target:** below the growth category's threshold, realised or expected (from the book)
+
+The condition passes if the PEG based on realised earnings growth *or* the PEG
+based on expected growth stays under the threshold. Which of the two carried it
+is recorded with the signal — if only the forward variant passed, the judgement
+rests on an expectation that has not yet shown up in the figures.
+
+## condition:pe
+**Name:** Price-to-earnings ratio
+**Target:** ≤ 30, or ≤ 20 after adjusting for R&D (from the book)
+
+The ceiling of 30 applies even to fast growers. For technology companies with
+heavy R&D spending, the adjusted variant counts as an alternative.
+
+## condition:returns
+**Name:** Return on equity and assets
+**Target:** ROE > 15% and ROA > 10%, over several years (from the book)
+
+Both have to be cleared consistently, not just in the latest year. For payment
+processors the ROA is adjusted for settlement balances.
+
+## condition:cash_flow
+**Name:** Cash flow quality
+**Target:** free cash flow positive and operating cash flow ≥ 70% of net income (from the book)
+
+Profit that never arrives as cash is not profit you can build on. For banks and
+insurers this condition does not apply and does not count towards the
+denominator.
+
+## condition:debt
+**Name:** Debt level
+**Target:** net debt/EBITDA ≤ 2.5 (app default)
+
+Too much debt is a no-go criterion for the book. For banks and insurers this
+condition does not apply.

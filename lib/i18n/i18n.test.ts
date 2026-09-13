@@ -61,7 +61,7 @@ describe('ratio documentation', () => {
     for (const lang of LOCALES) {
       expect(docs[lang].length).toBeGreaterThan(25);
       for (const entry of docs[lang]) {
-        expect(entry.namespace, `${lang}:${entry.key}`).toMatch(/^(ratio|lynch)$/);
+        expect(entry.namespace, `${lang}:${entry.key}`).toMatch(/^(ratio|lynch|condition)$/);
         expect(entry.name, `${lang}:${entry.key} name`).not.toBe('');
         expect(entry.explanation.length, `${lang}:${entry.key} explanation`).toBeGreaterThan(40);
       }

@@ -1,69 +1,134 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
+import { SiteHeader } from '@/components/SiteHeader';
+import { StatusBadge } from '@/components/StatusBadge';
+import { getCompanyNames, getLatestSignals, type SignalRow } from '@/lib/data/queries';
+import type { FocusSector } from '@/lib/sectors/mapping';
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+/** The four focus sectors, in the order the book introduces them (chapter 2). */
+const SECTOR_ORDER: FocusSector[] = [
+  'information_technology',
+  'luxury_consumer',
+  'entertainment_media',
+  'financial_services_non_bank',
+  'outside_focus',
+];
+
+function groupBySector(signals: SignalRow[]): Map<FocusSector, SignalRow[]> {
+  const groups = new Map<FocusSector, SignalRow[]>();
+  for (const sector of SECTOR_ORDER) groups.set(sector, []);
+  for (const signal of signals) {
+    const bucket = groups.get(signal.focus_sector) ?? groups.get('outside_focus')!;
+    bucket.push(signal);
+  }
+  for (const [sector, rows] of groups) if (rows.length === 0) groups.delete(sector);
+  return groups;
+}
+
+export default async function WatchlistPage() {
+  const [t, tStatus, tSector] = await Promise.all([
+    getTranslations('app'),
+    getTranslations('status'),
+    getTranslations('sector'),
+  ]);
+
+  const signals = await getLatestSignals();
+  const names = await getCompanyNames(signals.map((s) => s.symbol));
+  const groups = groupBySector(signals);
+
+  const buyWorthy = signals.filter((s) => s.status === 'buy_worthy').length;
+  const almost = signals.filter((s) => s.status === 'almost').length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <>
+      <SiteHeader />
+
+      <main className="mx-auto max-w-5xl px-4 py-6">
+        <div className="mb-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 className="text-xl font-semibold">{(await getTranslations('nav'))('watchlist')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {signals.length} · {buyWorthy} {tStatus('buy_worthy').toLowerCase()} · {almost}{' '}
+            {tStatus('almost').toLowerCase()}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {signals.length === 0 && (
+          <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            {t('tagline')}
+          </p>
+        )}
+
+        <div className="space-y-8">
+          {[...groups].map(([sector, rows]) => (
+            <section key={sector}>
+              <h2 className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+                {tSector(sector)}
+                {sector === 'outside_focus' && (
+                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                    !
+                  </span>
+                )}
+              </h2>
+
+              <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                {rows.map((signal) => (
+                  <li key={signal.symbol}>
+                    <Link
+                      href={`/stock/${encodeURIComponent(signal.symbol)}`}
+                      className="flex items-center justify-between gap-3 bg-white px-3 py-3 transition hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {signal.symbol}
+                          <span className="ml-2 font-normal text-slate-500 dark:text-slate-400">
+                            {names.get(signal.symbol) ?? ''}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                          {tStatus('conditionsMet', {
+                            met: signal.conditions_met,
+                            total: signal.conditions_applicable,
+                          })}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <ConditionMeter
+                          met={signal.conditions_met}
+                          total={signal.conditions_applicable}
+                        />
+                        <StatusBadge status={signal.status} />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
+
+        <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
+          {signals[0] ? (await getTranslations('data'))('asOf', { date: signals[0].as_of }) : ''}
+        </p>
       </main>
-    </div>
+    </>
+  );
+}
+
+/** Compact bar showing how many applicable conditions passed. */
+function ConditionMeter({ met, total }: { met: number; total: number }) {
+  return (
+    <span className="hidden items-center gap-0.5 sm:flex" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`block h-4 w-1 rounded-sm ${
+            i < met ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
+          }`}
+        />
+      ))}
+    </span>
   );
 }

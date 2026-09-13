@@ -230,16 +230,13 @@ export class YahooFinanceProvider implements FundamentalsProvider {
    * variant (5.2) needs.
    */
   async getAnalystEstimates(symbol: string): Promise<AnalystEstimates | null> {
-    let trend;
-    try {
-      const summary = await yf.quoteSummary(symbol, {
-        modules: ['earningsTrend', 'financialData'],
-      });
-      trend = summary.earningsTrend?.trend ?? [];
-      var targetPrice = summary.financialData?.targetMeanPrice ?? null;
-    } catch {
-      return null;
-    }
+    const summary = await yf
+      .quoteSummary(symbol, { modules: ['earningsTrend', 'financialData'] })
+      .catch(() => null);
+    if (!summary) return null;
+
+    const trend = summary.earningsTrend?.trend ?? [];
+    const targetPrice = summary.financialData?.targetMeanPrice ?? null;
 
     const yearly = trend.filter((t) => t.period === '0y' || t.period === '+1y');
     if (yearly.length === 0) return null;

@@ -10,7 +10,6 @@
  * English is a faithful, natural translation rather than a literal one.
  */
 import type { RatioKey, RatioResult } from '@/lib/ratios/engine';
-import type { LynchCategory } from './lynch';
 import type { ConditionResult, SignalResult } from './buyWorthy';
 
 export interface Explanation {
@@ -50,15 +49,6 @@ const CONDITION_LABEL: Record<string, { en: string; nl: string }> = {
   debt: { en: 'debt level', nl: 'schuldniveau' },
 };
 
-const LYNCH_LABEL: Record<LynchCategory, { en: string; nl: string }> = {
-  high_growth: { en: 'high earnings growth', nl: 'hoge winstgroei' },
-  average_growth: { en: 'average earnings growth', nl: 'gemiddelde winstgroei' },
-  low_growth: { en: 'low earnings growth', nl: 'lage winstgroei' },
-  cyclical: { en: 'cyclical', nl: 'cyclisch' },
-  turnaround: { en: 'turnaround', nl: 'turnaround' },
-  financial_institution: { en: 'financial institution', nl: 'financiële instelling' },
-  unknown: { en: 'not classifiable', nl: 'niet te classificeren' },
-};
 
 export interface ExplainInput {
   symbol: string;
