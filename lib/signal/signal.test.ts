@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { buildContext, computeAllRatios, type RatioKey, type RatioResult } from '@/lib/ratios/engine';
 import { evaluateSignal, type SignalResult } from './buyWorthy';
 import { explainSignal, explainForEmail } from './explain';
-import { classifyLynch } from './lynch';
+import { classifyLynch, pegCategoryFor } from './lynch';
 import { checkInvariants } from '@/lib/ratios/invariants';
 import type { SymbolBundle } from '@/lib/providers/marketData';
 import type { FinancialStatement, MetricName, PricePoint } from '@/lib/providers/types';
@@ -686,5 +686,73 @@ describe('growth measurement when EPS history is incomplete', () => {
 
     expect(result.category).toBe('unknown');
     expect(result.growthBasis).toBe('none');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Lynch band tolerance
+// ---------------------------------------------------------------------------
+
+describe('Lynch band tolerance (±1pp, resolving upward)', () => {
+  /**
+   * Builds a series whose least-squares growth lands on a target rate, so the
+   * boundary cases can be tested directly rather than hunted for.
+   */
+  const atRate = (rate: number) => {
+    const bundle = idealBundle();
+    const base = 1;
+    const years = [0, 1, 2, 3, 4, 5];
+    bundle.statements.income.annual = statement(
+      'income',
+      years.map((i) => {
+        const eps = base * (1 + rate) ** i;
+        return [
+          `${2020 + i}-12-31`,
+          { dilutedEps: eps, netIncome: eps * 1e9, revenue: eps * 3e9 },
+        ] as [string, Record<string, number>];
+      }),
+    );
+    return bundle;
+  };
+
+  const categoryAt = (rate: number) => {
+    const ctx = buildContext(atRate(rate), { focusSector: 'information_technology' });
+    return classifyLynch(ctx, { industry: 'Software' });
+  };
+
+  it('lifts 19.0–19.9% into high growth, so the PEG ceiling stays 1.0', () => {
+    for (const rate of [0.19, 0.195, 0.199]) {
+      const result = categoryAt(rate);
+      expect(result.category).toBe('high_growth');
+      expect(result.resolvedUpByTolerance).toBe(true);
+    }
+  });
+
+  it('lifts 9.0–9.9% into average growth', () => {
+    for (const rate of [0.09, 0.095, 0.099]) {
+      const result = categoryAt(rate);
+      expect(result.category).toBe('average_growth');
+      expect(result.resolvedUpByTolerance).toBe(true);
+    }
+  });
+
+  it('does not flag a rate that clears the band on its own merits', () => {
+    const result = categoryAt(0.24);
+    expect(result.category).toBe('high_growth');
+    expect(result.resolvedUpByTolerance).toBe(false);
+  });
+
+  it('still excludes a rate below the tolerance zone', () => {
+    expect(categoryAt(0.185).category).toBe('average_growth');
+    expect(categoryAt(0.085).category).toBe('low_growth');
+  });
+
+  it('carries the widened category through to the PEG threshold', () => {
+    const ctx = buildContext(atRate(0.199), { focusSector: 'information_technology' });
+    const lynch = classifyLynch(ctx, { industry: 'Software' });
+    const ratios = computeAllRatios(ctx, pegCategoryFor(lynch.category));
+
+    // 1.0, not the 0.7 an unaided 19.9% would have been held to.
+    expect(ratios.peg.thresholds).toMatchObject({ threshold: 1 });
   });
 });

@@ -85,11 +85,24 @@ export const DEFAULT_THRESHOLDS = {
   // 5.19 Market cap and sector-leader status.
   marketCap: book({ minimumUsd: 10_000_000_000 }, '≥ $10B'),
 
-  // 6. Lynch categories, by 5-year EPS CAGR.
+  // 6. Lynch categories, by 5-year EPS growth.
   lynch: book(
     { highGrowth: 0.2, averageGrowth: 0.1, cyclicalStdDev: 0.35 },
     '≥ 20% high, 10–20% average, < 10% low',
   ),
+
+  /**
+   * Tolerance band below each Lynch threshold, resolving upward.
+   *
+   * Lynch's percentages came out of a qualitative method, and digitising it
+   * turns them into cliffs: a company at 19.9% would have its PEG ceiling cut
+   * from 1.0 to 0.7 — a 30% tightening — for missing the band by ten basis
+   * points. A one-point buffer keeps the bands meaningful without making a
+   * rounding difference decide the valuation test.
+   *
+   * Not a figure from the book, so it is adjustable.
+   */
+  lynchTolerance: app({ band: 0.01 }, '±1pp, resolving upward'),
 } as const;
 
 export type Thresholds = typeof DEFAULT_THRESHOLDS;

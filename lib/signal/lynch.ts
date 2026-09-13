@@ -42,6 +42,11 @@ export interface LynchResult {
   growthBasis: GrowthBasis;
   /** Translation key for the caveat shown next to the category, when any. */
   basisNoteKey: string | null;
+  /**
+   * True when the growth rate fell just short of the band and the tolerance
+   * zone lifted it. Shown on the category chip so the borderline is visible.
+   */
+  resolvedUpByTolerance: boolean;
 }
 
 export type GrowthBasis = 'eps' | 'eps_partial' | 'revenue' | 'none';
@@ -203,6 +208,7 @@ export function classifyLynch(
     reasons,
     growthBasis: measured.basis,
     basisNoteKey: measured.noteKey,
+    resolvedUpByTolerance: false,
   });
 
   // Banks and insurers first: their ratios mean something different entirely.
@@ -251,13 +257,29 @@ export function classifyLynch(
     return base('unknown', 'lynch.unknown', true);
   }
 
-  if (growth.value >= t.highGrowth) {
-    reasons.push(`EPS has compounded at ${(growth.value * 100).toFixed(1)}%/yr over 5 years`);
-    return base('high_growth', 'lynch.high_growth', false);
+  // Bands resolve upward inside the tolerance zone, so a company a few basis
+  // points short of a threshold is not pushed into a materially stricter PEG
+  // ceiling by a rounding difference.
+  const tolerance = thresholds.lynchTolerance.value.band;
+  const rate = (growth.value * 100).toFixed(1);
+
+  if (growth.value >= t.highGrowth - tolerance) {
+    const withinTolerance = growth.value < t.highGrowth;
+    reasons.push(
+      withinTolerance
+        ? `EPS growth of ${rate}%/yr is within the tolerance band of the 20% high-growth threshold`
+        : `EPS has compounded at ${rate}%/yr over 5 years`,
+    );
+    return { ...base('high_growth', 'lynch.high_growth', false), resolvedUpByTolerance: withinTolerance };
   }
-  if (growth.value >= t.averageGrowth) {
-    reasons.push(`EPS has compounded at ${(growth.value * 100).toFixed(1)}%/yr over 5 years`);
-    return base('average_growth', 'lynch.average_growth', false);
+  if (growth.value >= t.averageGrowth - tolerance) {
+    const withinTolerance = growth.value < t.averageGrowth;
+    reasons.push(
+      withinTolerance
+        ? `EPS growth of ${rate}%/yr is within the tolerance band of the 10% average-growth threshold`
+        : `EPS has compounded at ${rate}%/yr over 5 years`,
+    );
+    return { ...base('average_growth', 'lynch.average_growth', false), resolvedUpByTolerance: withinTolerance };
   }
 
   reasons.push(
