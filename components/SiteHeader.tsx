@@ -1,9 +1,15 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { createClient } from '@/lib/supabase/server';
+import { signOut } from '@/app/login/actions';
 
 export async function SiteHeader() {
-  const t = await getTranslations('app');
+  const [t, tAuth] = await Promise.all([getTranslations('app'), getTranslations('auth')]);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
@@ -14,7 +20,21 @@ export async function SiteHeader() {
             {t('tagline')}
           </span>
         </Link>
-        <LanguageSwitcher />
+
+        <div className="flex shrink-0 items-center gap-2">
+          <LanguageSwitcher />
+          {user?.email && (
+            <form action={signOut}>
+              <button
+                type="submit"
+                title={tAuth('signedInAs', { email: user.email })}
+                className="rounded px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              >
+                {tAuth('signOut')}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -22,9 +22,10 @@ async function main() {
   const client = createClient(url, key, { auth: { persistSession: false } });
 
   const started = Date.now();
-  const rows = await runDailyPipeline({
+  const { rows, notifications } = await runDailyPipeline({
     client,
     symbols,
+    skipNotifications: args.includes('--no-email'),
     onProgress: (message) => console.log(`  ${message}`),
   });
   console.log(`\nPipeline finished in ${((Date.now() - started) / 1000).toFixed(0)}s\n`);
@@ -43,6 +44,19 @@ async function main() {
         `${row.pegBasis.padEnd(11)}${row.lynchCategory.padEnd(22)}${row.focusSector}` +
         (row.becameBuyWorthy ? '  <- NEW buy signal' : ''),
     );
+  }
+
+  if (notifications.length > 0) {
+    const sent = notifications.filter((n) => n.state === 'sent').length;
+    const skipped = notifications.filter((n) => n.state === 'skipped').length;
+    const failed = notifications.filter((n) => n.state === 'failed');
+    const simulated = notifications.some((n) => n.simulated);
+    console.log(
+      `\nNotifications: ${sent} ${simulated ? 'logged (no API key)' : 'sent'}` +
+        `, ${skipped} already sent today` +
+        (failed.length ? `, ${failed.length} failed` : ''),
+    );
+    for (const f of failed) console.log(`  ! ${f.symbol} -> ${f.recipient}: ${f.error}`);
   }
 
   const counts = rows.reduce<Record<string, number>>((acc, row) => {

@@ -20,6 +20,7 @@ import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { evaluateSignal, type SignalStatus } from '@/lib/signal/buyWorthy';
 import { explainSignal } from '@/lib/signal/explain';
 import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
+import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -34,6 +35,8 @@ export interface PipelineOptions {
   thresholdOverrides?: Record<string, unknown>;
   /** Skip estimate lookups; the universe-wide scan sets this. */
   skipEstimates?: boolean;
+  /** Set for a dry run: computes and stores, but sends no alerts. */
+  skipNotifications?: boolean;
   onProgress?: (message: string) => void;
 }
 
@@ -78,8 +81,20 @@ function isFinancialInstitution(sector: string | null, industry: string | null):
   return /bank|insurance|thrift/i.test(industry ?? '');
 }
 
-export async function runDailyPipeline(options: PipelineOptions): Promise<PipelineRow[]> {
-  const { client, symbols, thresholdOverrides, skipEstimates = false, onProgress } = options;
+export interface PipelineResult {
+  rows: PipelineRow[];
+  notifications: NotifyOutcome[];
+}
+
+export async function runDailyPipeline(options: PipelineOptions): Promise<PipelineResult> {
+  const {
+    client,
+    symbols,
+    thresholdOverrides,
+    skipEstimates = false,
+    skipNotifications = false,
+    onProgress,
+  } = options;
   const log = onProgress ?? (() => {});
   const asOf = new Date().toISOString().slice(0, 10);
 
@@ -150,6 +165,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
   const ratioRows: Record<string, unknown>[] = [];
   const signalRows: Record<string, unknown>[] = [];
   const allViolations: InvariantViolation[] = [];
+  const toNotify: NotifiableSignal[] = [];
 
   for (const symbol of symbols) {
     const bundle = bundles.get(symbol);
@@ -195,6 +211,16 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
 
     const previous = previousStatus.get(symbol) ?? null;
     const becameBuyWorthy = signal.status === 'buy_worthy' && previous !== 'buy_worthy';
+
+    if (becameBuyWorthy) {
+      toNotify.push({
+        symbol,
+        name: meta?.name ?? bundle.quote?.name ?? null,
+        asOf,
+        signal,
+        ratios,
+      });
+    }
 
     for (const result of Object.values(ratios) as RatioResult[]) {
       const detail = result.detail as { isAdjusted?: boolean; rawValue?: number | null };
@@ -279,7 +305,16 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     log(`wrote ${signalRows.length} signal rows`);
   }
 
-  return rows;
+  // Alerts go out only after everything is stored, so a failed write never
+  // produces an email about a signal that was not recorded.
+  let notifications: NotifyOutcome[] = [];
+  if (toNotify.length > 0 && !skipNotifications) {
+    notifications = await sendBuySignalAlerts(client, toNotify, { onProgress: log });
+  } else if (toNotify.length > 0) {
+    log(`${toNotify.length} new buy signal(s), notifications skipped`);
+  }
+
+  return { rows, notifications };
 }
 
 /** The seed list from section 3.2. */

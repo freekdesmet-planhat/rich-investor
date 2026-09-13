@@ -10,7 +10,11 @@
     "market": "Marktcontext",
     "settings": "Instellingen"
   },
-  "language": { "label": "Taal", "en": "English", "nl": "Nederlands" },
+  "language": {
+    "label": "Taal",
+    "en": "English",
+    "nl": "Nederlands"
+  },
   "status": {
     "buy_worthy": "Koopwaardig, nu jouw kwalitatieve beoordeling",
     "almost": "Bijna zover, blijven volgen",
@@ -27,7 +31,10 @@
   "ratio": {
     "explain": "Wat betekent dit?",
     "target": "Doel",
-    "source": { "book": "uit het boek", "app_default": "standaardinstelling" },
+    "source": {
+      "book": "uit het boek",
+      "app_default": "standaardinstelling"
+    },
     "fiveYears": "Afgelopen 5 jaar",
     "unavailable": {
       "missing_data": "Geen gegevens beschikbaar",
@@ -70,5 +77,20 @@
     "sellSignals": "Verkoopsignalen",
     "notes": "Notities",
     "marksQuestion": "Als je over vijf jaar op dit moment terugkijkt, had je dan meer of minder aandelen willen kopen?"
+  },
+  "auth": {
+    "email": "E-mailadres",
+    "sendLink": "Inloglink versturen",
+    "sending": "Versturen…",
+    "linkSent": "Als dat adres toegang heeft, is er een inloglink onderweg. Open hem op dit apparaat.",
+    "invalidEmail": "Dat lijkt geen e-mailadres.",
+    "error": "Er ging iets mis. Probeer het zo nog eens.",
+    "whitelistHint": "Alleen goedgekeurde adressen kunnen inloggen.",
+    "signInFailed": "Inloggen mislukt",
+    "notAllowed": "Dat adres is niet goedgekeurd voor deze app.",
+    "linkExpired": "Die link is verlopen of al gebruikt.",
+    "tryAgain": "Opnieuw proberen",
+    "signOut": "Uitloggen",
+    "signedInAs": "Ingelogd als {email}"
   }
 }

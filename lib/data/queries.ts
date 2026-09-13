@@ -1,15 +1,14 @@
 /**
  * Server-side reads for the UI.
  *
- * These run in server components only. Until magic-link sign-in exists, they
- * use the service-role client: `signal_history`, `ratios` and `daily_snapshots`
- * grant SELECT to `authenticated`, and an unauthenticated browser is `anon`, so
- * reading straight from the client would return nothing. The key never reaches
- * the browser, and once auth lands these swap to the user's own client without
- * the call sites changing.
+ * These run under the signed-in user's session, so every query is subject to
+ * RLS — including is_allowed_user(), which means a session for a de-whitelisted
+ * address reads nothing even if its cookie is still valid. The service-role
+ * client is reserved for the daily job and the import scripts.
  */
 import 'server-only';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
 import type { FocusSector } from '@/lib/sectors/mapping';
 import type { Lang } from '@/lib/i18n/config';
@@ -84,20 +83,17 @@ export interface SnapshotRow {
   fetch_errors: string[] | null;
 }
 
-let cached: SupabaseClient | null = null;
-
-function client(): SupabaseClient {
-  if (cached) return cached;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('Supabase is not configured');
-  cached = createClient(url, key, { auth: { persistSession: false } });
-  return cached;
+/**
+ * Not cached across requests: each one carries its own session cookies, so a
+ * shared client would leak one user's session into another's request.
+ */
+function client(): Promise<SupabaseClient> {
+  return createClient();
 }
 
 /** The most recent signal per symbol. */
 export async function getLatestSignals(): Promise<SignalRow[]> {
-  const { data, error } = await client()
+  const { data, error } = await (await client())
     .from('signal_history')
     .select('*')
     .order('as_of', { ascending: false })
@@ -120,7 +116,7 @@ export async function getLatestSignals(): Promise<SignalRow[]> {
 }
 
 export async function getSignal(symbol: string): Promise<SignalRow | null> {
-  const { data } = await client()
+  const { data } = await (await client())
     .from('signal_history')
     .select('*')
     .eq('symbol', symbol)
@@ -131,7 +127,7 @@ export async function getSignal(symbol: string): Promise<SignalRow | null> {
 }
 
 export async function getRatios(symbol: string, asOf: string): Promise<RatioRow[]> {
-  const { data } = await client()
+  const { data } = await (await client())
     .from('ratios')
     .select('*')
     .eq('symbol', symbol)
@@ -141,7 +137,7 @@ export async function getRatios(symbol: string, asOf: string): Promise<RatioRow[
 }
 
 export async function getSnapshot(symbol: string): Promise<SnapshotRow | null> {
-  const { data } = await client()
+  const { data } = await (await client())
     .from('daily_snapshots')
     .select(
       'symbol,as_of,price,currency,market_cap_usd,quote,price_history,estimates,' +
@@ -156,7 +152,7 @@ export async function getSnapshot(symbol: string): Promise<SnapshotRow | null> {
 
 export async function getCompanyNames(symbols: string[]): Promise<Map<string, string>> {
   if (symbols.length === 0) return new Map();
-  const { data } = await client()
+  const { data } = await (await client())
     .from('universe')
     .select('symbol,name')
     .in('symbol', symbols)
@@ -176,7 +172,7 @@ export interface Translation {
  * Seeded from docs/ratios.<lang>.md, which stays the source of truth.
  */
 export async function getTranslations(lang: Lang): Promise<Map<string, Translation>> {
-  const { data } = await client()
+  const { data } = await (await client())
     .from('translations')
     .select('namespace,key,field,value')
     .eq('lang', lang)

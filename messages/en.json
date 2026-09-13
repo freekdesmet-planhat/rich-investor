@@ -10,7 +10,11 @@
     "market": "Market context",
     "settings": "Settings"
   },
-  "language": { "label": "Language", "en": "English", "nl": "Nederlands" },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "nl": "Nederlands"
+  },
   "status": {
     "buy_worthy": "Buy-worthy, over to your qualitative review",
     "almost": "Almost there, keep watching",
@@ -27,7 +31,10 @@
   "ratio": {
     "explain": "What does this mean?",
     "target": "Target",
-    "source": { "book": "from the book", "app_default": "app default" },
+    "source": {
+      "book": "from the book",
+      "app_default": "app default"
+    },
     "fiveYears": "Last 5 years",
     "unavailable": {
       "missing_data": "No data available",
@@ -70,5 +77,20 @@
     "sellSignals": "Sell signals",
     "notes": "Notes",
     "marksQuestion": "Looking back on this moment five years from now, would you have wanted to buy more shares or fewer?"
+  },
+  "auth": {
+    "email": "Email address",
+    "sendLink": "Send sign-in link",
+    "sending": "Sending…",
+    "linkSent": "If that address has access, a sign-in link is on its way. Open it on this device.",
+    "invalidEmail": "That doesn't look like an email address.",
+    "error": "Something went wrong. Try again in a moment.",
+    "whitelistHint": "Only approved addresses can sign in.",
+    "signInFailed": "Sign-in failed",
+    "notAllowed": "That address is not approved for this app.",
+    "linkExpired": "That link has expired or was already used.",
+    "tryAgain": "Try again",
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as {email}"
   }
 }
