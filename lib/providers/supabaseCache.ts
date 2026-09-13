@@ -30,6 +30,7 @@ interface SnapshotRow {
   price_history: SymbolBundle['priceHistory'];
   filing_currency: string | null;
   statement_sources: SymbolBundle['statementSources'];
+  estimates_source: string | null;
   provider: string;
   is_stale: boolean;
   fetch_errors: string[];
@@ -70,6 +71,7 @@ export function createSupabaseCache(
         estimates: data.estimates ?? null,
         filingCurrency: data.filing_currency ?? null,
         statementSources: data.statement_sources ?? NO_SOURCES,
+        estimatesSource: data.estimates_source ?? null,
         isStale: false,
         staleAsOf: null,
         errors: [],
@@ -102,6 +104,7 @@ export function createSupabaseCache(
         price_history: bundle.priceHistory,
         filing_currency: bundle.filingCurrency,
         statement_sources: bundle.statementSources,
+        estimates_source: bundle.estimatesSource,
         provider: providerName,
         is_stale: false,
         fetch_errors: bundle.errors,

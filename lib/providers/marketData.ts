@@ -14,6 +14,7 @@
 import { financeQueryProvider } from './financeQuery';
 import { fmpEstimatesProvider } from './fmpEstimates';
 import { secEdgarProvider } from './secEdgar';
+import { yahooFinanceProvider } from './yahooFinance';
 import {
   type AnalystEstimates,
   type FinancialStatement,
@@ -48,6 +49,8 @@ export interface SymbolBundle {
   filingCurrency: string | null;
   /** Which source supplied the statements, per kind. */
   statementSources: Record<StatementKind, string | null>;
+  /** Which source supplied the estimates, null when no source had any. */
+  estimatesSource: string | null;
   /** True when any part of this bundle came from an older cached snapshot. */
   isStale: boolean;
   /** The snapshot date actually used, when isStale. Drives the UI banner. */
@@ -84,24 +87,73 @@ export interface MarketDataService {
   search(query: string, limit?: number): ReturnType<MarketDataProvider['search']>;
 }
 
+/** A named source of forward estimates, used inside the estimates chain. */
+export interface EstimatesSource {
+  readonly name: string;
+  getAnalystEstimates(symbol: string): Promise<AnalystEstimates | null>;
+}
+
+/**
+ * Runs sources in order and returns the first usable answer.
+ *
+ * "Usable" is decided by `isUsable`, not by the absence of an exception,
+ * because these APIs signal unavailability in several different ways: FMP
+ * answers a tier refusal with HTTP 200 and an error body, finance-query returns
+ * an empty array for a symbol it actually has, and yahoo-finance2 throws. All
+ * three mean the same thing here — try the next source.
+ *
+ * Returns which source answered, so a snapshot can record its own provenance.
+ */
+async function firstUsable<T>(
+  sources: Array<{ name: string; load: () => Promise<T | null> }>,
+  isUsable: (value: T) => boolean,
+): Promise<{ value: T | null; source: string | null; attempts: string[] }> {
+  const attempts: string[] = [];
+
+  for (const source of sources) {
+    try {
+      const value = await source.load();
+      if (value !== null && isUsable(value)) {
+        return { value, source: source.name, attempts };
+      }
+      attempts.push(`${source.name}: no data`);
+    } catch (error) {
+      attempts.push(`${source.name}: ${(error as Error).message}`);
+    }
+  }
+
+  return { value: null, source: null, attempts };
+}
+
 export interface MarketDataOptions {
   /** Quotes, prices, news, search, and statements of last resort. */
   provider?: MarketDataProvider;
   cache?: BundleCache;
   /**
-   * Deep-history sources, tried in order before the primary provider.
+   * Statement sources, tried in order. Defaults to EDGAR, then yahoo-finance2,
+   * then the primary provider.
    *
-   * SEC EDGAR leads because it returns the full filing history (the book's
-   * rules need 5 years; finance-query returns 4) and states the filing
-   * currency outright. Symbols it does not cover — EU-only listings — fall
-   * through to the primary provider's shorter history.
+   * EDGAR leads because it is strictly the deepest: 16-19 annual years against
+   * yahoo's 5 and finance-query's 4, taken from the filings themselves, with an
+   * explicit filing currency. It covers SEC filers only, so the EU-only
+   * listings fall straight through to yahoo-finance2, which still beats
+   * finance-query there (5 annual years rather than 4, and quarterly data that
+   * includes Q4).
+   *
+   * FMP is deliberately absent from this chain. Its free tier caps statements
+   * at 5 periods and refuses non-US symbols, so placing it ahead of EDGAR would
+   * trade 19 years of filings for 5 on exactly the tickers EDGAR serves best.
+   * It is used for estimates, where it does add something.
    */
   fundamentalsProviders?: FundamentalsProvider[];
   /**
-   * Forward estimates. Null for any symbol the source does not cover, which is
-   * most of them on FMP's free tier, so callers must handle absence.
+   * Estimate sources, tried in order. Defaults to FMP, then yahoo-finance2.
+   *
+   * FMP leads as requested; yahoo-finance2 catches everything it refuses, which
+   * on the free tier is most symbols — 12 of the 27 seed tickers, including
+   * every EU listing.
    */
-  estimatesProvider?: { getAnalystEstimates(symbol: string): Promise<AnalystEstimates | null> };
+  estimatesProviders?: EstimatesSource[];
   /**
    * Skips the estimates call entirely. The universe-wide auto-scan sets this,
    * because FMP's free tier allows ~250 requests/day and the scan covers
@@ -114,8 +166,8 @@ export function createMarketDataService(options: MarketDataOptions = {}): Market
   const {
     provider = financeQueryProvider,
     cache = nullCache,
-    fundamentalsProviders = [secEdgarProvider],
-    estimatesProvider = fmpEstimatesProvider,
+    fundamentalsProviders = [secEdgarProvider, yahooFinanceProvider],
+    estimatesProviders = [fmpEstimatesProvider, yahooFinanceProvider],
     skipEstimates = false,
   } = options;
   /**
@@ -239,13 +291,31 @@ export function createMarketDataService(options: MarketDataOptions = {}): Market
       };
       const cash = { annual: pick('cash', 'annual'), quarterly: pick('cash', 'quarterly') };
 
-      // Filing currency comes from whichever statement reported one; EDGAR
-      // always does, finance-query never does, in which case we fall back to
-      // the quote currency and note the assumption.
+      // Estimates: FMP first, then yahoo-finance2 for everything FMP refuses.
+      const estimates = skipEstimates
+        ? { value: null, source: null, attempts: [] as string[] }
+        : await firstUsable(
+            estimatesProviders.map((source) => ({
+              name: source.name,
+              load: () => source.getAnalystEstimates(symbol),
+            })),
+            // An estimates object with no forward EPS tells us nothing, so it
+            // counts as a miss and the next source gets a turn.
+            (value) => value.nextYearEps !== null || value.series.length > 0,
+          );
+      if (!skipEstimates && estimates.source === null && estimates.attempts.length > 0) {
+        errors.push(`estimates unavailable (${estimates.attempts.join('; ')})`);
+      }
+
+      // Filing currency comes from whichever statement reported one. EDGAR and
+      // yahoo-finance2 both state it; finance-query never does, so when only it
+      // answered, ask yahoo-finance2 directly before assuming the quote
+      // currency — that assumption is wrong for every cross-listed company.
       const filingCurrency =
         income.annual?.currency ??
         balance.annual?.currency ??
         cash.annual?.currency ??
+        (await yahooFinanceProvider.getFilingCurrency(symbol).catch(() => null)) ??
         quotes.get(symbol)?.currency ??
         null;
 
@@ -255,15 +325,14 @@ export function createMarketDataService(options: MarketDataOptions = {}): Market
         quote: quotes.get(symbol) ?? null,
         statements: { income, balance, cash },
         priceHistory: histories.get(symbol) ?? [],
-        estimates: skipEstimates
-          ? null
-          : await estimatesProvider.getAnalystEstimates(symbol).catch(() => null),
+        estimates: estimates.value,
         filingCurrency,
         statementSources: {
           income: statementSources.get(`income:annual:${symbol}`) ?? null,
           balance: statementSources.get(`balance:annual:${symbol}`) ?? null,
           cash: statementSources.get(`cash:annual:${symbol}`) ?? null,
         },
+        estimatesSource: estimates.source,
         isStale: false,
         staleAsOf: null,
         errors,
