@@ -24,7 +24,7 @@ import {
   computeRoe,
   derive,
 } from './engine';
-import { detectSeriesBreak, afterLastBreak, drawdownFromHigh, sumTtm } from './fundamentals';
+import { detectSeriesBreak, afterLastBreak, cagr, drawdownFromHigh, sumTtm, trendGrowth } from './fundamentals';
 import { createFxRates } from '@/lib/providers/fx';
 import type {
   FinancialStatement,
@@ -716,5 +716,51 @@ describe('statement merging across providers', () => {
     expect(periods[0].endDate).toBe('2025-09-27');
     expect(periods[0].metrics.netIncome).toBe(100);
     expect(periods[0].metrics.dilutedEps).toBe(5);
+  });
+});
+
+describe('trendGrowth — least squares over log values', () => {
+  const series = (values: number[]) =>
+    values.map((value, i) => ({ period: `${2021 + i}-12-31`, value }));
+
+  /** The worked example: year 1 inflated, years 2-5 a clean recovery. */
+  it('sees a recovery that the endpoint CAGR is blind to', () => {
+    const s = series([150, 100, 110, 125, 140]);
+
+    const endpoints = cagr(s);
+    const trend = trendGrowth(s);
+
+    expect(endpoints.value!).toBeLessThan(0);
+    expect(trend.value!).toBeGreaterThan(0);
+    expect(trend.method).toBe('lsgr');
+    expect(trend.pointsUsed).toBe(5);
+    // The endpoint figure stays available for comparison on the card.
+    expect(trend.endpointCagr).toBeCloseTo(endpoints.value!, 6);
+  });
+
+  it('matches the endpoint CAGR on a clean exponential series', () => {
+    const s = series([100, 120, 144, 172.8, 207.36]);
+    const trend = trendGrowth(s);
+
+    expect(trend.value!).toBeCloseTo(0.2, 4);
+    expect(trend.endpointCagr!).toBeCloseTo(0.2, 4);
+  });
+
+  it('falls back to endpoints when too few positive points remain', () => {
+    const s = series([-5, -2, 10]);
+    const trend = trendGrowth(s);
+
+    expect(trend.method).not.toBe('lsgr');
+    expect(trend.pointsUsed).toBe(1);
+  });
+
+  it('handles irregular fiscal period spacing', () => {
+    const s = [
+      { period: '2021-01-31', value: 100 },
+      { period: '2022-01-30', value: 120 },
+      { period: '2023-01-29', value: 144 },
+      { period: '2024-01-28', value: 172.8 },
+    ];
+    expect(trendGrowth(s).value!).toBeCloseTo(0.2, 2);
   });
 });

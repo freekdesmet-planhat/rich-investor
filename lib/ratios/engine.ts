@@ -23,6 +23,7 @@ import {
   averageAnnual,
   averageForBasis,
   cagr,
+  trendGrowth,
   detectSeriesBreak,
   drawdownFromHigh,
   lastNYears,
@@ -378,7 +379,7 @@ export function computePeg(
   // the CAGR meaningless (see detectSeriesBreak).
   const epsBreak = detectSeriesBreak(d.epsSeries);
   const usableEps = epsBreak.hasBreak ? afterLastBreak(d.epsSeries) : d.epsSeries;
-  const growth = cagr(usableEps);
+  const growth = trendGrowth(usableEps);
 
   if (growth.value == null || growth.value <= 0) {
     return gray(
@@ -428,6 +429,8 @@ export function computePeg(
       pe: pe.value,
       epsCagr: growth.value,
       cagrYears: growth.years,
+      growthMethod: growth.method,
+      endpointCagr: growth.endpointCagr,
       category,
       forwardGrowth,
       forwardPeg,
@@ -847,7 +850,7 @@ function growthRatio(
   const target = { label: t.label, source: t.source };
   const seriesBreak = detectSeriesBreak(series);
   const usable = seriesBreak.hasBreak ? afterLastBreak(series) : series;
-  const growth = cagr(usable);
+  const growth = trendGrowth(usable);
 
   if (growth.value == null) {
     return gray(
@@ -873,6 +876,9 @@ function growthRatio(
     unavailableReason: null,
     detail: {
       cagrYears: growth.years,
+      growthMethod: growth.method,
+      endpointCagr: growth.endpointCagr,
+      pointsUsed: growth.pointsUsed,
       latestGrowth: latestGrowth(usable),
       seriesBreak: seriesBreak.hasBreak ? seriesBreak : null,
       ...extra,

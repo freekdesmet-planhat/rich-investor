@@ -19,7 +19,7 @@ import {
   growthCategory,
   type RatioResult,
 } from '@/lib/ratios/engine';
-import { annualSeries, cagr, lastNYears } from '@/lib/ratios/fundamentals';
+import { annualSeries, lastNYears, trendGrowth } from '@/lib/ratios/fundamentals';
 import {
   resolveFocusSector,
   DEFAULT_SECTOR_RULES,
@@ -181,7 +181,7 @@ async function main() {
 
     // The growth category sets the PEG threshold (1 / 0.7 / 0.5). The full
     // Lynch classification is build step 5; this is its growth axis only.
-    const epsCagr = cagr(
+    const epsCagr = trendGrowth(
       lastNYears(annualSeries(bundle.statements.income.annual, 'dilutedEps'), 5),
     ).value;
     const category = growthCategory(epsCagr);

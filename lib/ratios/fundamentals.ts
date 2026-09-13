@@ -198,6 +198,88 @@ export function cagr(series: SeriesPoint[]): { value: number | null; years: numb
   return { value: (last.value / first.value) ** (1 / years) - 1, years };
 }
 
+export interface GrowthResult {
+  value: number | null;
+  years: number;
+  /** 'lsgr' when every point shaped the answer, 'endpoints' on the fallback. */
+  method: 'lsgr' | 'endpoints' | 'none';
+  /** Points that actually entered the fit. */
+  pointsUsed: number;
+  /** Endpoint CAGR, kept alongside so the two can be compared on the card. */
+  endpointCagr: number | null;
+}
+
+/**
+ * Compound growth rate fitted by least squares over the log of the series.
+ *
+ * An endpoint CAGR reads only its first and last value, so a single distorted
+ * year sets the entire rate: AMD's 2020 EPS carries a one-off deferred-tax
+ * release and drags its 5-year rate to +5.2%, and AVGO's window opens on a
+ * spike and closes on acquisition charges, giving -5.5% — - neither of which
+ * describes what those businesses did over the period.
+ *
+ * Fitting ln(y) = b*x + a and taking exp(b) - 1 gives a compound rate in the
+ * same units, but one that every observation contributes to, so an outlier at
+ * either end moves it rather than defining it. The book's own warning that
+ * single-year figures say little and multi-year trends say everything is an
+ * argument for exactly this.
+ *
+ * Logs need positive values, so non-positive points are dropped; with fewer
+ * than three left the endpoint CAGR is used instead and the method says so.
+ */
+export function trendGrowth(series: SeriesPoint[]): GrowthResult {
+  const endpoint = cagr(series);
+  const usable = series.filter((p) => p.value > 0);
+
+  if (usable.length < 3) {
+    return {
+      value: endpoint.value,
+      years: endpoint.years,
+      method: endpoint.value == null ? 'none' : 'endpoints',
+      pointsUsed: usable.length,
+      endpointCagr: endpoint.value,
+    };
+  }
+
+  // x is elapsed years from the first usable point, so irregular fiscal
+  // periods are handled correctly rather than assumed evenly spaced.
+  const origin = usable[0].period;
+  const xs = usable.map((p) => yearsBetween(origin, p.period));
+  const ys = usable.map((p) => Math.log(p.value));
+
+  const n = xs.length;
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
+
+  let numerator = 0;
+  let denominator = 0;
+  for (let i = 0; i < n; i++) {
+    numerator += (xs[i] - meanX) * (ys[i] - meanY);
+    denominator += (xs[i] - meanX) ** 2;
+  }
+
+  if (denominator === 0) {
+    return {
+      value: endpoint.value,
+      years: endpoint.years,
+      method: endpoint.value == null ? 'none' : 'endpoints',
+      pointsUsed: n,
+      endpointCagr: endpoint.value,
+    };
+  }
+
+  const slope = numerator / denominator;
+  const value = Math.exp(slope) - 1;
+
+  return {
+    value: Number.isFinite(value) ? value : null,
+    years: xs[n - 1] - xs[0],
+    method: 'lsgr',
+    pointsUsed: n,
+    endpointCagr: endpoint.value,
+  };
+}
+
 /** Year-over-year growth between the two most recent periods, as a fraction. */
 export function latestGrowth(series: SeriesPoint[]): number | null {
   if (series.length < 2) return null;

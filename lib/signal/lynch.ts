@@ -4,7 +4,12 @@
  * Only categories 1 and 2 can receive a buy signal; category 3 only with an
  * explicit warning. Everything else is labelled outside the book's focus.
  */
-import { annualSeries, cagr, lastNYears, type SeriesPoint } from '@/lib/ratios/fundamentals';
+import {
+  annualSeries,
+  lastNYears,
+  trendGrowth,
+  type SeriesPoint,
+} from '@/lib/ratios/fundamentals';
 import { DEFAULT_THRESHOLDS, type Thresholds } from '@/lib/ratios/thresholds';
 import type { RatioContext } from '@/lib/ratios/engine';
 
@@ -58,13 +63,13 @@ function measureGrowth(
   basis: GrowthBasis;
   noteKey: string | null;
 } {
-  const full = cagr(epsSeries);
+  const full = trendGrowth(epsSeries);
   if (full.value != null) {
     return { growth: full, series: epsSeries, basis: 'eps', noteKey: null };
   }
 
   const run = longestConsecutiveRun(epsSeries);
-  const partial = cagr(run);
+  const partial = trendGrowth(run);
   if (partial.value != null && run.length >= 3) {
     return {
       growth: partial,
@@ -74,7 +79,7 @@ function measureGrowth(
     };
   }
 
-  const revenue = cagr(revenueSeries);
+  const revenue = trendGrowth(revenueSeries);
   if (revenue.value != null) {
     return {
       growth: revenue,
