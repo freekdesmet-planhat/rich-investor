@@ -12,7 +12,8 @@
     "account": "Account",
     "search": "Zoeken",
     "menu": "Menu",
-    "backToWatchlist": "Terug naar volglijst"
+    "backToWatchlist": "Terug naar volglijst",
+    "compare": "Vergelijken"
   },
   "language": {
     "label": "Taal",
@@ -353,5 +354,16 @@
       "5y": "5j",
       "max": "Max"
     }
+  },
+  "compare": {
+    "title": "Vergelijken",
+    "intro": "Meerdere namen staan op hetzelfde aantal en missen verschillende dingen. Naast elkaar is het verschil de kern.",
+    "pick": "Kies er maximaal {max} van je volglijst",
+    "full": "Haal er eerst een weg — maximaal {max} tegelijk.",
+    "chooseTwo": "Kies hierboven minstens twee tickers.",
+    "condition": "Voorwaarde",
+    "notApplicable": "n.v.t.",
+    "differing": "Ze verschillen op {count} van de voorwaarden — die rijen zijn gemarkeerd.",
+    "identical": "Ze halen en missen precies dezelfde voorwaarden."
   }
 }

@@ -82,16 +82,24 @@ export async function QualitativeReview({
           <p className="mb-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
             {t('assessment.help')}
           </p>
-          <div className="flex flex-wrap gap-3">
+          {/* Chips rather than 13px browser radios. The input is still a real
+              radio — the server action reads exactly the same field — it is
+              just visually hidden, with the label doing the drawing. That keeps
+              the keyboard behaviour, the form semantics and the no-JS path
+              intact while giving a target a thumb can actually hit. */}
+          <div className="flex flex-wrap gap-2">
             {(['temporary', 'structural', 'not_assessed'] as const).map((value) => (
-              <label key={value} className="flex items-center gap-2 text-sm">
+              <label key={value} className="cursor-pointer">
                 <input
                   type="radio"
                   name="assessment"
                   value={value}
                   defaultChecked={(mine?.assessment ?? 'not_assessed') === value}
+                  className="peer sr-only"
                 />
-                <span>{t(`assessment.${value}`)}</span>
+                <span className="inline-block rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 peer-checked:border-slate-900 peer-checked:bg-slate-900 peer-checked:font-medium peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:peer-checked:border-slate-100 dark:peer-checked:bg-slate-100 dark:peer-checked:text-slate-900">
+                  {t(`assessment.${value}`)}
+                </span>
               </label>
             ))}
           </div>
@@ -238,19 +246,32 @@ function CheckboxGroup({
   return (
     <fieldset>
       <legend className="text-sm font-medium">{legend}</legend>
-      <div className="mt-2 space-y-1.5">
+      {/* Same treatment as the assessment: a real checkbox, visually hidden,
+          with the label drawn as a toggle chip. Sixteen of these were 13px
+          squares — well under the 24px a thumb needs — in a form whose whole
+          purpose is to be filled in on the sofa. */}
+      <div className="mt-2 flex flex-wrap gap-2">
         {keys.map((key) => {
           const doc = docs.get(`${namespace}:${key}`);
+          const tone =
+            namespace === 'sell_signal'
+              ? 'peer-checked:border-rose-600 peer-checked:bg-rose-50 peer-checked:text-rose-900 dark:peer-checked:border-rose-500 dark:peer-checked:bg-rose-950 dark:peer-checked:text-rose-100'
+              : 'peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-900 dark:peer-checked:border-emerald-500 dark:peer-checked:bg-emerald-950 dark:peer-checked:text-emerald-100';
+
           return (
-            <label key={key} className="flex items-start gap-2 text-sm">
+            <label key={key} className="cursor-pointer" title={doc?.explanation}>
               <input
                 type="checkbox"
                 name={name}
                 value={key}
                 defaultChecked={checked.includes(key)}
-                className="mt-1"
+                className="peer sr-only"
               />
-              <span title={doc?.explanation}>{doc?.name ?? key}</span>
+              <span
+                className={`inline-block rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 ${tone}`}
+              >
+                {doc?.name ?? key}
+              </span>
             </label>
           );
         })}

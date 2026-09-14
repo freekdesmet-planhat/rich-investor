@@ -32,6 +32,7 @@ export async function SiteHeader() {
     { href: '/', label: tNav('watchlist') },
     { href: '/search', label: tNav('search') },
     { href: '/suggestions', label: tNav('suggestions') },
+    { href: '/compare', label: tNav('compare') },
     ...(user ? [{ href: '/account', label: tNav('account') }] : []),
   ];
 

@@ -12,7 +12,8 @@
     "account": "Account",
     "search": "Search",
     "menu": "Menu",
-    "backToWatchlist": "Back to watchlist"
+    "backToWatchlist": "Back to watchlist",
+    "compare": "Compare"
   },
   "language": {
     "label": "Language",
@@ -353,5 +354,16 @@
       "5y": "5y",
       "max": "Max"
     }
+  },
+  "compare": {
+    "title": "Compare",
+    "intro": "Several names sit on the same count and are missing different things. Side by side, the difference is the point.",
+    "pick": "Choose up to {max} from your watchlist",
+    "full": "Remove one first — at most {max} at a time.",
+    "chooseTwo": "Choose at least two tickers above.",
+    "condition": "Condition",
+    "notApplicable": "n/a",
+    "differing": "They disagree on {count} of the conditions — those rows are highlighted.",
+    "identical": "They pass and fail exactly the same conditions."
   }
 }
