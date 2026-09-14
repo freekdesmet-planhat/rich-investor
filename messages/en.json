@@ -109,7 +109,8 @@
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago",
     "stale": "The nightly update has not run for {age}. The figures below are from {date}.",
-    "veryStale": "The nightly update has not run for {age}. Something has stopped; the figures below are from {date} and should not be acted on."
+    "veryStale": "The nightly update has not run for {age}. Something has stopped; the figures below are from {date} and should not be acted on.",
+    "currencies": "Prices in {quote}, statements in {filing}, the market-cap rule in USD"
   },
   "review": {
     "title": "My qualitative review",

@@ -101,6 +101,11 @@ export interface RatioContext {
   filingCurrency: string | null;
   quoteCurrency: string | null;
   fxApplied: number | null;
+  /**
+   * Quote currency to USD, kept so the page can show a market cap in the
+   * company's own currency as well as in the USD the $10bn rule is stated in.
+   */
+  quoteToUsd: number | null;
   thresholds: Thresholds;
   bundle: SymbolBundle;
 }
@@ -193,6 +198,7 @@ export function buildContext(
     filingCurrency,
     quoteCurrency,
     fxApplied,
+    quoteToUsd: toUsd,
     thresholds,
     bundle,
   };
@@ -1348,7 +1354,18 @@ export function computeMarketCap(ctx: RatioContext): RatioResult {
     history: [],
     notApplicable: false,
     unavailableReason: null,
-    detail: { marketCapUsd: ctx.marketCapUsd, quoteCurrency: ctx.quoteCurrency },
+    // The native figure travels with the converted one. A page showing
+    // "$34.0B" beside a price of "928.70 EUR" states two numbers in two
+    // currencies and no relation between them; the reader cannot tell whether
+    // the cap was converted, or what it is worth in the currency the shares
+    // actually trade in.
+    detail: {
+      marketCapUsd: ctx.marketCapUsd,
+      quoteCurrency: ctx.quoteCurrency,
+      quoteToUsd: ctx.quoteToUsd,
+      marketCapNative:
+        ctx.quoteToUsd != null && ctx.quoteToUsd !== 0 ? ctx.marketCapUsd / ctx.quoteToUsd : null,
+    },
   };
 }
 

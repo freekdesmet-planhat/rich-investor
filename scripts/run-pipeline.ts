@@ -5,6 +5,10 @@
  *   npx tsx --env-file=.env.local scripts/run-pipeline.ts
  *   npx tsx --env-file=.env.local scripts/run-pipeline.ts ASML ADYEN.AS
  *   npx tsx --env-file=.env.local scripts/run-pipeline.ts --detail ASML
+ *
+ * Running this sends the daily digest, exactly as the nightly job would — pass
+ * `--no-email` when refreshing a ticker by hand, which is almost always what
+ * you want.
  */
 import { createClient } from '@supabase/supabase-js';
 import { runDailyPipeline, SEED_SYMBOLS } from '@/lib/pipeline/runDaily';

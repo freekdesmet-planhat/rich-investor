@@ -109,7 +109,8 @@
     "hoursAgo": "{count} uur geleden",
     "daysAgo": "{count} dagen geleden",
     "stale": "De nachtelijke update draait al {age} niet. De cijfers hieronder zijn van {date}.",
-    "veryStale": "De nachtelijke update draait al {age} niet. Er is iets misgegaan; de cijfers hieronder zijn van {date} en zijn geen basis om op te handelen."
+    "veryStale": "De nachtelijke update draait al {age} niet. Er is iets misgegaan; de cijfers hieronder zijn van {date} en zijn geen basis om op te handelen.",
+    "currencies": "Koersen in {quote}, jaarrekening in {filing}, de beurswaarde-regel in USD"
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",

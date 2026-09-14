@@ -29,7 +29,7 @@ import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
-import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
+import { formatBillions, formatCurrency, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
 
@@ -224,8 +224,12 @@ export default async function StockPage({
                 title={tWatchlist('pegForwardHelp')}
               />
               {snapshot?.price != null && (
+                // Formatted as money rather than a bare number with a code
+                // appended: "928.70 EUR" sat three inches from a market cap
+                // printed as "$34.0B" and nothing said whether the two were
+                // the same currency, different currencies, or converted.
                 <span className="tabular-nums">
-                  {formatNumber(snapshot.price, locale)} {snapshot.currency}
+                  {formatCurrency(snapshot.price, snapshot.currency, locale)}
                 </span>
               )}
             </p>
@@ -396,6 +400,38 @@ export default async function StockPage({
                 forwardPasses?: boolean;
               };
 
+              // The $10bn floor is stated in USD, so USD is the figure the
+              // condition judges and stays the headline. The native figure sits
+              // beside it, because that is the currency the price above is in.
+              const capDetail =
+                key === 'market_cap'
+                  ? (row.detail as {
+                      marketCapNative?: number | null;
+                      quoteCurrency?: string | null;
+                    })
+                  : null;
+              const capVariants =
+                capDetail?.marketCapNative != null &&
+                capDetail.quoteCurrency &&
+                capDetail.quoteCurrency !== 'USD'
+                  ? [
+                      {
+                        label: 'USD',
+                        value: formatBillions(row.value, 'USD', locale),
+                        used: true,
+                      },
+                      {
+                        label: capDetail.quoteCurrency,
+                        value: formatBillions(
+                          capDetail.marketCapNative,
+                          capDetail.quoteCurrency,
+                          locale,
+                        ),
+                        used: false,
+                      },
+                    ]
+                  : null;
+
               const variants = pegCondition
                 ? [
                     {
@@ -409,7 +445,7 @@ export default async function StockPage({
                       used: Boolean(pegDetail.forwardPasses),
                     },
                   ]
-                : null;
+                : capVariants;
 
               const color = pegCondition
                 ? pegCondition.passed
@@ -501,7 +537,11 @@ export default async function StockPage({
               <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Stat
                   label={locale === 'nl' ? 'Verwachte WPA' : 'Next-year EPS'}
-                  value={formatNumber(snapshot.estimates.nextYearEps, locale)}
+                  // Per-share money, and it was printed as a bare number. The
+                  // estimates are quoted in the trading currency, which for a
+                  // company filing in another one is not the currency the
+                  // statements above are in.
+                  value={formatCurrency(snapshot.estimates.nextYearEps, snapshot.currency, locale)}
                 />
                 <Stat
                   label={locale === 'nl' ? 'Verwachte groei' : 'Expected growth'}
@@ -513,7 +553,7 @@ export default async function StockPage({
                 />
                 <Stat
                   label={locale === 'nl' ? 'Koersdoel' : 'Target price'}
-                  value={formatNumber(snapshot.estimates.targetPrice, locale)}
+                  value={formatCurrency(snapshot.estimates.targetPrice, snapshot.currency, locale)}
                 />
               </dl>
               <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
@@ -618,8 +658,15 @@ export default async function StockPage({
           {snapshot?.statement_sources?.income
             ? `${tData('source')}: ${snapshot.statement_sources.income}`
             : ''}
-          {snapshot?.filing_currency && snapshot.filing_currency !== snapshot.currency
-            ? ` · ${snapshot.currency} / ${snapshot.filing_currency}`
+          {/* "EUR / USD" told the reader two codes and no relation. Which
+              figures are in which currency is the thing the page has to say,
+              because it shows all three: the price, the statements, and the
+              $10bn rule that is written in USD. */}
+          {snapshot?.currency
+            ? ` · ${tData('currencies', {
+                quote: snapshot.currency,
+                filing: snapshot.filing_currency ?? snapshot.currency,
+              })}`
             : ''}
         </p>
       </main>

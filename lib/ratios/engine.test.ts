@@ -605,6 +605,37 @@ describe('market cap (5.19)', () => {
     const ctx = buildContext(bundle({ marketCap: 2_000_000_000, quoteCurrency: 'USD' }));
     expect(computeMarketCap(ctx).color).toBe('red');
   });
+
+  /**
+   * The page prints the cap beside a price quoted in the company's own
+   * currency. Carrying the native figure and the rate is what lets it say the
+   * two are the same money rather than leaving "$34.0B" next to "928.70 EUR".
+   */
+  it('keeps the figure in the currency the shares trade in', () => {
+    const fx = createFxRates({ EURUSD: 1.16 });
+    const ctx = buildContext(
+      bundle({ marketCap: 9_000_000_000, quoteCurrency: 'EUR', filingCurrency: 'EUR' }),
+      { fx },
+    );
+    const detail = computeMarketCap(ctx).detail as {
+      marketCapNative: number | null;
+      quoteCurrency: string | null;
+      quoteToUsd: number | null;
+    };
+
+    expect(detail.quoteCurrency).toBe('EUR');
+    expect(detail.quoteToUsd).toBeCloseTo(1.16, 6);
+    expect(detail.marketCapNative).toBeCloseTo(9_000_000_000, 0);
+  });
+
+  it('reports the same number twice when the shares already trade in USD', () => {
+    const ctx = buildContext(bundle({ marketCap: 50_000_000_000, quoteCurrency: 'USD' }));
+    const result = computeMarketCap(ctx);
+    const detail = result.detail as { marketCapNative: number | null; quoteToUsd: number | null };
+
+    expect(detail.quoteToUsd).toBe(1);
+    expect(detail.marketCapNative).toBeCloseTo(result.value!, 0);
+  });
 });
 
 // ---------------------------------------------------------------------------
