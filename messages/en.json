@@ -23,7 +23,12 @@
     "buy_worthy": "Buy-worthy, over to your qualitative review",
     "almost": "Almost there, keep watching",
     "watching": "Watching",
-    "conditionsMet": "{met} of {total} conditions met"
+    "conditionsMet": "{met} of {total} conditions met",
+    "short": {
+      "buy_worthy": "Buy-worthy",
+      "almost": "Almost there",
+      "watching": "Watching"
+    }
   },
   "sector": {
     "information_technology": "Information technology",
@@ -226,6 +231,17 @@
     "pending": "Added. The nightly scan will analyse it.",
     "notAnalysed": "Not analysed yet",
     "empty": "Nothing on the watchlist yet. Search for a ticker to add one.",
-    "confirmRemove": "Remove {symbol} from the watchlist?"
+    "confirmRemove": "Remove {symbol} from the watchlist?",
+    "all": "All",
+    "sortBy": "Sort by",
+    "sortSector": "Sector",
+    "sortConditions": "Conditions met",
+    "sortDrawdown": "Decline from high",
+    "sortSymbol": "Ticker",
+    "filterPlaceholder": "Filter by ticker or name",
+    "filterApply": "Filter",
+    "showing": "Showing {shown} of {total}",
+    "noMatches": "Nothing on your watchlist matches that.",
+    "clear": "Clear filters"
   }
 }

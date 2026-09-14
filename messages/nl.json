@@ -23,7 +23,12 @@
     "buy_worthy": "Koopwaardig, nu jouw kwalitatieve beoordeling",
     "almost": "Bijna zover, blijven volgen",
     "watching": "Volgen",
-    "conditionsMet": "{met} van {total} voorwaarden behaald"
+    "conditionsMet": "{met} van {total} voorwaarden behaald",
+    "short": {
+      "buy_worthy": "Koopwaardig",
+      "almost": "Bijna zover",
+      "watching": "Volgen"
+    }
   },
   "sector": {
     "information_technology": "Informatietechnologie",
@@ -226,6 +231,17 @@
     "pending": "Toegevoegd. De nachtelijke scan analyseert het bedrijf.",
     "notAnalysed": "Nog niet geanalyseerd",
     "empty": "Je volglijst is nog leeg. Zoek een ticker om er een toe te voegen.",
-    "confirmRemove": "{symbol} van de volglijst verwijderen?"
+    "confirmRemove": "{symbol} van de volglijst verwijderen?",
+    "all": "Alles",
+    "sortBy": "Sorteren op",
+    "sortSector": "Sector",
+    "sortConditions": "Voorwaarden voldaan",
+    "sortDrawdown": "Daling vanaf de top",
+    "sortSymbol": "Ticker",
+    "filterPlaceholder": "Filter op ticker of naam",
+    "filterApply": "Filteren",
+    "showing": "{shown} van {total} getoond",
+    "noMatches": "Niets op je volglijst komt daarmee overeen.",
+    "clear": "Filters wissen"
   }
 }
