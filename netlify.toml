@@ -99,5 +99,8 @@
 #     FMP_API_KEY                     Analyst estimates for the tickers FMP covers
 #     SEC_USER_AGENT                  Contact string the SEC requires for EDGAR
 #     SCAN_BATCH_SIZE                 Candidates evaluated per nightly run
+#                                     (default 30, capped at 200; the rest of
+#                                      the nightly budget is left for the
+#                                      watchlist pass and on-demand analysis)
 #     FINANCE_QUERY_BASE_URL          Point at a self-hosted finance-query
 # ---------------------------------------------------------------------------

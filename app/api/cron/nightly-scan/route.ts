@@ -18,14 +18,20 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { runDailyPipeline, SEED_SYMBOLS } from '@/lib/pipeline/runDaily';
 import { runScan } from '@/lib/pipeline/scan';
+import { scanBatchSize } from '@/lib/pipeline/scanBudget';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 
 /** Long enough for a full run; Netlify caps background functions well above this. */
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-/** Candidates evaluated per nightly run — see the rate-limit note below. */
-const SCAN_BATCH = Number(process.env.SCAN_BATCH_SIZE ?? 60);
+/**
+ * Candidates evaluated per nightly run.
+ *
+ * Halved from 60 so the night leaves providers and wall clock for analysing a
+ * ticker the moment it is added, rather than spending the whole budget filling
+ * the suggestion feed. `scanBudget.ts` sets out the arithmetic.
+ */
 
 export async function POST(request: NextRequest) {
   if (!isAuthorisedCron(request.headers)) {
@@ -70,7 +76,7 @@ export async function POST(request: NextRequest) {
     const cursor = await nextCursor(client);
     scan = await runScan({
       client,
-      limit: SCAN_BATCH,
+      limit: scanBatchSize(),
       cursor,
       onProgress: (message) => log.push(message),
     });
@@ -91,7 +97,12 @@ export async function POST(request: NextRequest) {
     },
     notifications: watchlist.notifications,
     scan: scan
-      ? { evaluated: scan.evaluated, suggested: scan.suggested, nextCursor: scan.nextCursor }
+      ? {
+          budget: scanBatchSize(),
+          evaluated: scan.evaluated,
+          suggested: scan.suggested,
+          nextCursor: scan.nextCursor,
+        }
       : null,
     log,
   });
@@ -139,6 +150,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ready: Boolean(process.env.CRON_SECRET && process.env.SUPABASE_SERVICE_ROLE_KEY),
     authorised: isAuthorisedCron(request.headers),
-    scanBatchSize: SCAN_BATCH,
+    scanBatchSize: scanBatchSize(),
   });
 }
