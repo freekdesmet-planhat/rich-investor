@@ -1,8 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { generateThesisAction, type ThesisState } from '@/app/stock/[symbol]/thesisActions';
+import { useCallback, useRef, useState } from 'react';
 
 export interface ThesisLabels {
   title: string;
@@ -11,21 +9,19 @@ export interface ThesisLabels {
   refresh: string;
   generating: string;
   empty: string;
-  mockNotice: string;
   staleNotice: string;
   generatedAt: string;
   error: string;
   signedOut: string;
-  langMismatch: string | null;
   /** One sentence per failure code, from `thesis.failed` in the active language. */
   failed: Record<string, string>;
 }
 
 /**
- * Skeleton shown while the request is in flight.
+ * Shown only until the first characters arrive.
  *
- * The call takes a couple of seconds, which is long enough that a frozen button
- * reads as a broken one.
+ * Once the model is writing, the partial text is a better progress indicator
+ * than any placeholder, so the skeleton gets out of the way.
  */
 function ThesisSkeleton() {
   return (
@@ -40,126 +36,169 @@ function ThesisSkeleton() {
   );
 }
 
-function Body({
-  thesis,
-  labels,
-  isMock,
-  isStale,
-  generatedAt,
-}: {
-  thesis: string | null;
-  labels: ThesisLabels;
-  isMock: boolean;
-  isStale: boolean;
-  generatedAt: string | null;
-}) {
-  const { pending } = useFormStatus();
-
-  if (pending) return <ThesisSkeleton />;
-
-  if (!thesis) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">{labels.empty}</p>;
-  }
-
-  return (
-    <>
-      {isMock && (
-        <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          {labels.mockNotice}
-        </p>
-      )}
-      {isStale && !isMock && (
-        <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">{labels.staleNotice}</p>
-      )}
-      {/* The thesis is stored in the language it was generated in, so reading
-          it in the other one has to be visible rather than silently odd. */}
-      {labels.langMismatch && !isMock && (
-        <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">{labels.langMismatch}</p>
-      )}
-      <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-        {thesis}
-      </p>
-      {generatedAt && (
-        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-          {labels.generatedAt.replace('{date}', generatedAt.slice(0, 10))}
-        </p>
-      )}
-    </>
-  );
-}
-
-function GenerateButton({ hasThesis, labels }: { hasThesis: boolean; labels: ThesisLabels }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-    >
-      {pending ? labels.generating : hasThesis ? labels.refresh : labels.generate}
-    </button>
-  );
-}
-
 /**
- * The AI thesis card, beside the qualitative review.
+ * The AI thesis card, beside the human judgement it is not a substitute for.
  *
  * Generation is a deliberate click rather than something the page does on load:
  * a summary per visit would be a bill per visit, and the stored one is good
  * until the signal moves.
+ *
+ * The text streams in as it is written. The card is only rendered at all when
+ * an API key is configured — with no key there is no block here to explain
+ * itself, and nothing is ever stored.
  */
 export function AiThesisCard({
   symbol,
-  thesis,
-  isMock,
+  lang,
+  thesis: cached,
   isStale,
-  generatedAt,
+  generatedAt: cachedAt,
   canGenerate,
   labels,
 }: {
   symbol: string;
+  lang: string;
   thesis: string | null;
-  isMock: boolean;
   isStale: boolean;
   generatedAt: string | null;
   canGenerate: boolean;
   labels: ThesisLabels;
 }) {
-  const [state, action] = useActionState<ThesisState, FormData>(generateThesisAction, {
-    status: 'idle',
-  });
+  const [text, setText] = useState<string | null>(cached);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(cachedAt);
+  const [pending, setPending] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [fresh, setFresh] = useState(false);
+  const abort = useRef<AbortController | null>(null);
+
+  const generate = useCallback(async () => {
+    abort.current?.abort();
+    const controller = new AbortController();
+    abort.current = controller;
+
+    setPending(true);
+    setErrorCode(null);
+    setText(null);
+
+    let streamed = '';
+    let failed: string | null = null;
+
+    try {
+      const response = await fetch('/api/thesis', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ symbol, lang }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok && !response.body) {
+        const payload = (await response.json().catch(() => null)) as { code?: string } | null;
+        failed = payload?.code ?? 'unknown';
+      } else if (!response.body) {
+        failed = 'unknown';
+      } else {
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = '';
+
+        // Newline-delimited JSON: a chunk may split a line, and may carry more
+        // than one, so the buffer is drained a line at a time.
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += value;
+
+          let newline = buffer.indexOf('\n');
+          while (newline !== -1) {
+            const raw = buffer.slice(0, newline).trim();
+            buffer = buffer.slice(newline + 1);
+            newline = buffer.indexOf('\n');
+            if (!raw) continue;
+
+            const event = JSON.parse(raw) as {
+              type: string;
+              text?: string;
+              code?: string;
+              generatedAt?: string;
+            };
+            if (event.type === 'delta' && event.text) {
+              streamed += event.text;
+              setText(streamed);
+            } else if (event.type === 'done') {
+              setGeneratedAt(event.generatedAt ?? null);
+              setFresh(true);
+            } else if (event.type === 'error') {
+              failed = event.code ?? 'unknown';
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // An aborted request is the user's own doing, not a failure to report.
+      if ((error as Error).name !== 'AbortError') failed = 'unknown';
+    } finally {
+      setPending(false);
+    }
+
+    if (failed) {
+      setErrorCode(failed);
+      // A partial reply is not an analysis; the card goes back to whatever was
+      // stored rather than keeping half a summary on screen.
+      setText(cached);
+    }
+  }, [symbol, lang, cached]);
+
+  const hasText = Boolean(text && text.length > 0);
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
       <p className="mb-3 mt-1 text-xs text-slate-500 dark:text-slate-400">{labels.intro}</p>
 
-      <form action={action}>
-        <input type="hidden" name="symbol" value={symbol} />
+      {pending && !hasText && <ThesisSkeleton />}
 
-        <Body
-          thesis={thesis}
-          labels={labels}
-          isMock={isMock}
-          isStale={isStale}
-          generatedAt={generatedAt}
-        />
+      {!pending && !hasText && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">{labels.empty}</p>
+      )}
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {canGenerate ? (
-            <GenerateButton hasThesis={Boolean(thesis)} labels={labels} />
-          ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">{labels.signedOut}</p>
+      {hasText && (
+        <>
+          {isStale && !fresh && (
+            <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">{labels.staleNotice}</p>
           )}
-          {state.status === 'error' && (
-            <p className="text-xs text-rose-600 dark:text-rose-400">
-              {labels.error}{' '}
-              {labels.failed[state.message ?? ''] ?? labels.failed.unknown}
+          <p
+            aria-live="polite"
+            className="whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300"
+          >
+            {text}
+            {pending && <span className="ml-0.5 animate-pulse">▍</span>}
+          </p>
+          {generatedAt && !pending && (
+            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+              {labels.generatedAt.replace('{date}', generatedAt.slice(0, 10))}
             </p>
           )}
-        </div>
-      </form>
+        </>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {canGenerate ? (
+          <button
+            type="button"
+            onClick={generate}
+            disabled={pending}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {pending ? labels.generating : cached || hasText ? labels.refresh : labels.generate}
+          </button>
+        ) : (
+          <p className="text-xs text-slate-500 dark:text-slate-400">{labels.signedOut}</p>
+        )}
+        {errorCode && (
+          <p className="text-xs text-rose-600 dark:text-rose-400">
+            {labels.error} {labels.failed[errorCode] ?? labels.failed.unknown}
+          </p>
+        )}
+      </div>
     </section>
   );
 }

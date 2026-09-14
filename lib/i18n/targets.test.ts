@@ -39,6 +39,21 @@ describe('target source suffix', () => {
     expect(stripSourceSuffix(plain)).toBe(plain);
   });
 
+  /**
+   * A parenthetical is not automatically a source annotation. Some qualify the
+   * number instead, and stripping those deletes the part that says which figure
+   * is being judged.
+   */
+  it('keeps a trailing parenthetical that qualifies the number', () => {
+    expect(stripSourceSuffix('≤ 20 (R&D-adjusted)')).toBe('≤ 20 (R&D-adjusted)');
+    expect(stripSourceSuffix('≤ 2.5 (net of cash)')).toBe('≤ 2.5 (net of cash)');
+    expect(stripSourceSuffix('≥ 50% (5-year high)')).toBe('≥ 50% (5-year high)');
+  });
+
+  it('still strips an annotation that follows another parenthetical', () => {
+    expect(stripSourceSuffix('≤ 20 (R&D-adjusted) (from the book)')).toBe('≤ 20 (R&D-adjusted)');
+  });
+
   it('keeps a target that is nothing but a parenthetical', () => {
     expect(stripSourceSuffix('(from the book)')).toBe('(from the book)');
   });

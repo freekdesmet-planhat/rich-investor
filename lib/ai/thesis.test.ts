@@ -1,17 +1,67 @@
 /**
  * AI thesis tests.
  *
- * The behaviour that matters most here is what happens without an API key: the
- * app has to keep working, and a placeholder must never be mistakable for a
- * real analysis.
+ * Two behaviours matter most. Without an API key nothing is generated and
+ * nothing is stored — the placeholder that used to be written here is what put
+ * "Placeholder — ANTHROPIC_API_KEY is not set" on a stock page as though it were
+ * an analysis. And a generation that does not finish cleanly raises a code
+ * rather than returning half a summary.
  */
-import { describe, expect, it, vi, afterEach } from 'vitest';
-import {
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+
+/** Events and outcome for one fake call, set per test. */
+const fake: {
+  deltas: string[];
+  stopReason: string;
+  throws: unknown;
+} = { deltas: [], stopReason: 'end_turn', throws: null };
+
+let lastRequest: Record<string, unknown> | null = null;
+
+vi.mock('@anthropic-ai/sdk', () => {
+  class APIError extends Error {
+    constructor(
+      readonly status: number,
+      message: string,
+    ) {
+      super(message);
+    }
+  }
+
+  class FakeAnthropic {
+    static APIError = APIError;
+
+    messages = {
+      stream: (request: Record<string, unknown>) => {
+        lastRequest = request;
+        return {
+          async *[Symbol.asyncIterator]() {
+            if (fake.throws) throw fake.throws;
+            for (const text of fake.deltas) {
+              yield { type: 'content_block_delta', delta: { type: 'text_delta', text } };
+            }
+          },
+          finalMessage: async () => ({
+            stop_reason: fake.stopReason,
+            model: 'claude-sonnet-5',
+            usage: { input_tokens: 111, output_tokens: 222 },
+          }),
+        };
+      },
+    };
+  }
+
+  return { default: FakeAnthropic };
+});
+
+const {
   buildUserMessage,
-  generateThesis,
-  parseThesisJson,
-  type ThesisContext,
-} from './thesis';
+  streamThesis,
+  systemPromptFor,
+  thesisEnabled,
+  ThesisError,
+}: typeof import('./thesis') = await import('./thesis');
+type ThesisContext = import('./thesis').ThesisContext;
 
 const context = (overrides: Partial<ThesisContext> = {}): ThesisContext => ({
   symbol: 'ADYEN.AS',
@@ -39,7 +89,27 @@ const context = (overrides: Partial<ThesisContext> = {}): ThesisContext => ({
   ...overrides,
 });
 
+/** Drains the generator, returning the deltas and the final result. */
+async function run(lang: 'en' | 'nl' = 'en') {
+  const generation = streamThesis(context(), lang);
+  const deltas: string[] = [];
+  let step = await generation.next();
+  while (!step.done) {
+    deltas.push(step.value);
+    step = await generation.next();
+  }
+  return { deltas, result: step.value };
+}
+
 const originalKey = process.env.ANTHROPIC_API_KEY;
+
+beforeEach(() => {
+  process.env.ANTHROPIC_API_KEY = 'test-key';
+  fake.deltas = ['The bull case ', 'is strong.'];
+  fake.stopReason = 'end_turn';
+  fake.throws = null;
+  lastRequest = null;
+});
 
 afterEach(() => {
   if (originalKey === undefined) delete process.env.ANTHROPIC_API_KEY;
@@ -84,85 +154,122 @@ describe('the prompt sent to the model', () => {
   });
 });
 
-describe('without an API key', () => {
-  it('returns a placeholder instead of failing, and flags it as one', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+describe('one language per call', () => {
+  it('asks for English prose when the reader is reading English', () => {
+    const prompt = systemPromptFor('en');
 
-    const result = await generateThesis(context());
-
-    expect(result.isMock).toBe(true);
-    expect(result.model).toBe('mock');
-    expect(result.en).toContain('ANTHROPIC_API_KEY is not set');
-    expect(warn).toHaveBeenCalled();
+    expect(prompt).toContain('Write in English');
+    expect(prompt).not.toMatch(/dutch/i);
   });
 
-  /** Section 2: generated content never exists in one language without the other. */
-  it('still produces both languages', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  /**
+   * The point of a separate call: the Dutch is written as Dutch from the
+   * figures, never rendered from an English summary generated alongside it.
+   */
+  it('asks for Dutch written as Dutch, not translated', () => {
+    const prompt = systemPromptFor('nl');
 
-    const result = await generateThesis(context());
-
-    expect(result.en.length).toBeGreaterThan(40);
-    expect(result.nl.length).toBeGreaterThan(40);
-    expect(result.nl).toContain('Voorbeeldtekst');
-    expect(result.en).not.toBe(result.nl);
+    expect(prompt).toContain('Write in Dutch');
+    expect(prompt).toMatch(/not.*translation/i);
+    expect(prompt).toContain('directly in Dutch');
   });
 
-  it('still cites the real figures, so the placeholder is not fiction', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const result = await generateThesis(context());
-
-    expect(result.en).toContain('ADYEN.AS');
-    expect(result.en).toContain('9 of 9');
-    expect(result.en).toContain('1.17');
+  it('never asks for both languages, or for JSON', () => {
+    for (const lang of ['en', 'nl'] as const) {
+      const prompt = systemPromptFor(lang);
+      expect(prompt).not.toContain('{"en"');
+      expect(prompt).not.toMatch(/\bJSON\b(?!,)/);
+    }
   });
 
-  it('reports no token usage, since nothing was spent', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('sends the language-specific system prompt and a real token ceiling', async () => {
+    await run('nl');
 
-    const result = await generateThesis(context());
-
-    expect(result.inputTokens).toBeNull();
-    expect(result.outputTokens).toBeNull();
+    expect(lastRequest?.system).toBe(systemPromptFor('nl'));
+    // The old ceiling of 600 had to cover both languages plus an envelope.
+    expect(lastRequest?.max_tokens as number).toBeGreaterThan(600);
   });
 });
 
-describe('parsing the dual-language reply', () => {
-  it('reads a bare JSON object', () => {
-    expect(parseThesisJson('{"en":"Bull case.","nl":"Bullcase."}')).toEqual({
-      en: 'Bull case.',
-      nl: 'Bullcase.',
-    });
+describe('streaming', () => {
+  it('yields the text as it arrives', async () => {
+    const { deltas } = await run();
+
+    expect(deltas).toEqual(['The bull case ', 'is strong.']);
   });
 
-  /** The classic failure: the model wraps its JSON in a code fence. */
-  it('reads JSON wrapped in a code fence', () => {
-    const raw = '```json\n{"en":"Bull case.","nl":"Bullcase."}\n```';
-    expect(parseThesisJson(raw)?.en).toBe('Bull case.');
+  it('returns the assembled summary with what it cost', async () => {
+    const { result } = await run('nl');
+
+    expect(result.text).toBe('The bull case is strong.');
+    expect(result.lang).toBe('nl');
+    expect(result.model).toBe('claude-sonnet-5');
+    expect(result.inputTokens).toBe(111);
+    expect(result.outputTokens).toBe(222);
+  });
+});
+
+describe('failures carry a code, never the provider wording', () => {
+  it('raises `truncated` when the reply hit the ceiling', async () => {
+    fake.stopReason = 'max_tokens';
+
+    await expect(run()).rejects.toMatchObject({ code: 'truncated' });
   });
 
-  it('reads JSON preceded by a stray sentence', () => {
-    const raw = 'Here is the summary:\n{"en":"Bull case.","nl":"Bullcase."}';
-    expect(parseThesisJson(raw)?.nl).toBe('Bullcase.');
+  it('raises `no_text` when nothing came back', async () => {
+    fake.deltas = [];
+
+    await expect(run()).rejects.toMatchObject({ code: 'no_text' });
   });
 
-  /** Half a bilingual summary is not a summary — the caller must know. */
-  it('rejects a reply missing one language', () => {
-    expect(parseThesisJson('{"en":"Only English."}')).toBeNull();
-    expect(parseThesisJson('{"en":"","nl":"Alleen Nederlands."}')).toBeNull();
+  it('raises `api` for a provider error, keeping its wording off the page', async () => {
+    // The mock's APIError takes (status, message); the real one takes more, and
+    // tsc checks against the real signature.
+    const ApiError = (await import('@anthropic-ai/sdk')).default
+      .APIError as unknown as new (status: number, message: string) => Error;
+    fake.throws = new ApiError(429, 'rate limit exceeded');
+
+    const error = await run().catch((e) => e);
+
+    expect(error).toBeInstanceOf(ThesisError);
+    expect(error.code).toBe('api');
+    // The detail exists for the log; the code is what the UI is given.
+    expect(error.detail).toContain('rate limit exceeded');
+  });
+});
+
+describe('without an API key', () => {
+  it('reports the feature as unconfigured, so the block can be hidden', () => {
+    delete process.env.ANTHROPIC_API_KEY;
+
+    expect(thesisEnabled()).toBe(false);
   });
 
-  it('rejects text that is not JSON at all', () => {
-    expect(parseThesisJson('The bull case is strong.')).toBeNull();
-    expect(parseThesisJson('')).toBeNull();
+  it('reports it as configured once a key is present', () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+
+    expect(thesisEnabled()).toBe(true);
   });
 
-  it('rejects a reply truncated mid-object', () => {
-    expect(parseThesisJson('{"en":"Bull case.","nl":"Bullca')).toBeNull();
+  /**
+   * The old behaviour returned placeholder prose flagged `is_mock`, which the
+   * page then rendered as a summary. Refusing outright is what stops a
+   * placeholder ever reaching the database.
+   */
+  it('generates nothing rather than a placeholder', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+
+    const error = await run().catch((e) => e);
+
+    expect(error).toBeInstanceOf(ThesisError);
+    expect(error.code).toBe('disabled');
+  });
+
+  it('never produces text a reader could mistake for an analysis', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+
+    const error = await run().catch((e) => e);
+
+    expect(error.message).not.toMatch(/Placeholder|Voorbeeldtekst/);
   });
 });

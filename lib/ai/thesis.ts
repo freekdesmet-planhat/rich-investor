@@ -6,16 +6,23 @@
  * nightly job — so the cost is one call per click rather than one per ticker
  * per day.
  *
- * Both languages come from a single call and are stored together (section 2):
- * generated content must never exist in one language without the other, and
- * asking twice would double the cost for the same analysis.
+ * One language per call. Asking for English and Dutch in a single JSON reply
+ * was the whole of BUG-01: the two summaries plus the envelope did not fit in
+ * the token ceiling, the reply came back truncated, the JSON failed to parse
+ * and every generation failed. Each language is now its own request, written in
+ * that language from the figures — the Dutch is never a translation of a cached
+ * English one, which is also what section 2 asks for.
  *
- * Without ANTHROPIC_API_KEY the module returns a fixed placeholder and says so,
- * both in the return value and in the console. The rest of the app works
- * unchanged, and the stored row is flagged `is_mock` so a placeholder can never
- * be mistaken for a real thesis.
+ * The reply is prose rather than JSON. With one language there is nothing to
+ * disambiguate, so the envelope that used to truncate is simply gone, and a
+ * reply that runs long is short prose instead of an unparseable fragment.
+ *
+ * Without ANTHROPIC_API_KEY there is no placeholder and no stored row: the
+ * caller asks `thesisEnabled()` first and hides the block entirely. A
+ * placeholder that reads like an analysis is worse than no analysis.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import type { Lang } from '@/lib/i18n/config';
 
 /**
  * Why a generation failed, as a code the UI can translate.
@@ -25,7 +32,7 @@ import Anthropic from '@anthropic-ai/sdk';
  * environment variable was missing). The code travels instead, and each
  * language supplies its own sentence under `thesis.failed`.
  */
-export type ThesisErrorCode = 'truncated' | 'bad_json' | 'no_text' | 'api';
+export type ThesisErrorCode = 'truncated' | 'no_text' | 'api' | 'disabled';
 
 export class ThesisError extends Error {
   constructor(
@@ -48,26 +55,40 @@ export class ThesisError extends Error {
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5';
 
 /**
- * Room for two summaries plus the JSON envelope.
+ * Room for one summary, with headroom.
  *
- * Each language is capped at 150 words by the system prompt; 600 tokens leaves
- * headroom so neither is truncated mid-sentence, which would be worse than
- * either being shorter.
+ * The system prompt caps a summary at 150 words, which is about 250 tokens of
+ * English and somewhat more of Dutch. 1200 leaves room for a long Dutch reply
+ * to finish its last sentence rather than stopping mid-clause — the old 600 had
+ * to cover *both* languages plus a JSON envelope, which is what it kept failing
+ * to do.
  */
-const MAX_TOKENS = 600;
+const MAX_TOKENS = 1200;
 
-const SYSTEM_PROMPT =
+const SHARED_INSTRUCTIONS =
   "You are a pragmatic, no-nonsense equity analyst applying Peter Lynch's " +
-  "'One Up on Wall Street' philosophy. Your task is to summarize the " +
-  'fundamental bull and bear case for the provided company. Focus strictly on ' +
+  "'One Up on Wall Street' philosophy. Summarise the fundamental bull and bear " +
+  'case for the company described by the figures below. Focus strictly on ' +
   'earnings growth consistency, debt resilience, cash flow quality, and the ' +
-  'valuation (PEG). Ignore technical analysis. Keep it concise, direct, and ' +
-  'under 150 words per language.\n\n' +
-  'Respond with valid JSON only, matching exactly this shape:\n' +
-  '{"en": "<the summary in English>", "nl": "<the same summary in Dutch>"}\n\n' +
-  'The Dutch is a natural rendering for a Dutch investor, not a literal ' +
-  'translation, and must make the same points as the English. Output no prose ' +
-  'outside the JSON object and no code fences.';
+  'valuation (PEG). Ignore technical analysis.';
+
+const FORMAT_INSTRUCTIONS =
+  'Reply with the summary itself and nothing else: no preamble, no heading, no ' +
+  'bullet list, no JSON, no markdown. Two short paragraphs at most, under 150 ' +
+  'words in total.';
+
+/** The system turn for one language. Dutch is written as Dutch, not translated. */
+export function systemPromptFor(lang: Lang): string {
+  const language =
+    lang === 'nl'
+      ? 'Write in Dutch, as a Dutch financial journalist would write for a Dutch ' +
+        'private investor. Use the ordinary Dutch terms for these concepts. Do not ' +
+        'write English and do not produce a word-for-word translation of an English ' +
+        'sentence — write the analysis directly in Dutch.'
+      : 'Write in English, for a private investor.';
+
+  return `${SHARED_INSTRUCTIONS}\n\n${language}\n\n${FORMAT_INSTRUCTIONS}`;
+}
 
 export interface ThesisContext {
   symbol: string;
@@ -91,13 +112,25 @@ export interface ThesisContext {
   drawdown: number | null;
 }
 
+/** What a completed generation produced, once the stream has finished. */
 export interface ThesisResult {
-  en: string;
-  nl: string;
+  text: string;
+  lang: Lang;
   model: string;
-  isMock: boolean;
   inputTokens: number | null;
   outputTokens: number | null;
+}
+
+/**
+ * Whether the feature is configured at all.
+ *
+ * The page asks this before rendering anything: with no key the AI block is
+ * absent rather than explaining its own absence to a reader who cannot act on
+ * it. Read per call rather than at module scope so a deployment that sets the
+ * key does not need a rebuild to pick it up.
+ */
+export function thesisEnabled(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 const pct = (value: number | null) => (value == null ? 'unknown' : `${(value * 100).toFixed(1)}%`);
@@ -136,80 +169,43 @@ export function buildUserMessage(context: ThesisContext): string {
 }
 
 /**
- * Pulls `{en, nl}` out of the model's reply.
+ * Streams one summary, in one language.
  *
- * The prompt asks for bare JSON, but a stray code fence or a sentence before
- * the object is the classic failure mode, so the first balanced object in the
- * text is used rather than assuming the whole reply parses. Returns null when
- * nothing usable is found, and the caller decides what to do about it.
+ * Yields text as it arrives so the card fills in rather than sitting on a dead
+ * button for several seconds, and returns what the caller needs to store once
+ * the reply is complete. Nothing is persisted here — the caller decides, and
+ * only ever after a clean finish.
  */
-export function parseThesisJson(raw: string): { en: string; nl: string } | null {
-  const withoutFence = raw
-    .replace(/^\s*```(?:json)?\s*/i, '')
-    .replace(/\s*```\s*$/, '')
-    .trim();
-
-  const candidates = [withoutFence];
-  const start = withoutFence.indexOf('{');
-  const end = withoutFence.lastIndexOf('}');
-  if (start !== -1 && end > start) candidates.push(withoutFence.slice(start, end + 1));
-
-  for (const candidate of candidates) {
-    try {
-      const parsed = JSON.parse(candidate) as { en?: unknown; nl?: unknown };
-      const en = typeof parsed.en === 'string' ? parsed.en.trim() : '';
-      const nl = typeof parsed.nl === 'string' ? parsed.nl.trim() : '';
-      // Both must be present: half a bilingual summary is not a summary.
-      if (en && nl) return { en, nl };
-    } catch {
-      // Try the next candidate.
-    }
-  }
-  return null;
-}
-
-function mockThesis(context: ThesisContext): ThesisResult {
-  const shared = `${context.symbol}`;
-  console.warn(
-    `[thesis] ANTHROPIC_API_KEY is not set — returning a placeholder for ${shared}.`,
-  );
-
-  return {
-    en:
-      `Placeholder — ANTHROPIC_API_KEY is not set, so no analysis was generated. ` +
-      `${context.symbol} meets ${context.conditionsMet} of ${context.conditionsApplicable} ` +
-      `conditions, with a PEG of ${num(context.peg)} and a return on equity of ` +
-      `${pct(context.roe)}. Set the key to get a real summary.`,
-    nl:
-      `Voorbeeldtekst — er is geen ANTHROPIC_API_KEY ingesteld, dus er is geen analyse ` +
-      `gegenereerd. ${context.symbol} voldoet aan ${context.conditionsMet} van ` +
-      `${context.conditionsApplicable} voorwaarden, met een PEG van ${num(context.peg)} en ` +
-      `een rendement op eigen vermogen van ${pct(context.roe)}. Stel de sleutel in om een ` +
-      `echte samenvatting te krijgen.`,
-    model: 'mock',
-    isMock: true,
-    inputTokens: null,
-    outputTokens: null,
-  };
-}
-
-export async function generateThesis(context: ThesisContext): Promise<ThesisResult> {
+export async function* streamThesis(
+  context: ThesisContext,
+  lang: Lang,
+): AsyncGenerator<string, ThesisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return mockThesis(context);
+  // Unreachable through the UI, which hides the block without a key. Still a
+  // code rather than a crash, so a stray request fails the same way as any
+  // other failure.
+  if (!apiKey) throw new ThesisError('disabled', 'ANTHROPIC_API_KEY is not set');
 
   const client = new Anthropic({ apiKey });
 
-  let response;
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system: systemPromptFor(lang),
+    // Summarising figures that are already computed is not a reasoning task,
+    // and the token budget is better spent on the summary itself.
+    thinking: { type: 'disabled' },
+    messages: [{ role: 'user', content: buildUserMessage(context) }],
+  });
+
+  let text = '';
   try {
-    response = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
-      // Summarising figures that are already computed is not a reasoning task,
-      // and the token budget is better spent on the two summaries themselves.
-      thinking: { type: 'disabled' },
-      messages: [{ role: 'user', content: buildUserMessage(context) }],
-    });
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        text += event.delta.text;
+        yield event.delta.text;
+      }
+    }
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
       throw new ThesisError('api', `Anthropic API error ${error.status}: ${error.message}`);
@@ -217,28 +213,22 @@ export async function generateThesis(context: ThesisContext): Promise<ThesisResu
     throw error;
   }
 
-  const raw = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim();
+  const final = await stream.finalMessage();
 
-  if (!raw) throw new ThesisError('no_text', `stop_reason: ${response.stop_reason}`);
+  const trimmed = text.trim();
+  if (!trimmed) throw new ThesisError('no_text', `stop_reason: ${final.stop_reason}`);
 
-  const parsed = parseThesisJson(raw);
-  if (!parsed) {
-    // Truncation is the likeliest cause, and it is worth naming: a silent
-    // half-summary would be stored as though it were complete.
-    throw response.stop_reason === 'max_tokens'
-      ? new ThesisError('truncated', 'reply cut off before both languages were complete')
-      : new ThesisError('bad_json', 'reply was not the requested {en, nl} JSON');
+  // A summary that stopped at the ceiling ends mid-sentence. Storing it would
+  // put a half-written analysis on the page as though it were finished.
+  if (final.stop_reason === 'max_tokens') {
+    throw new ThesisError('truncated', `hit max_tokens (${MAX_TOKENS})`);
   }
 
   return {
-    ...parsed,
-    model: response.model,
-    isMock: false,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
+    text: trimmed,
+    lang,
+    model: final.model,
+    inputTokens: final.usage.input_tokens,
+    outputTokens: final.usage.output_tokens,
   };
 }

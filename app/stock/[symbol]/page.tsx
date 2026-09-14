@@ -21,6 +21,7 @@ import type { Lang } from '@/lib/i18n/config';
 import { stripSourceSuffix } from '@/lib/i18n/docs';
 import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
+import { thesisEnabled } from '@/lib/ai/thesis';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +104,9 @@ export default async function StockPage({
     getSnapshot(symbol),
     getDocTranslations(locale),
     getReviews(symbol),
-    getTickerSummary(symbol),
+    // Cached per language: a missing Dutch summary is a missing row, not a
+    // reason to show the English one.
+    getTickerSummary(symbol, locale),
     getTranslations('ratio'),
     getTranslations('signal'),
     getTranslations('data'),
@@ -262,6 +265,49 @@ export default async function StockPage({
               if (!row) return null;
               const doc = docs.get(`ratio:${key}`);
 
+              // PEG is judged on either the trailing or the forward figure, so
+              // one number with one dot could contradict the checklist row
+              // above: passed on expected growth, red dot on the trailing
+              // figure. Both are shown, the one the condition used is
+              // highlighted, and the dot follows the condition rather than the
+              // trailing number alone.
+              const pegCondition =
+                key === 'peg' ? signal.checklist.find((c) => c.key === 'peg') : undefined;
+              const pegDetail = (pegCondition?.detail ?? {}) as {
+                trailingPeg?: number | null;
+                forwardPeg?: number | null;
+                trailingPasses?: boolean;
+                forwardPasses?: boolean;
+              };
+
+              const variants = pegCondition
+                ? [
+                    {
+                      label: tRatio('peg.trailing'),
+                      value: formatNumber(pegDetail.trailingPeg ?? row.value, locale),
+                      used: Boolean(pegDetail.trailingPasses),
+                    },
+                    {
+                      label: tRatio('peg.forward'),
+                      value: formatNumber(pegDetail.forwardPeg ?? null, locale),
+                      used: Boolean(pegDetail.forwardPasses),
+                    },
+                  ]
+                : null;
+
+              const color = pegCondition
+                ? pegCondition.passed
+                  ? 'green'
+                  : 'red'
+                : row.color;
+
+              // The same fact already sits under the Why block; it belongs on
+              // the card that shows the number it is about.
+              const caption =
+                pegCondition && signal.peg_basis
+                  ? `PEG: ${tSignal(`pegBasis.${signal.peg_basis}`)}`
+                  : null;
+
               // The doc names the source in prose and the row carries it as
               // data; the card renders it once, from the data.
               const sourceLabel = tRatio(`source.${row.target_source}`);
@@ -287,7 +333,9 @@ export default async function StockPage({
                   name={doc?.name ?? key}
                   explanation={doc?.explanation ?? ''}
                   displayValue={formatRatio(row, locale)}
-                  color={row.color}
+                  color={color}
+                  variants={variants}
+                  caption={caption}
                   targetLabel={targetLabel}
                   targetSourceLabel={sourceLabel}
                   gateLabel={(() => {
@@ -345,55 +393,47 @@ export default async function StockPage({
           </section>
         )}
 
-        {/* --- AI thesis, beside the human judgement it is not a substitute for */}
-        <section className="mt-8">
-          <AiThesisCard
-            symbol={symbol}
-            // Prefer the active language; fall back to the other rather than
-            // showing an empty card, and say which one is on screen.
-            thesis={
-              (locale === 'nl' ? summary?.thesis_nl : summary?.thesis_en) ??
-              (locale === 'nl' ? summary?.thesis_en : summary?.thesis_nl) ??
-              null
-            }
-            isMock={summary?.is_mock ?? false}
-            // A thesis written against an older signal may no longer describe
-            // the figures on the page, so the card says so rather than pretending.
-            isStale={Boolean(summary && summary.signal_as_of !== signal.as_of)}
-            generatedAt={summary?.generated_at ?? null}
-            canGenerate={Boolean(user)}
-            labels={{
-              title: tThesis('title'),
-              intro: tThesis('intro'),
-              generate: tThesis('generate'),
-              refresh: tThesis('refresh'),
-              generating: tThesis('generating'),
-              empty: tThesis('empty'),
-              mockNotice: tThesis('mockNotice'),
-              staleNotice: tThesis('staleNotice'),
-              generatedAt: tThesis('generatedAt'),
-              error: tThesis('error'),
-              signedOut: tThesis('signedOut'),
-              failed: {
-                truncated: tThesis('failed.truncated'),
-                bad_json: tThesis('failed.bad_json'),
-                no_text: tThesis('failed.no_text'),
-                api: tThesis('failed.api'),
-                missing_symbol: tThesis('failed.missing_symbol'),
-                not_signed_in: tThesis('failed.not_signed_in'),
-                no_signal: tThesis('failed.no_signal'),
-                save_failed: tThesis('failed.save_failed'),
-                unknown: tThesis('failed.unknown'),
-              },
-              langMismatch:
-                summary && !(locale === 'nl' ? summary.thesis_nl : summary.thesis_en)
-                  ? tThesis('langMismatch', {
-                      lang: locale === 'nl' ? 'English' : 'Nederlands',
-                    })
-                  : null,
-            }}
-          />
-        </section>
+        {/* --- AI thesis, beside the human judgement it is not a substitute for
+             Absent entirely when no API key is configured: a card explaining
+             why there is no summary is of no use to a reader who cannot act
+             on it, and a placeholder in its place reads as an analysis. */}
+        {thesisEnabled() && (
+          <section className="mt-8">
+            <AiThesisCard
+              symbol={symbol}
+              lang={locale}
+              thesis={summary?.thesis ?? null}
+              // A thesis written against an older signal may no longer describe
+              // the figures on the page, so the card says so rather than pretending.
+              isStale={Boolean(summary && summary.signal_as_of !== signal.as_of)}
+              generatedAt={summary?.generated_at ?? null}
+              canGenerate={Boolean(user)}
+              labels={{
+                title: tThesis('title'),
+                intro: tThesis('intro'),
+                generate: tThesis('generate'),
+                refresh: tThesis('refresh'),
+                generating: tThesis('generating'),
+                empty: tThesis('empty'),
+                staleNotice: tThesis('staleNotice'),
+                generatedAt: tThesis('generatedAt'),
+                error: tThesis('error'),
+                signedOut: tThesis('signedOut'),
+                failed: {
+                  truncated: tThesis('failed.truncated'),
+                  no_text: tThesis('failed.no_text'),
+                  api: tThesis('failed.api'),
+                  disabled: tThesis('failed.disabled'),
+                  missing_symbol: tThesis('failed.missing_symbol'),
+                  not_signed_in: tThesis('failed.not_signed_in'),
+                  no_signal: tThesis('failed.no_signal'),
+                  save_failed: tThesis('failed.save_failed'),
+                  unknown: tThesis('failed.unknown'),
+                },
+              }}
+            />
+          </section>
+        )}
 
         {/* --- the judgement the app cannot make (section 8) ------------------ */}
         <QualitativeReview

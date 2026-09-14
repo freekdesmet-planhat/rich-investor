@@ -79,6 +79,22 @@ export function parseDocs(markdown: string): DocEntry[] {
 }
 
 /**
+ * Every way the two markdown files word the source annotation.
+ *
+ * Both spellings of the app default are here on purpose: the docs write it out
+ * as "standaardinstelling van de app" while `messages/nl.json` shortens the
+ * label to "standaardinstelling", and a card that matched only the short one
+ * left the long one in the prose beside it.
+ */
+const SOURCE_ANNOTATIONS = [
+  'from the book',
+  'app default',
+  'uit het boek',
+  'standaardinstelling van de app',
+  'standaardinstelling',
+] as const;
+
+/**
  * Removes the source annotation a doc target ends with.
  *
  * The markdown states the source in prose so each file reads correctly on its
@@ -86,11 +102,10 @@ export function parseDocs(markdown: string): DocEntry[] {
  * rendering both printed it twice, so the renderer drops the prose copy and
  * keeps the data-driven one, which stays right if a threshold's source changes.
  *
- * A trailing parenthetical is the source by the format's own contract — the
- * preamble of both files defines a target as "the target, noting whether it
- * comes from the book". Matching the UI's label instead would not work: Dutch
- * writes "(standaardinstelling van de app)" in prose where the label is the
- * shorter "standaardinstelling", so an exact match left both on the card.
+ * Only the known annotations are removed, never any trailing parenthetical: a
+ * target may legitimately end in one that qualifies the number rather than
+ * naming its source — "≤ 20 (R&D-adjusted)" — and stripping that would delete
+ * the part that says which figure is being judged.
  *
  * The `translations` table is seeded from this same markdown, so this also runs
  * on values read back from the database.
@@ -102,8 +117,11 @@ export function stripSourceSuffix(target: string): string {
   const open = trimmed.lastIndexOf('(');
   if (open <= 0) return target;
 
+  const inside = trimmed.slice(open + 1, -1).trim().toLowerCase();
+  if (!SOURCE_ANNOTATIONS.some((annotation) => annotation === inside)) return target;
+
   const stripped = trimmed.slice(0, open).trimEnd();
-  // A target that is nothing but a parenthetical is left as it is, rather than
+  // A target that is nothing but an annotation is left as it is, rather than
   // rendered as an empty target.
   return stripped.length > 0 ? stripped : target;
 }

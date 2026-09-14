@@ -20,6 +20,17 @@ export interface RatioCardProps {
    * checklist. Both numbers come from the same threshold constant.
    */
   gateLabel?: string | null;
+  /**
+   * Extra figures behind the headline one, each already formatted and labelled.
+   *
+   * PEG needs this: the condition may pass on expected growth while the
+   * trailing figure fails, and a card showing one number with a red dot next to
+   * a checklist row with a green tick told the reader nothing about which
+   * applied.
+   */
+  variants?: Array<{ label: string; value: string; used: boolean }> | null;
+  /** A short line under the value, e.g. which basis carried the condition. */
+  caption?: string | null;
   history: Array<{ period: string; value: number }>;
   unavailableLabel: string | null;
   /** Set when the value shown is an adjusted figure (payment-processor ROA). */
@@ -47,6 +58,8 @@ export function RatioCard({
   targetLabel,
   targetSourceLabel,
   gateLabel,
+  variants,
+  caption,
   history,
   unavailableLabel,
   adjusted,
@@ -81,6 +94,26 @@ export function RatioCard({
           </p>
           {unavailableLabel && (
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{unavailableLabel}</p>
+          )}
+          {variants && variants.length > 0 && (
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs">
+              {variants.map((variant) => (
+                <span
+                  key={variant.label}
+                  className={
+                    variant.used
+                      ? 'font-medium text-slate-600 dark:text-slate-300'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }
+                >
+                  {variant.label}{' '}
+                  <span className="tabular-nums">{variant.value}</span>
+                </span>
+              ))}
+            </p>
+          )}
+          {caption && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{caption}</p>
           )}
         </div>
         <Sparkline points={history} />

@@ -238,20 +238,30 @@ export async function getReviews(
 
 export interface TickerSummary {
   symbol: string;
-  thesis_en: string | null;
-  thesis_nl: string | null;
+  lang: string;
+  thesis: string;
   model: string | null;
-  is_mock: boolean;
   signal_as_of: string | null;
   generated_at: string;
 }
 
-/** The cached AI thesis for one ticker, if it has ever been generated. */
-export async function getTickerSummary(symbol: string): Promise<TickerSummary | null> {
+/**
+ * The cached AI thesis for one ticker, in one language.
+ *
+ * Each language is generated and cached on its own, so a missing Dutch summary
+ * is a missing row rather than a reason to show the English one — the Dutch is
+ * written as Dutch from the figures, never translated from a cached English
+ * summary.
+ */
+export async function getTickerSummary(
+  symbol: string,
+  lang: string,
+): Promise<TickerSummary | null> {
   const { data } = await (await client())
     .from('ticker_summaries')
-    .select('symbol,thesis_en,thesis_nl,model,is_mock,signal_as_of,generated_at')
+    .select('symbol,lang,thesis,model,signal_as_of,generated_at')
     .eq('symbol', symbol)
+    .eq('lang', lang)
     .maybeSingle<TickerSummary>();
   return data ?? null;
 }

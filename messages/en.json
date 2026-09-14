@@ -50,7 +50,11 @@
       "roaNote": "Raw ROA is distorted by settlement balances typical of payment processors; adjusted ROA is used for the buy-worthy check.",
       "approximation": "The adjustment is an approximation."
     },
-    "gate": "Checklist pass mark: {value}"
+    "gate": "Checklist pass mark: {value}",
+    "peg": {
+      "trailing": "trailing",
+      "forward": "forward"
+    }
   },
   "signal": {
     "why": "Why",
@@ -159,22 +163,20 @@
     "refresh": "Refresh summary",
     "generating": "Generating…",
     "empty": "No summary yet.",
-    "mockNotice": "Placeholder text — no ANTHROPIC_API_KEY is configured, so nothing was generated.",
     "staleNotice": "Written against an earlier signal; refresh to bring it up to date.",
     "generatedAt": "Generated {date}",
     "error": "Could not generate:",
     "signedOut": "Sign in to generate a summary.",
-    "langMismatch": "Written in {lang}. Refresh to regenerate it in the language you are reading.",
     "failed": {
       "truncated": "The summary was cut off before it was complete. Try again.",
-      "bad_json": "The model did not return a usable summary. Try again.",
       "no_text": "The model returned nothing. Try again.",
       "api": "The AI service could not be reached. Try again in a moment.",
       "missing_symbol": "No ticker was supplied.",
       "not_signed_in": "Sign in to generate a summary.",
       "no_signal": "This ticker has not been evaluated yet.",
       "save_failed": "The summary was generated but could not be saved.",
-      "unknown": "Something went wrong. Try again in a moment."
+      "unknown": "Something went wrong. Try again in a moment.",
+      "disabled": "AI summaries are not configured."
     }
   },
   "account": {
