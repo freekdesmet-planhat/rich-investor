@@ -18,20 +18,19 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { runDailyPipeline, SEED_SYMBOLS } from '@/lib/pipeline/runDaily';
 import { runScan } from '@/lib/pipeline/scan';
-import { scanBatchSize } from '@/lib/pipeline/scanBudget';
+import {
+  observedMsPerCandidate,
+  scanBudget,
+  RUN_CEILING_MS,
+} from '@/lib/pipeline/scanBudget';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 
 /** Long enough for a full run; Netlify caps background functions well above this. */
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-/**
- * Candidates evaluated per nightly run.
- *
- * Halved from 60 so the night leaves providers and wall clock for analysing a
- * ticker the moment it is added, rather than spending the whole budget filling
- * the suggestion feed. `scanBudget.ts` sets out the arithmetic.
- */
+/** Where the scan's learned cost per candidate is kept, beside the cursor. */
+const COST_KEY = 'scanMsPerCandidate';
 
 export async function POST(request: NextRequest) {
   if (!isAuthorisedCron(request.headers)) {
@@ -52,6 +51,7 @@ export async function POST(request: NextRequest) {
   // The watchlist is what the emails are about, so it runs first and its
   // failure is the one worth reporting as a failure.
   let watchlist;
+  const watchlistStarted = Date.now();
   try {
     const symbols = await watchlistSymbols(client);
     watchlist = await runDailyPipeline({
@@ -71,19 +71,47 @@ export async function POST(request: NextRequest) {
   // a fundamentals round-trip, so the cursor advances a little each night and
   // the feed fills in over time. Estimates are skipped inside the scan for the
   // same reason — FMP allows roughly 250 requests a day.
+  const watchlistMs = Date.now() - watchlistStarted;
+
   let scan = null;
-  try {
-    const cursor = await nextCursor(client);
-    scan = await runScan({
-      client,
-      limit: scanBatchSize(),
-      cursor,
-      onProgress: (message) => log.push(message),
-    });
-    await saveCursor(client, scan.nextCursor);
-  } catch (error) {
-    // A scan failure must not discard a completed watchlist run.
-    log.push(`scan failed (continuing): ${(error as Error).message}`);
+  const state = await readScanState(client);
+  // Whatever is left of the run, in candidates — see scanBudget.ts. The
+  // watchlist has already been paid for by this point, so this is literally
+  // the remainder rather than a share reserved in advance.
+  const budget = scanBudget({
+    ceilingMs: RUN_CEILING_MS,
+    elapsedMs: Date.now() - started,
+    msPerCandidate: state.msPerCandidate,
+    override: process.env.SCAN_BATCH_SIZE,
+  });
+  log.push(
+    `scan budget: ${budget.limit} candidates (${Math.round(budget.remainingMs / 1000)}s left ` +
+      `at ~${budget.msPerCandidate}ms each, ${budget.reason})`,
+  );
+
+  if (budget.limit > 0) {
+    try {
+      const scanStarted = Date.now();
+      scan = await runScan({
+        client,
+        limit: budget.limit,
+        cursor: state.cursor,
+        onProgress: (message) => log.push(message),
+      });
+
+      // What it actually cost, carried into tomorrow so the estimate converges
+      // on this deployment's own providers rather than a guess made here.
+      const attempted = scan.evaluated + scan.skipped;
+      await saveScanState(client, {
+        cursor: scan.nextCursor,
+        msPerCandidate:
+          observedMsPerCandidate(Date.now() - scanStarted, attempted, state.msPerCandidate) ??
+          state.msPerCandidate,
+      });
+    } catch (error) {
+      // A scan failure must not discard a completed watchlist run.
+      log.push(`scan failed (continuing): ${(error as Error).message}`);
+    }
   }
 
   return NextResponse.json({
@@ -96,13 +124,15 @@ export async function POST(request: NextRequest) {
       violations: watchlist.rows.flatMap((row) => row.violations),
     },
     notifications: watchlist.notifications,
+    watchlistSeconds: Math.round(watchlistMs / 1000),
+    scanBudget: {
+      limit: budget.limit,
+      reason: budget.reason,
+      msPerCandidate: budget.msPerCandidate,
+      secondsLeft: Math.round(budget.remainingMs / 1000),
+    },
     scan: scan
-      ? {
-          budget: scanBatchSize(),
-          evaluated: scan.evaluated,
-          suggested: scan.suggested,
-          nextCursor: scan.nextCursor,
-        }
+      ? { evaluated: scan.evaluated, suggested: scan.suggested, nextCursor: scan.nextCursor }
       : null,
     log,
   });
@@ -125,7 +155,13 @@ async function watchlistSymbols(client: SupabaseClient): Promise<string[]> {
  */
 const CURSOR_KEY = 'scan_cursor';
 
-async function nextCursor(client: SupabaseClient): Promise<number> {
+interface ScanState {
+  cursor: number;
+  /** Null until a night has measured one. */
+  msPerCandidate: number | null;
+}
+
+async function readScanState(client: SupabaseClient): Promise<ScanState> {
   const { data } = await client
     .from('macro_context')
     .select('detail')
@@ -133,15 +169,36 @@ async function nextCursor(client: SupabaseClient): Promise<number> {
     .limit(1)
     .maybeSingle<{ detail: Record<string, unknown> | null }>();
 
-  const value = data?.detail?.[CURSOR_KEY];
-  return typeof value === 'number' ? value : 0;
+  const cursor = data?.detail?.[CURSOR_KEY];
+  const cost = data?.detail?.[COST_KEY];
+
+  return {
+    cursor: typeof cursor === 'number' ? cursor : 0,
+    msPerCandidate: typeof cost === 'number' && cost > 0 ? cost : null,
+  };
 }
 
-async function saveCursor(client: SupabaseClient, cursor: number): Promise<void> {
+async function saveScanState(client: SupabaseClient, state: ScanState): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
+
+  // Merged into whatever `detail` already holds rather than replacing it. The
+  // previous version wrote `{ cursor }` wholesale, which was harmless while the
+  // cursor was the only key and would have silently dropped this one.
+  const { data } = await client
+    .from('macro_context')
+    .select('detail')
+    .eq('date', today)
+    .maybeSingle<{ detail: Record<string, unknown> | null }>();
+
   await client
     .from('macro_context')
-    .update({ detail: { [CURSOR_KEY]: cursor } })
+    .update({
+      detail: {
+        ...(data?.detail ?? {}),
+        [CURSOR_KEY]: state.cursor,
+        ...(state.msPerCandidate != null ? { [COST_KEY]: state.msPerCandidate } : {}),
+      },
+    })
     .eq('date', today);
 }
 
@@ -150,6 +207,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ready: Boolean(process.env.CRON_SECRET && process.env.SUPABASE_SERVICE_ROLE_KEY),
     authorised: isAuthorisedCron(request.headers),
-    scanBatchSize: scanBatchSize(),
+    scanBatchSize: scanBudget({ elapsedMs: 0, override: process.env.SCAN_BATCH_SIZE }).limit,
   });
 }
