@@ -533,20 +533,53 @@ describe('drawdown from the 5-year high (5.18)', () => {
     expect(result.recoveryNeeded).toBeCloseTo(1.9574, 3);
   });
 
-  it('is green at a 50% decline and orange between 35% and 50%', () => {
-    const green = buildContext(
+  /**
+   * The drawdown used to be coloured green at the entry threshold, which put a
+   * green -66% three pixels from red "fail" dots that meant the opposite. Green
+   * and red are reserved for passed and failed now; whether the decline clears
+   * the threshold is a fact in `detail`, and the card shows it as a tag.
+   */
+  it('stays neutral rather than borrowing the pass and fail colours', () => {
+    const deep = buildContext(
       bundle({ price: 50, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 50]]) }),
     );
-    const orange = buildContext(
+    const middling = buildContext(
       bundle({ price: 60, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 60]]) }),
     );
     const shallow = buildContext(
       bundle({ price: 90, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 90]]) }),
     );
 
-    expect(computeDrawdown(green).color).toBe('green');
-    expect(computeDrawdown(orange).color).toBe('orange');
-    expect(computeDrawdown(shallow).color).toBe('gray');
+    for (const ctx of [deep, middling, shallow]) {
+      expect(computeDrawdown(ctx).color).toBe('gray');
+    }
+  });
+
+  it('states whether the decline clears the entry threshold as a fact', () => {
+    const deep = computeDrawdown(
+      buildContext(bundle({ price: 50, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 50]]) })),
+    ).detail as { meetsEntryThreshold: boolean; approachingEntryThreshold: boolean };
+    const middling = computeDrawdown(
+      buildContext(bundle({ price: 60, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 60]]) })),
+    ).detail as { meetsEntryThreshold: boolean; approachingEntryThreshold: boolean };
+    const shallow = computeDrawdown(
+      buildContext(bundle({ price: 90, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 90]]) })),
+    ).detail as { meetsEntryThreshold: boolean; approachingEntryThreshold: boolean };
+
+    expect(deep.meetsEntryThreshold).toBe(true);
+    expect(middling.meetsEntryThreshold).toBe(false);
+    expect(middling.approachingEntryThreshold).toBe(true);
+    expect(shallow.meetsEntryThreshold).toBe(false);
+    expect(shallow.approachingEntryThreshold).toBe(false);
+  });
+
+  /** The signal reads the value, not the colour, so this must not have moved. */
+  it('leaves the buy-worthy condition unaffected by the colour change', () => {
+    const deep = computeDrawdown(
+      buildContext(bundle({ price: 50, priceHistory: prices([['2022-01-01', 100], ['2026-01-01', 50]]) })),
+    );
+    expect(deep.value).not.toBeNull();
+    expect(-(deep.value as number)).toBeGreaterThanOrEqual(0.5);
   });
 });
 

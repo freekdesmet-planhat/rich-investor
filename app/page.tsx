@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { WatchlistControls } from '@/components/WatchlistControls';
+import { DataFreshness } from '@/components/DataFreshness';
 import { getWatchlist, type WatchlistEntry } from '@/lib/data/queries';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import {
@@ -119,6 +120,22 @@ export default async function WatchlistPage({
             not as a signal, so it sits above the watchlist rather than in it. */}
         <MarketContextDashboard />
 
+        {/* A stopped pipeline is the one thing worth interrupting the page for:
+            every number below it is quietly out of date. */}
+        <DataFreshness
+          asOf={asOf}
+              labels={{
+                updated: tData('updated', { age: '{age}' }),
+                justNow: tData('justNow'),
+                hoursAgo: tData.raw('hoursAgo') as string,
+                daysAgo: tData.raw('daysAgo') as string,
+                stale: tData.raw('stale') as string,
+                veryStale: tData.raw('veryStale') as string,
+                asOf: asOf ? tData('asOf', { date: asOf }) : '',
+              }}
+          warningOnly
+        />
+
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h1 className="text-xl font-semibold">{tNav('watchlist')}</h1>
@@ -198,9 +215,20 @@ export default async function WatchlistPage({
               )}
         </div>
 
-        <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
-          {asOf ? tData('asOf', { date: asOf }) : ''}
-        </p>
+        <div className="mt-8">
+          <DataFreshness
+            asOf={asOf}
+              labels={{
+                updated: tData('updated', { age: '{age}' }),
+                justNow: tData('justNow'),
+                hoursAgo: tData.raw('hoursAgo') as string,
+                daysAgo: tData.raw('daysAgo') as string,
+                stale: tData.raw('stale') as string,
+                veryStale: tData.raw('veryStale') as string,
+                asOf: asOf ? tData('asOf', { date: asOf }) : '',
+              }}
+          />
+        </div>
       </main>
     </>
   );

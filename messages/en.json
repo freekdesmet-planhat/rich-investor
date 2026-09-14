@@ -50,7 +50,8 @@
       "not_applicable": "Not applicable to this company",
       "negative_base": "Not meaningful: the figure it divides by is negative",
       "series_break": "Trend suppressed: the company changed what it reports",
-      "no_fx_rate": "No exchange rate available to reconcile the currencies"
+      "no_fx_rate": "No exchange rate available to reconcile the currencies",
+      "no_dividend": "Pays no dividend"
     },
     "adjusted": {
       "label": "adjusted",
@@ -63,7 +64,9 @@
       "trailing": "trailing",
       "forward": "forward"
     },
-    "close": "Close"
+    "close": "Close",
+    "entryThreshold": "Meets the 50% entry threshold",
+    "nearEntryThreshold": "Approaching the entry threshold"
   },
   "signal": {
     "why": "Why",
@@ -78,7 +81,13 @@
   "data": {
     "staleBanner": "Data from {date}, data source temporarily unavailable.",
     "source": "Source",
-    "asOf": "As of {date}"
+    "asOf": "As of {date}",
+    "updated": "Updated {age}",
+    "justNow": "just now",
+    "hoursAgo": "{count}h ago",
+    "daysAgo": "{count}d ago",
+    "stale": "The nightly update has not run for {age}. The figures below are from {date}.",
+    "veryStale": "The nightly update has not run for {age}. Something has stopped; the figures below are from {date} and should not be acted on."
   },
   "review": {
     "title": "My qualitative review",

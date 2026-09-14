@@ -1017,7 +1017,23 @@ export function computeDebt(ctx: RatioContext, d: Derived): RatioResult {
 // 5.12 / 5.13 Dividend
 // ---------------------------------------------------------------------------
 
-export function computeDividendYield(ctx: RatioContext): RatioResult {
+/**
+ * Positive evidence that a company pays no dividend.
+ *
+ * The provider returns null both for "this company pays nothing" and for "we
+ * could not get it", and the page rendered a bare dash either way — the reader
+ * could not tell a fact from a gap. A cash flow statement that resolved (it
+ * produced an operating cash flow) but carries no dividends line is the company
+ * saying it paid none. No statement at all is still genuinely unknown, and stays
+ * that way: guessing "no dividend" from an absent statement would replace one
+ * wrong answer with a more confident one.
+ */
+function paysNoDividend(d: Derived): boolean {
+  if (d.dividendsPaid.value === 0) return true;
+  return d.ocf.value != null && d.dividendsPaid.value == null;
+}
+
+export function computeDividendYield(ctx: RatioContext, d: Derived): RatioResult {
   const t = ctx.thresholds.dividendYield;
   const target = { label: t.label, source: t.source };
 
@@ -1026,8 +1042,11 @@ export function computeDividendYield(ctx: RatioContext): RatioResult {
 
   // Both figures come from the quote, so this one needs no FX conversion.
   if (dividend == null || rawPrice == null || rawPrice <= 0) {
-    return gray('dividend_yield', target, 'missing_data');
+    return gray('dividend_yield', target, paysNoDividend(d) ? 'no_dividend' : 'missing_data');
   }
+
+  // An explicit zero is the company telling us, not the source failing.
+  if (dividend === 0) return gray('dividend_yield', target, 'no_dividend');
 
   const value = dividend / rawPrice;
 
@@ -1055,6 +1074,10 @@ export function computeDividendYield(ctx: RatioContext): RatioResult {
 export function computePayoutRatio(ctx: RatioContext, d: Derived): RatioResult {
   const t = ctx.thresholds.payoutRatio;
   const target = { label: t.label, source: t.source };
+
+  if (d.dividendsPaid.value === 0 || paysNoDividend(d)) {
+    return gray('payout_ratio', target, 'no_dividend');
+  }
 
   if (d.dividendsPaid.value == null || d.netIncome.value == null || d.netIncome.value <= 0) {
     return gray('payout_ratio', target, 'missing_data');
@@ -1266,8 +1289,14 @@ export function computeDrawdown(ctx: RatioContext): RatioResult {
 
   const decline = -result.drawdown;
 
-  const color: RatioColor =
-    decline >= t.value.green ? 'green' : decline >= t.value.orange ? 'orange' : 'gray';
+  // Neutral on purpose. Green and red mean passed and failed everywhere else
+  // on the page, and a deep decline is the entry signal rather than a pass — a
+  // -66% drawdown rendered green three pixels from a red "fail" dot had the two
+  // colours meaning opposite things on one screen. Whether it clears the
+  // threshold is stated in `detail` and shown as a tag instead.
+  const color: RatioColor = 'gray';
+  const meetsEntryThreshold = decline >= t.value.green;
+  const approachingEntryThreshold = !meetsEntryThreshold && decline >= t.value.orange;
 
   return {
     key: 'drawdown_5y',
@@ -1286,6 +1315,10 @@ export function computeDrawdown(ctx: RatioContext): RatioResult {
       highDate: result.highDate,
       recoveryNeeded: result.recoveryNeeded,
       decline,
+      /** Whether the decline clears the book's entry threshold, as a fact
+          rather than a colour. */
+      meetsEntryThreshold,
+      approachingEntryThreshold,
       pricePoints: ctx.bundle.priceHistory.length,
     },
   };
@@ -1343,7 +1376,7 @@ export function computeAllRatios(
     computeGrossMargin(ctx, d),
     computeNetMargin(ctx, d),
     computeDebt(ctx, d),
-    computeDividendYield(ctx),
+    computeDividendYield(ctx, d),
     computePayoutRatio(ctx, d),
     computeRndAdjustedPe(ctx, d),
     computePs(ctx, d),

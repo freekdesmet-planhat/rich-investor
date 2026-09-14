@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AiThesisCard } from '@/components/AiThesisCard';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
+import { DataFreshness } from '@/components/DataFreshness';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -197,6 +198,21 @@ export default async function StockPage({
           </div>
         </div>
 
+        {/* A stopped pipeline affects every figure on this page. */}
+        <DataFreshness
+          asOf={signal.as_of}
+            labels={{
+              updated: tData('updated', { age: '{age}' }),
+              justNow: tData('justNow'),
+              hoursAgo: tData.raw('hoursAgo') as string,
+              daysAgo: tData.raw('daysAgo') as string,
+              stale: tData.raw('stale') as string,
+              veryStale: tData.raw('veryStale') as string,
+              asOf: tData('asOf', { date: signal.as_of }),
+            }}
+          warningOnly
+        />
+
         {snapshot?.is_stale && (
           <p className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
             {tData('staleBanner', { date: snapshot.as_of })}
@@ -323,10 +339,22 @@ export default async function StockPage({
 
               // The same fact already sits under the Why block; it belongs on
               // the card that shows the number it is about.
-              const caption =
+              let caption =
                 pegCondition && signal.peg_basis
                   ? `PEG: ${tSignal(`pegBasis.${signal.peg_basis}`)}`
                   : null;
+
+              // The drawdown is rendered neutral now, because green and red
+              // mean passed and failed everywhere else on this page. Whether it
+              // clears the book's entry threshold is said in words instead.
+              if (key === 'drawdown_5y') {
+                const dd = row.detail as {
+                  meetsEntryThreshold?: boolean;
+                  approachingEntryThreshold?: boolean;
+                };
+                if (dd.meetsEntryThreshold) caption = tRatio('entryThreshold');
+                else if (dd.approachingEntryThreshold) caption = tRatio('nearEntryThreshold');
+              }
 
               // The doc names the source in prose and the row carries it as
               // data; the card renders it once, from the data.
@@ -475,10 +503,23 @@ export default async function StockPage({
         />
 
         {/* --- provenance ---------------------------------------------------- */}
-        <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
-          {tData('asOf', { date: signal.as_of })}
+        <div className="mt-8">
+          <DataFreshness
+            asOf={signal.as_of}
+              labels={{
+                updated: tData('updated', { age: '{age}' }),
+                justNow: tData('justNow'),
+                hoursAgo: tData.raw('hoursAgo') as string,
+                daysAgo: tData.raw('daysAgo') as string,
+                stale: tData.raw('stale') as string,
+                veryStale: tData.raw('veryStale') as string,
+                asOf: tData('asOf', { date: signal.as_of }),
+              }}
+          />
+        </div>
+        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
           {snapshot?.statement_sources?.income
-            ? ` · ${tData('source')}: ${snapshot.statement_sources.income}`
+            ? `${tData('source')}: ${snapshot.statement_sources.income}`
             : ''}
           {snapshot?.filing_currency && snapshot.filing_currency !== snapshot.currency
             ? ` · ${snapshot.currency} / ${snapshot.filing_currency}`

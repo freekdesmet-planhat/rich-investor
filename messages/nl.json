@@ -50,7 +50,8 @@
       "not_applicable": "Niet van toepassing op dit bedrijf",
       "negative_base": "Niet zinvol: het getal waardoor gedeeld wordt is negatief",
       "series_break": "Trend onderdrukt: het bedrijf rapporteert iets anders dan voorheen",
-      "no_fx_rate": "Geen wisselkoers beschikbaar om de valuta's op elkaar af te stemmen"
+      "no_fx_rate": "Geen wisselkoers beschikbaar om de valuta's op elkaar af te stemmen",
+      "no_dividend": "Keert geen dividend uit"
     },
     "adjusted": {
       "label": "gecorrigeerd",
@@ -63,7 +64,9 @@
       "trailing": "historisch",
       "forward": "verwacht"
     },
-    "close": "Sluiten"
+    "close": "Sluiten",
+    "entryThreshold": "Voldoet aan de instapdrempel van 50%",
+    "nearEntryThreshold": "Nadert de instapdrempel"
   },
   "signal": {
     "why": "Waarom",
@@ -78,7 +81,13 @@
   "data": {
     "staleBanner": "Gegevens van {date}, gegevensbron tijdelijk niet beschikbaar.",
     "source": "Bron",
-    "asOf": "Peildatum {date}"
+    "asOf": "Peildatum {date}",
+    "updated": "Bijgewerkt {age}",
+    "justNow": "zojuist",
+    "hoursAgo": "{count} uur geleden",
+    "daysAgo": "{count} dagen geleden",
+    "stale": "De nachtelijke update draait al {age} niet. De cijfers hieronder zijn van {date}.",
+    "veryStale": "De nachtelijke update draait al {age} niet. Er is iets misgegaan; de cijfers hieronder zijn van {date} en zijn geen basis om op te handelen."
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",
