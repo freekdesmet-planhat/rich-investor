@@ -22,6 +22,7 @@ import { explainSignal } from '@/lib/signal/explain';
 import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
 import { refreshMacroContext } from '@/lib/macro/store';
 import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
+import { sendDailyDigest, type DigestEntry, type DigestOutcome } from './digest';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -45,11 +46,15 @@ export interface PipelineOptions {
 
 export interface PipelineRow {
   symbol: string;
+  /** Company name, for anything that addresses a human rather than a ticker. */
+  name: string | null;
   status: SignalStatus;
   previousStatus: SignalStatus | null;
   becameBuyWorthy: boolean;
   conditionsMet: number;
   conditionsApplicable: number;
+  /** Applicable conditions that did not pass, by key. */
+  missing: string[];
   pegBasis: string;
   focusSector: FocusSector;
   lynchCategory: string;
@@ -87,6 +92,8 @@ function isFinancialInstitution(sector: string | null, industry: string | null):
 export interface PipelineResult {
   rows: PipelineRow[];
   notifications: NotifyOutcome[];
+  /** One entry per recipient, or empty when the day was not worth an email. */
+  digest: DigestOutcome[];
 }
 
 export async function runDailyPipeline(options: PipelineOptions): Promise<PipelineResult> {
@@ -279,11 +286,13 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
 
     rows.push({
       symbol,
+      name: meta?.name ?? bundle.quote?.name ?? null,
       status: signal.status,
       previousStatus: previous,
       becameBuyWorthy,
       conditionsMet: signal.conditionsMet,
       conditionsApplicable: signal.conditionsApplicable,
+      missing: signal.missing,
       pegBasis: signal.pegBasis,
       focusSector: resolved.focusSector,
       lynchCategory: lynch.category,
@@ -328,7 +337,24 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     log(`${toNotify.length} new buy signal(s), notifications skipped`);
   }
 
-  return { rows, notifications };
+  // The digest covers the whole run rather than a single crossing, so it goes
+  // out after the per-ticker alerts and reports on everything evaluated. It
+  // decides for itself whether the day was worth an email.
+  let digest: DigestOutcome[] = [];
+  if (!skipNotifications) {
+    const entries: DigestEntry[] = rows.map((row) => ({
+      symbol: row.symbol,
+      name: row.name,
+      status: row.status,
+      previousStatus: row.previousStatus,
+      conditionsMet: row.conditionsMet,
+      conditionsApplicable: row.conditionsApplicable,
+      missing: row.missing,
+    }));
+    digest = await sendDailyDigest(client, entries, asOf, { onProgress: log });
+  }
+
+  return { rows, notifications, digest };
 }
 
 /** The seed list from section 3.2. */

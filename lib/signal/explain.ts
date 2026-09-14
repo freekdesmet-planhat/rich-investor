@@ -37,7 +37,8 @@ const billions = (v: number | null | undefined, lang: Lang): string => {
   return lang === 'nl' ? `$ ${n.replace('.', ',')} mld` : `$${n}B`;
 };
 
-const CONDITION_LABEL: Record<string, { en: string; nl: string }> = {
+/** Shared with the daily digest, which names the blocking condition too. */
+export const CONDITION_LABEL: Record<string, { en: string; nl: string }> = {
   focus_sector: { en: 'focus sector', nl: 'focussector' },
   lynch_category: { en: 'growth category', nl: 'groeicategorie' },
   market_cap: { en: 'market capitalisation', nl: 'beurswaarde' },
