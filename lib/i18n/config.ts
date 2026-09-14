@@ -7,15 +7,19 @@
  */
 import { cookies, headers } from 'next/headers';
 
-export type Lang = 'en' | 'nl';
+// Re-exported so every existing import keeps working; the definitions live in
+// locale.ts, which a client component can load without dragging next/headers
+// in behind it. See the note there.
+export {
+  DEFAULT_LOCALE,
+  INTL_LOCALE,
+  LOCALES,
+  LOCALE_COOKIE,
+  isLang,
+  type Lang,
+} from './locale';
 
-export const LOCALES: Lang[] = ['en', 'nl'];
-export const DEFAULT_LOCALE: Lang = 'en';
-export const LOCALE_COOKIE = 'rib-locale';
-
-export function isLang(value: unknown): value is Lang {
-  return value === 'en' || value === 'nl';
-}
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLang, type Lang } from './locale';
 
 /** Picks the best supported locale out of an Accept-Language header. */
 export function localeFromAcceptLanguage(header: string | null): Lang | null {
@@ -49,4 +53,3 @@ export async function resolveLocale(): Promise<Lang> {
 }
 
 /** Intl locale tag used for number, currency and date formatting. */
-export const INTL_LOCALE: Record<Lang, string> = { en: 'en-US', nl: 'nl-NL' };

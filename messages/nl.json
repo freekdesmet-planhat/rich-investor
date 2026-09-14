@@ -11,7 +11,8 @@
     "settings": "Instellingen",
     "account": "Account",
     "search": "Zoeken",
-    "menu": "Menu"
+    "menu": "Menu",
+    "backToWatchlist": "Terug naar volglijst"
   },
   "language": {
     "label": "Taal",
@@ -339,5 +340,18 @@
     "sectorAny": "Alles",
     "pegForward": "verwachte PEG",
     "pegForwardHelp": "De waarderingstoets slaagt op verwachte groei, niet op al gerealiseerde winst."
+  },
+  "chart": {
+    "high": "5-jaarstop",
+    "now": "Nu",
+    "drawdown": "Daling",
+    "entry": "−50% instapniveau",
+    "label": "Slotkoers, met de vijfjaarstop en het instapniveau van 50% gemarkeerd.",
+    "range": {
+      "1y": "1j",
+      "3y": "3j",
+      "5y": "5j",
+      "max": "Max"
+    }
   }
 }

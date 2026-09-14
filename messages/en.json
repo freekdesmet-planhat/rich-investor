@@ -11,7 +11,8 @@
     "settings": "Settings",
     "account": "Account",
     "search": "Search",
-    "menu": "Menu"
+    "menu": "Menu",
+    "backToWatchlist": "Back to watchlist"
   },
   "language": {
     "label": "Language",
@@ -339,5 +340,18 @@
     "sectorAny": "All",
     "pegForward": "forward PEG",
     "pegForwardHelp": "The valuation test passes on expected growth, not on earnings already delivered."
+  },
+  "chart": {
+    "high": "5y high",
+    "now": "Now",
+    "drawdown": "Drawdown",
+    "entry": "−50% entry level",
+    "label": "Closing price, with the 5-year high and the 50% entry level marked.",
+    "range": {
+      "1y": "1y",
+      "3y": "3y",
+      "5y": "5y",
+      "max": "Max"
+    }
   }
 }

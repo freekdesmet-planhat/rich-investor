@@ -5,7 +5,7 @@
  * "$ 1.234,56" in Dutch — while the underlying values stay identical
  * (section 2).
  */
-import { INTL_LOCALE, type Lang } from './config';
+import { INTL_LOCALE, type Lang } from './locale';
 
 export function formatNumber(value: number | null, lang: Lang, digits = 2): string {
   if (value == null || !Number.isFinite(value)) return '—';

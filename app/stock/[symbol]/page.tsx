@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { PriceChart } from '@/components/PriceChart';
+import { BackLink } from '@/components/BackLink';
 import { RatioCard } from '@/components/RatioCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -28,6 +29,7 @@ import type { Lang } from '@/lib/i18n/config';
 import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
+import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { formatBillions, formatCurrency, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
@@ -96,10 +98,16 @@ function checklistGate(ratioKey: string, lang: Lang): string | null {
 
 export default async function StockPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ range?: string }>;
 }) {
   const { symbol: raw } = await params;
+  const { range: rawRange } = await searchParams;
+  // In the URL, like every other view choice in the app, so it survives a
+  // reload and can be shared.
+  const range: ChartRange = isChartRange(rawRange) ? rawRange : '5y';
   const symbol = decodeURIComponent(raw).toUpperCase();
   const locale = (await getLocale()) as Lang;
 
@@ -111,7 +119,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, history, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis] =
+  const [ratios, snapshot, docs, reviewData, history, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -127,6 +135,8 @@ export default async function StockPage({
     getTranslations('sector'),
     getTranslations('status'),
     getTranslations('thesis'),
+    getTranslations('chart'),
+    getTranslations('nav'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -193,12 +203,7 @@ export default async function StockPage({
       <SiteHeader />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <Link
-          href="/"
-          className="text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
-        >
-          ←
-        </Link>
+        <BackLink href="/" label={tNav('backToWatchlist')} />
 
         {/* --- header ------------------------------------------------------ */}
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
@@ -289,15 +294,36 @@ export default async function StockPage({
         {/* --- price chart ------------------------------------------------- */}
         {snapshot?.price_history && snapshot.price_history.length > 1 && (
           <section className="mt-6">
+            {/* Range as links, so the choice lives in the URL and the chart
+                stays readable with JavaScript off. */}
+            <div className="mb-1 flex flex-wrap items-center justify-end gap-2 text-xs">
+              {CHART_RANGES.map((value) => (
+                <Link
+                  key={value}
+                  href={value === '5y' ? `/stock/${encodeURIComponent(symbol)}` : `/stock/${encodeURIComponent(symbol)}?range=${value}`}
+                  aria-current={range === value ? 'true' : undefined}
+                  className={
+                    range === value
+                      ? 'font-medium text-slate-900 underline underline-offset-4 dark:text-slate-100'
+                      : 'text-slate-500 underline-offset-4 hover:underline dark:text-slate-400'
+                  }
+                >
+                  {tChart(`range.${value}`)}
+                </Link>
+              ))}
+            </div>
             <PriceChart
-              points={snapshot.price_history}
+              points={pointsInRange(snapshot.price_history, range)}
               high={drawdownDetail.high ?? null}
               highDate={drawdownDetail.highDate ?? null}
               currency={snapshot.currency}
+              locale={locale}
               labels={{
-                high: locale === 'nl' ? '5-jaarstop' : '5y high',
-                now: locale === 'nl' ? 'Nu' : 'Now',
-                drawdown: locale === 'nl' ? 'Daling' : 'Drawdown',
+                high: tChart('high'),
+                now: tChart('now'),
+                drawdown: tChart('drawdown'),
+                entry: tChart('entry'),
+                chart: tChart('label'),
               }}
             />
           </section>
