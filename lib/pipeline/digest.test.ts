@@ -160,6 +160,7 @@ const db = {
     { user_id: 'u2', notify_email: 'b@example.com', language: 'nl', notify_on_buy: true, notify_enabled: true },
   ] as Array<Record<string, unknown>>,
   inserts: [] as Array<Record<string, unknown>>,
+  deletes: [] as string[],
   insertError: null as { code: string; message: string } | null,
 };
 
@@ -175,6 +176,16 @@ const client = {
         return { error: null };
       },
       update: () => ({ eq: () => ({ eq: () => ({ eq: async () => ({ error: null }) }) }) }),
+      delete: () => ({
+        eq: (_c: string, recipient: string) => ({
+          eq: () => ({
+            eq: async () => {
+              db.deletes.push(recipient);
+              return { error: null };
+            },
+          }),
+        }),
+      }),
     };
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,6 +202,7 @@ const mailer: Mailer = {
 
 beforeEach(() => {
   db.inserts = [];
+  db.deletes = [];
   db.insertError = null;
   sent.length = 0;
   vi.restoreAllMocks();
@@ -231,6 +243,30 @@ describe('sending', () => {
     expect(outcomes).toHaveLength(0);
     expect(db.inserts).toHaveLength(0);
     expect(sent).toHaveLength(0);
+  });
+
+  /**
+   * Resend refuses a recipient the sender is not allowed to reach, which is a
+   * per-recipient failure on an otherwise fine run. The claim row is what makes
+   * the next run skip, so leaving a failed one behind would mean that reader
+   * silently never gets a digest that day.
+   */
+  it('clears the claim when the send fails, so it can be retried', async () => {
+    const failing: Mailer = {
+      canSend: true,
+      send: async ({ to }) => ({ to, ok: false, simulated: false, error: 'not allowed' }),
+    };
+
+    const outcomes = await sendDailyDigest(client, moved, '2026-09-14', { mailer: failing });
+
+    expect(outcomes.every((o) => o.state === 'failed')).toBe(true);
+    expect(db.deletes).toEqual(['a@example.com', 'b@example.com']);
+  });
+
+  it('keeps the claim when the send succeeds, so it is not sent twice', async () => {
+    await sendDailyDigest(client, moved, '2026-09-14', { mailer });
+
+    expect(db.deletes).toEqual([]);
   });
 
   it('reports a write failure rather than claiming it sent', async () => {

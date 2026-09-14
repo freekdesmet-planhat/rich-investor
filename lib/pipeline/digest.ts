@@ -294,21 +294,33 @@ export async function sendDailyDigest(
       html,
     });
 
-    const patch: Record<string, unknown> | null = !result.ok
-      ? { state: 'failed', error: result.error }
-      : result.simulated
+    if (!result.ok) {
+      // Drop the claim rather than marking it failed. The row is what makes a
+      // second run skip, so leaving a failed one behind means the send is never
+      // retried — one transient refusal and that reader silently gets no digest
+      // that day. Removing it lets the next run try again, and the dedupe still
+      // holds for a send that actually succeeded.
+      await client
+        .from('notifications_log')
+        .delete()
+        .eq('recipient', recipient.email)
+        .eq('kind', 'daily_digest')
+        .eq('as_of', asOf);
+    } else {
+      const patch: Record<string, unknown> | null = result.simulated
         ? { state: 'skipped', error: 'simulated — RESEND_API_KEY not set' }
         : result.providerId
           ? { provider_id: result.providerId }
           : null;
 
-    if (patch) {
-      await client
-        .from('notifications_log')
-        .update(patch)
-        .eq('recipient', recipient.email)
-        .eq('kind', 'daily_digest')
-        .eq('as_of', asOf);
+      if (patch) {
+        await client
+          .from('notifications_log')
+          .update(patch)
+          .eq('recipient', recipient.email)
+          .eq('kind', 'daily_digest')
+          .eq('as_of', asOf);
+      }
     }
 
     outcomes.push({
