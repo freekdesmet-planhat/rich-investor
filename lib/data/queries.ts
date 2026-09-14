@@ -217,9 +217,19 @@ export interface NoteRow {
  * RLS lets both members read each other's reviews but only write their own, so
  * this returns the full set and the caller separates "mine" from "theirs".
  */
+export interface ReviewHistoryRow {
+  id: string;
+  symbol: string;
+  assessment: 'temporary' | 'structural' | 'not_assessed';
+  catalysts: string[];
+  sell_signals: string[];
+  marks_answer: string | null;
+  saved_at: string;
+}
+
 export async function getReviews(
   symbol: string,
-): Promise<{ reviews: ReviewRow[]; notes: NoteRow[] }> {
+): Promise<{ reviews: ReviewRow[]; notes: NoteRow[]; history: ReviewHistoryRow[] }> {
   const supabase = await client();
 
   const { data: reviews } = await supabase
@@ -235,7 +245,46 @@ export async function getReviews(
     .order('noted_on', { ascending: false })
     .returns<NoteRow[]>();
 
-  return { reviews: reviews ?? [], notes: notes ?? [] };
+  // Own history only — RLS enforces that, and the query says the same thing so
+  // the intent is readable without going to the policy.
+  const { data: history } = await supabase
+    .from('qualitative_review_history')
+    .select('id,symbol,assessment,catalysts,sell_signals,marks_answer,saved_at')
+    .eq('symbol', symbol)
+    .order('saved_at', { ascending: false })
+    .limit(20)
+    .returns<ReviewHistoryRow[]>();
+
+  return { reviews: reviews ?? [], notes: notes ?? [], history: history ?? [] };
+}
+
+export interface ReviewSummary {
+  symbol: string;
+  assessment: 'temporary' | 'structural' | 'not_assessed';
+  assessed_at: string | null;
+  updated_at: string;
+}
+
+/**
+ * The signed-in member's own reviews, one per symbol.
+ *
+ * For the watchlist, which needs to say which names have been looked at without
+ * loading each review in full. RLS already limits this to the caller's rows.
+ */
+export async function getMyReviewSummaries(): Promise<Map<string, ReviewSummary>> {
+  const supabase = await client();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Map();
+
+  const { data } = await supabase
+    .from('qualitative_reviews')
+    .select('symbol,assessment,assessed_at,updated_at')
+    .eq('user_id', user.id)
+    .returns<ReviewSummary[]>();
+
+  return new Map((data ?? []).map((row) => [row.symbol, row]));
 }
 
 export interface TickerSummary {

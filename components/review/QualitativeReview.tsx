@@ -1,7 +1,9 @@
-import { getTranslations } from 'next-intl/server';
-import { saveReview } from '@/app/stock/[symbol]/reviewActions';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { CATALYST_KEYS, SELL_SIGNAL_KEYS } from '@/lib/review/keys';
+import { summariseHistory, type HistoryEntry } from '@/lib/review/history';
 import type { Translation } from '@/lib/data/queries';
+import { HistoryLog } from './HistoryLog';
+import { ReviewForm } from './ReviewForm';
 import { SaveButton } from './SaveButton';
 
 export interface ReviewRecord {
@@ -37,6 +39,7 @@ export async function QualitativeReview({
   symbol,
   mine,
   others,
+  history,
   conditionsMet,
   conditionsApplicable,
   docs,
@@ -44,11 +47,14 @@ export async function QualitativeReview({
   symbol: string;
   mine: ReviewRecord | null;
   others: ReviewRecord[];
+  /** My own saves, newest first. Empty for reviews written before it was kept. */
+  history: HistoryEntry[];
   conditionsMet: number;
   conditionsApplicable: number;
   docs: Map<string, Translation>;
 }) {
   const t = await getTranslations('review');
+  const locale = await getLocale();
 
   return (
     <section className="mt-8">
@@ -60,12 +66,17 @@ export async function QualitativeReview({
         {t('checklistReminder', { met: conditionsMet, total: conditionsApplicable })}
       </p>
 
-      <form
-        action={saveReview}
-        className="mt-4 space-y-5 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+      <ReviewForm
+        symbol={symbol}
+        locale={locale}
+        labels={{
+          saved: t('saved'),
+          savedAt: t.raw('savedAt') as string,
+          noteAdded: t('noteAdded'),
+          unsaved: t('unsaved'),
+          failed: t.raw('saveFailed') as string,
+        }}
       >
-        <input type="hidden" name="symbol" value={symbol} />
-
         <fieldset>
           <legend className="text-sm font-medium">{t('assessment.label')}</legend>
           <p className="mb-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -134,10 +145,32 @@ export async function QualitativeReview({
             {t('lastUpdated', { date: mine.updated_at.slice(0, 10) })}
           </p>
         )}
-      </form>
+      </ReviewForm>
 
       {mine && mine.notes.length > 0 && (
         <NoteLog title={t('notes')} notes={mine.notes} />
+      )}
+
+      {history.length > 0 && (
+        <HistoryLog
+          changes={summariseHistory(history)}
+          docs={docs}
+          labels={{
+            title: t('history.title'),
+            intro: t('history.intro'),
+            first: t('history.first'),
+            changed: t.raw('history.changed') as string,
+            unchanged: t('history.unchanged'),
+            added: t('history.added'),
+            removed: t('history.removed'),
+            marks: t('history.marks'),
+            assessment: {
+              temporary: t('assessment.temporary'),
+              structural: t('assessment.structural'),
+              not_assessed: t('assessment.not_assessed'),
+            },
+          }}
+        />
       )}
 
       {others.length > 0 && (

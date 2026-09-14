@@ -6,12 +6,15 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { WatchlistControls } from '@/components/WatchlistControls';
 import { DataFreshness } from '@/components/DataFreshness';
-import { getWatchlist, type WatchlistEntry } from '@/lib/data/queries';
+import { getMyReviewSummaries, getWatchlist, type WatchlistEntry } from '@/lib/data/queries';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import {
   filterEntries,
+  isReviewFilter,
   isSortKey,
   isStatusFilter,
+  reviewCounts,
+  reviewMarkOf,
   sortEntries,
   statusCounts,
   type ViewOptions,
@@ -44,7 +47,7 @@ function groupBySector(entries: WatchlistEntry[]): Map<FocusSector, WatchlistEnt
 export default async function WatchlistPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; sort?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; sort?: string; q?: string; review?: string }>;
 }) {
   const params = await searchParams;
   const locale = (await getLocale()) as Lang;
@@ -52,15 +55,17 @@ export default async function WatchlistPage({
     status: isStatusFilter(params.status) ? params.status : 'all',
     sort: isSortKey(params.sort) ? params.sort : 'sector',
     query: params.q ?? '',
+    review: isReviewFilter(params.review) ? params.review : 'any',
   };
 
-  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch] = await Promise.all([
+  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch, tReview] = await Promise.all([
     getTranslations('status'),
     getTranslations('sector'),
     getTranslations('nav'),
     getTranslations('data'),
     getTranslations('watchlist'),
     getTranslations('search'),
+    getTranslations('review'),
   ]);
 
   // Membership decides what is listed. The signal only decides what a row says:
@@ -68,10 +73,16 @@ export default async function WatchlistPage({
   // the page from the moment it is added rather than the morning after.
   const all = await getWatchlist();
 
+  // Your own reviews, keyed by ticker. The watchlist is shared and a review is
+  // not, so this says which names *you* have answered — the other member's
+  // verdict is on the stock page, where it can be attributed.
+  const reviews = await getMyReviewSummaries();
+
   // Counts come from the whole list, never the filtered one: a chip that
   // recounted itself after being clicked could only ever show its own total.
   const counts = statusCounts(all);
-  const visible = sortEntries(filterEntries(all, view), view.sort);
+  const reviewTotals = reviewCounts(all, reviews);
+  const visible = sortEntries(filterEntries(all, view, reviews), view.sort);
   // Sector is a sort option now, so the grouped layout belongs to that option
   // alone; any other ordering would be cut apart by the group headings.
   const groups = view.sort === 'sector' ? groupBySector(visible) : null;
@@ -80,6 +91,26 @@ export default async function WatchlistPage({
 
   const rowLabels = {
     conditionsMet: (met: number, total: number) => tStatus('conditionsMet', { met, total }),
+    /**
+     * Your own verdict, on the row.
+     *
+     * The review is the one thing in the app nothing else can supply, and until
+     * now the watchlist gave no sign of which names had one — so the question
+     * "which of these have I actually thought about" meant opening all of them.
+     * Unanswered says so explicitly rather than staying silent, because silence
+     * is what it looked like before.
+     */
+    review: (entry: WatchlistEntry) => {
+      const mark = reviewMarkOf(reviews.get(entry.symbol));
+      if (!mark.done) return { text: tWatchlist('reviewNeeded'), done: false };
+      return {
+        text: tWatchlist('reviewed', {
+          assessment: tReview(`assessment.${mark.assessment}`),
+          date: mark.date,
+        }),
+        done: true,
+      };
+    },
     pending: tWatchlist('pending'),
     notAnalysed: tWatchlist('notAnalysed'),
     /**
@@ -177,7 +208,14 @@ export default async function WatchlistPage({
               filterPlaceholder: tWatchlist('filterPlaceholder'),
               filterApply: tWatchlist('filterApply'),
               clear: tWatchlist('clear'),
+              review: {
+                any: tWatchlist('reviewAny'),
+                needed: tWatchlist('reviewNeededFilter'),
+                reviewed: tWatchlist('reviewedFilter'),
+              },
+              reviewBy: tWatchlist('reviewBy'),
             }}
+            reviewCounts={reviewTotals}
           />
         )}
 
@@ -239,6 +277,7 @@ interface RowLabels {
   pending: string;
   notAnalysed: string;
   missingOne: (entry: WatchlistEntry) => string | null;
+  review: (entry: WatchlistEntry) => { text: string; done: boolean };
 }
 
 /**
@@ -299,6 +338,11 @@ function RowList({
                   </span>
                 )}
               </p>
+
+              {/* Whether you have made your own call. Always printed, either
+                  way: a row that only spoke up once reviewed would leave the
+                  silence meaning both "not reviewed" and "does not say". */}
+              <ReviewMark {...labels.review(entry)} />
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
@@ -322,6 +366,22 @@ function RowList({
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Your own verdict on a row, or the absence of one. */
+function ReviewMark({ text, done }: { text: string; done: boolean }) {
+  return (
+    <p
+      className={`mt-0.5 text-xs ${
+        done ? 'text-slate-500 dark:text-slate-400' : 'text-amber-700 dark:text-amber-500'
+      }`}
+    >
+      <span aria-hidden="true" className="mr-1">
+        {done ? '✓' : '○'}
+      </span>
+      {text}
+    </p>
   );
 }
 

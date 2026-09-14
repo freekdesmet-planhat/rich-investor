@@ -113,7 +113,21 @@
     "notesPlaceholder": "What you concluded, and why.",
     "addNote": "Add note",
     "marksLabel": "Howard Marks' standing question",
-    "marksQuestion": "Looking back on this moment five years from now, would you have wanted to buy more shares or fewer?"
+    "marksQuestion": "Looking back on this moment five years from now, would you have wanted to buy more shares or fewer?",
+    "savedAt": "Saved at {time}.",
+    "noteAdded": "Note added.",
+    "unsaved": "Unsaved changes.",
+    "saveFailed": "Not saved: {message}",
+    "history": {
+      "title": "How this judgement changed",
+      "intro": "Every save is kept, so you can see where you changed your mind. Saves made before this log existed are not in it.",
+      "first": "First review",
+      "changed": "{from} → {to}",
+      "unchanged": "Saved again, nothing changed",
+      "added": "Added:",
+      "removed": "Removed:",
+      "marks": "Answer to Marks’ question rewritten."
+    }
   },
   "auth": {
     "email": "Email address",
@@ -252,6 +266,12 @@
     "showing": "Showing {shown} of {total}",
     "noMatches": "Nothing on your watchlist matches that.",
     "clear": "Clear filters",
-    "missingOne": "missing: {condition}"
+    "missingOne": "missing: {condition}",
+    "reviewed": "Reviewed {date} — {assessment}",
+    "reviewNeeded": "Not yet reviewed",
+    "reviewBy": "Your review",
+    "reviewAny": "All",
+    "reviewNeededFilter": "Needs review",
+    "reviewedFilter": "Reviewed"
   }
 }

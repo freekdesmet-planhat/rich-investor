@@ -113,7 +113,21 @@
     "notesPlaceholder": "Wat je concludeerde, en waarom.",
     "addNote": "Notitie toevoegen",
     "marksLabel": "De vaste vraag van Howard Marks",
-    "marksQuestion": "Als je over vijf jaar op dit moment terugkijkt, had je dan meer of minder aandelen willen kopen?"
+    "marksQuestion": "Als je over vijf jaar op dit moment terugkijkt, had je dan meer of minder aandelen willen kopen?",
+    "savedAt": "Opgeslagen om {time}.",
+    "noteAdded": "Notitie toegevoegd.",
+    "unsaved": "Niet-opgeslagen wijzigingen.",
+    "saveFailed": "Niet opgeslagen: {message}",
+    "history": {
+      "title": "Hoe dit oordeel veranderde",
+      "intro": "Elke keer dat je opslaat wordt bewaard, zodat je ziet waar je van gedachten veranderde. Wat vóór dit logboek is opgeslagen, staat er niet in.",
+      "first": "Eerste beoordeling",
+      "changed": "{from} → {to}",
+      "unchanged": "Opnieuw opgeslagen, niets veranderd",
+      "added": "Toegevoegd:",
+      "removed": "Verwijderd:",
+      "marks": "Antwoord op de vraag van Marks herschreven."
+    }
   },
   "auth": {
     "email": "E-mailadres",
@@ -252,6 +266,12 @@
     "showing": "{shown} van {total} getoond",
     "noMatches": "Niets op je volglijst komt daarmee overeen.",
     "clear": "Filters wissen",
-    "missingOne": "ontbreekt: {condition}"
+    "missingOne": "ontbreekt: {condition}",
+    "reviewed": "Beoordeeld op {date} — {assessment}",
+    "reviewNeeded": "Nog niet beoordeeld",
+    "reviewBy": "Jouw beoordeling",
+    "reviewAny": "Alles",
+    "reviewNeededFilter": "Nog beoordelen",
+    "reviewedFilter": "Beoordeeld"
   }
 }

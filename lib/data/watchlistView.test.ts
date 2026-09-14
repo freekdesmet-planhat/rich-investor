@@ -10,9 +10,13 @@ import { describe, expect, it } from 'vitest';
 import {
   drawdownOf,
   filterEntries,
+  needsReview,
+  reviewCounts,
+  reviewMarkOf,
   sortEntries,
   statusCounts,
   viewHref,
+  type ReviewState,
   type ViewOptions,
   type ViewableEntry,
 } from './watchlistView';
@@ -53,8 +57,14 @@ const view = (overrides: Partial<ViewOptions> = {}): ViewOptions => ({
   status: 'all',
   sort: 'sector',
   query: '',
+  review: 'any',
   ...overrides,
 });
+
+const reviewed = (
+  assessment: ReviewState['assessment'] = 'temporary',
+  assessed_at: string | null = '2026-03-01T10:00:00Z',
+): ReviewState => ({ assessment, assessed_at });
 
 describe('counting for the chips', () => {
   it('counts every status, including ones nobody holds', () => {
@@ -200,5 +210,87 @@ describe('building the links', () => {
 
   it('does not drop the typed filter when a chip is clicked', () => {
     expect(viewHref(view({ query: 'nvidia' }), { status: 'buy_worthy' })).toContain('q=nvidia');
+  });
+});
+
+describe('whether a name still needs your own judgement', () => {
+  it('counts a missing review as outstanding', () => {
+    expect(needsReview(undefined)).toBe(true);
+    expect(needsReview(null)).toBe(true);
+  });
+
+  /** The form's default is not an answer, however long ago it was saved. */
+  it('counts a saved "not yet assessed" as outstanding too', () => {
+    expect(needsReview(reviewed('not_assessed'))).toBe(true);
+  });
+
+  it('counts either verdict as answered', () => {
+    expect(needsReview(reviewed('temporary'))).toBe(false);
+    expect(needsReview(reviewed('structural'))).toBe(false);
+  });
+
+  it('splits the list in two and the halves add up', () => {
+    const rows = [entry('ADBE'), entry('GOOGL'), entry('MSFT')];
+    const reviews = new Map([['ADBE', reviewed('structural')]]);
+
+    const counts = reviewCounts(rows, reviews);
+    expect(counts).toEqual({ any: 3, needed: 2, reviewed: 1 });
+    expect(counts.needed + counts.reviewed).toBe(counts.any);
+  });
+
+  it('filters to the ones you have not answered', () => {
+    const rows = [entry('ADBE'), entry('GOOGL')];
+    const reviews = new Map([['ADBE', reviewed()]]);
+
+    expect(filterEntries(rows, view({ review: 'needed' }), reviews).map((r) => r.symbol)).toEqual([
+      'GOOGL',
+    ]);
+    expect(filterEntries(rows, view({ review: 'reviewed' }), reviews).map((r) => r.symbol)).toEqual([
+      'ADBE',
+    ]);
+  });
+
+  /** The point of the axis: buy-worthy *and* unanswered is the useful set. */
+  it('combines with the status filter rather than replacing it', () => {
+    const rows = [
+      entry('ADBE', { status: 'buy_worthy' }),
+      entry('GOOGL', { status: 'buy_worthy' }),
+      entry('MSFT', { status: 'watching' }),
+    ];
+    const reviews = new Map([['ADBE', reviewed()]]);
+
+    const result = filterEntries(rows, view({ status: 'buy_worthy', review: 'needed' }), reviews);
+    expect(result.map((r) => r.symbol)).toEqual(['GOOGL']);
+  });
+
+  it('is off by default, and says so in the URL when it is not', () => {
+    expect(viewHref(view(), { review: 'any' })).toBe('/');
+    expect(viewHref(view(), { review: 'needed' })).toContain('review=needed');
+    expect(viewHref(view({ query: 'ads' }), { review: 'needed' })).toContain('q=ads');
+  });
+});
+
+describe('what a row says about your verdict', () => {
+  it('says nothing to show when there is no verdict', () => {
+    expect(reviewMarkOf(undefined)).toEqual({ done: false });
+    expect(reviewMarkOf(reviewed('not_assessed'))).toEqual({ done: false });
+  });
+
+  it('carries the verdict and the day it was made', () => {
+    expect(reviewMarkOf(reviewed('structural', '2026-03-04T09:30:00Z'))).toEqual({
+      done: true,
+      assessment: 'structural',
+      date: '2026-03-04',
+    });
+  });
+
+  /** A review saved before assessed_at was stamped still has a date to show. */
+  it('falls back to when the row was last written', () => {
+    const mark = reviewMarkOf({
+      assessment: 'temporary',
+      assessed_at: null,
+      updated_at: '2026-05-20T08:00:00Z',
+    });
+    expect(mark).toEqual({ done: true, assessment: 'temporary', date: '2026-05-20' });
   });
 });

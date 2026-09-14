@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import {
+  REVIEW_FILTERS,
   SORT_KEYS,
   STATUS_FILTERS,
   viewHref,
+  type ReviewFilter,
   type SortKey,
   type StatusFilter,
   type ViewOptions,
@@ -16,6 +18,9 @@ export interface ControlLabels {
   filterPlaceholder: string;
   filterApply: string;
   clear: string;
+  /** One per review filter, including "any". */
+  review: Record<ReviewFilter, string>;
+  reviewBy: string;
 }
 
 /**
@@ -29,10 +34,12 @@ export interface ControlLabels {
 export function WatchlistControls({
   view,
   counts,
+  reviewCounts,
   labels,
 }: {
   view: ViewOptions;
   counts: Record<StatusFilter, number>;
+  reviewCounts: Record<ReviewFilter, number>;
   labels: ControlLabels;
 }) {
   const chip = (active: boolean) =>
@@ -42,7 +49,11 @@ export function WatchlistControls({
         : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800'
     }`;
 
-  const isFiltered = view.status !== 'all' || view.query.trim() !== '' || view.sort !== 'sector';
+  const isFiltered =
+    view.status !== 'all' ||
+    view.query.trim() !== '' ||
+    view.sort !== 'sector' ||
+    view.review !== 'any';
 
   return (
     <div className="mb-4 space-y-3">
@@ -58,6 +69,25 @@ export function WatchlistControls({
           >
             {labels.status[status]}
             <span className="ml-1.5 tabular-nums opacity-70">{counts[status]}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* A second axis, kept visibly apart from the status chips: the status is
+          what the numbers say about a stock, this is whether you have answered
+          them. Crossing the two is the point — "buy-worthy and I have not
+          looked at it yet" is the set worth a Saturday morning. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-500 dark:text-slate-400">{labels.reviewBy}:</span>
+        {REVIEW_FILTERS.map((review) => (
+          <Link
+            key={review}
+            href={viewHref(view, { review })}
+            aria-current={view.review === review ? 'true' : undefined}
+            className={chip(view.review === review)}
+          >
+            {labels.review[review]}
+            <span className="ml-1.5 tabular-nums opacity-70">{reviewCounts[review]}</span>
           </Link>
         ))}
       </div>
@@ -86,6 +116,7 @@ export function WatchlistControls({
         <form method="GET" action="/" className="flex min-w-0 flex-1 items-center gap-2">
           {view.status !== 'all' && <input type="hidden" name="status" value={view.status} />}
           {view.sort !== 'sector' && <input type="hidden" name="sort" value={view.sort} />}
+          {view.review !== 'any' && <input type="hidden" name="review" value={view.review} />}
           <input
             type="search"
             name="q"

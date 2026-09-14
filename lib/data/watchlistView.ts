@@ -13,14 +13,27 @@
 export type StatusFilter = 'all' | 'buy_worthy' | 'almost' | 'watching';
 export type SortKey = 'sector' | 'conditions' | 'drawdown' | 'symbol';
 
+/**
+ * Whether you have made your own call on a name yet.
+ *
+ * A separate axis from the signal status, deliberately: the status is what the
+ * numbers say, this is whether you have answered them. A stock can be
+ * buy-worthy and unreviewed, which is exactly the combination worth finding.
+ */
+export type ReviewFilter = 'any' | 'needed' | 'reviewed';
+
 export const STATUS_FILTERS: StatusFilter[] = ['all', 'buy_worthy', 'almost', 'watching'];
 export const SORT_KEYS: SortKey[] = ['sector', 'conditions', 'drawdown', 'symbol'];
+export const REVIEW_FILTERS: ReviewFilter[] = ['any', 'needed', 'reviewed'];
 
 export const isStatusFilter = (value: unknown): value is StatusFilter =>
   typeof value === 'string' && (STATUS_FILTERS as string[]).includes(value);
 
 export const isSortKey = (value: unknown): value is SortKey =>
   typeof value === 'string' && (SORT_KEYS as string[]).includes(value);
+
+export const isReviewFilter = (value: unknown): value is ReviewFilter =>
+  typeof value === 'string' && (REVIEW_FILTERS as string[]).includes(value);
 
 /** The shape this module needs; the query type satisfies it. */
 export interface ViewableEntry {
@@ -58,9 +71,59 @@ export interface ViewOptions {
   sort: SortKey;
   /** Free text over ticker and company name. */
   query: string;
+  review: ReviewFilter;
 }
 
-export function filterEntries<T extends ViewableEntry>(entries: T[], options: ViewOptions): T[] {
+/** The part of a saved review this module needs. */
+export interface ReviewState {
+  assessment: 'temporary' | 'structural' | 'not_assessed';
+  assessed_at: string | null;
+  /** Fallback date: every row has one, `assessed_at` only once judged. */
+  updated_at?: string;
+}
+
+/**
+ * Has this name been judged?
+ *
+ * "Not yet assessed" is the form's own default, so a saved review that still
+ * holds it is not an answer — it is the absence of one, and it counts the same
+ * as never having opened the page. No staleness threshold: how old a judgement
+ * may be before it needs revisiting is the reader's call, which is why the row
+ * prints the date instead of deciding for them.
+ */
+export function needsReview(review: ReviewState | null | undefined): boolean {
+  return !review || review.assessment === 'not_assessed';
+}
+
+export type ReviewLookup = ReadonlyMap<string, ReviewState>;
+
+export type ReviewMark =
+  | { done: false }
+  | { done: true; assessment: 'temporary' | 'structural'; date: string };
+
+/**
+ * What a watchlist row says about your own verdict.
+ *
+ * Returns the parts rather than the sentence, so the page can put them through
+ * next-intl and this can be tested without it. The date falls back to
+ * `updated_at` because `assessed_at` is only stamped when a verdict is given —
+ * a row that has one always has a date to show for it.
+ */
+export function reviewMarkOf(review: ReviewState | null | undefined): ReviewMark {
+  if (needsReview(review)) return { done: false };
+  const r = review as ReviewState & { updated_at?: string };
+  return {
+    done: true,
+    assessment: r.assessment as 'temporary' | 'structural',
+    date: (r.assessed_at ?? r.updated_at ?? '').slice(0, 10),
+  };
+}
+
+export function filterEntries<T extends ViewableEntry>(
+  entries: T[],
+  options: ViewOptions,
+  reviews: ReviewLookup = new Map(),
+): T[] {
   const needle = options.query.trim().toLowerCase();
 
   return entries.filter((entry) => {
@@ -68,6 +131,10 @@ export function filterEntries<T extends ViewableEntry>(entries: T[], options: Vi
       // A ticker with no signal yet has no status to match, so a status filter
       // excludes it rather than guessing one for it.
       if (entry.signal?.status !== options.status) return false;
+    }
+    if (options.review !== 'any') {
+      const outstanding = needsReview(reviews.get(entry.symbol));
+      if (outstanding !== (options.review === 'needed')) return false;
     }
     if (needle) {
       const haystack = `${entry.symbol} ${entry.name ?? ''}`.toLowerCase();
@@ -134,6 +201,15 @@ export function statusCounts<T extends ViewableEntry>(
   };
 }
 
+/** Counts for the review chips, over the unfiltered list for the same reason. */
+export function reviewCounts<T extends ViewableEntry>(
+  entries: T[],
+  reviews: ReviewLookup = new Map(),
+): Record<ReviewFilter, number> {
+  const needed = entries.filter((e) => needsReview(reviews.get(e.symbol))).length;
+  return { any: entries.length, needed, reviewed: entries.length - needed };
+}
+
 /**
  * Builds the querystring for a chip or sort link, keeping the rest of the view.
  *
@@ -145,6 +221,7 @@ export function viewHref(current: ViewOptions, change: Partial<ViewOptions>): st
   const params = new URLSearchParams();
   if (next.status !== 'all') params.set('status', next.status);
   if (next.sort !== 'sector') params.set('sort', next.sort);
+  if (next.review !== 'any') params.set('review', next.review);
   if (next.query.trim()) params.set('q', next.query.trim());
   const qs = params.toString();
   return qs ? `/?${qs}` : '/';

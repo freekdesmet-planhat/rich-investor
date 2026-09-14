@@ -497,6 +497,7 @@ export default async function StockPage({
           symbol={symbol}
           mine={mine ? toRecord(mine) : null}
           others={others}
+          history={reviewData.history}
           conditionsMet={signal.conditions_met}
           conditionsApplicable={signal.conditions_applicable}
           docs={docs}
