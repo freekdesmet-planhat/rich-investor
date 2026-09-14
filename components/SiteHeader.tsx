@@ -34,6 +34,12 @@ export async function SiteHeader() {
               {tNav('watchlist')}
             </Link>
             <Link
+              href="/search"
+              className="rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              {tNav('search')}
+            </Link>
+            <Link
               href="/suggestions"
               className="rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >

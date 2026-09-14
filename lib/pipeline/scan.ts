@@ -82,7 +82,7 @@ export function isPrimaryListing(exchange: string | null, country: string | null
 }
 
 /** Venue codes worth querying at all, so the page is not spent on noise. */
-const PRIMARY_EXCHANGE_CODES = Object.keys(PRIMARY_EXCHANGES);
+export const PRIMARY_EXCHANGE_CODES = Object.keys(PRIMARY_EXCHANGES);
 
 /**
  * Preference between venues of the same country, lowest first.

@@ -6,6 +6,7 @@ import { RatioCard } from '@/components/RatioCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AiThesisCard } from '@/components/AiThesisCard';
+import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -14,6 +15,7 @@ import {
   getSignal,
   getSnapshot,
   getTickerSummary,
+  getWatchlistSymbols,
   getTranslations as getDocTranslations,
   type RatioRow,
 } from '@/lib/data/queries';
@@ -115,6 +117,9 @@ export default async function StockPage({
     getTranslations('thesis'),
   ]);
 
+  const tWatchlist = await getTranslations('watchlist');
+  const onWatchlist = (await getWatchlistSymbols()).has(symbol);
+
   const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
   const drawdown = byKey.get('drawdown_5y');
   const drawdownDetail = (drawdown?.detail ?? {}) as {
@@ -174,7 +179,21 @@ export default async function StockPage({
               )}
             </p>
           </div>
-          <StatusBadge status={signal.status} size="lg" />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={signal.status} size="lg" />
+            {onWatchlist && (
+              <RemoveFromWatchlist
+                symbol={symbol}
+                labels={{
+                  remove: tWatchlist('remove'),
+                  removing: tWatchlist('removing'),
+                  removed: tWatchlist('removed'),
+                  undo: tWatchlist('undo'),
+                  restored: tWatchlist('restored'),
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {snapshot?.is_stale && (

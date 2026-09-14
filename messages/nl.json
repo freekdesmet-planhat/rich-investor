@@ -9,7 +9,8 @@
     "suggestions": "Suggesties",
     "market": "Marktcontext",
     "settings": "Instellingen",
-    "account": "Account"
+    "account": "Account",
+    "search": "Zoeken"
   },
   "language": {
     "label": "Taal",
@@ -196,5 +197,32 @@
     "title": "Niet gevonden",
     "body": "Op dit adres staat geen pagina of ticker. Mogelijk is die verwijderd, of wordt het symbool anders geschreven.",
     "back": "Terug naar de volglijst"
+  },
+  "search": {
+    "title": "Zoek een ticker",
+    "intro": "Doorzoek het bedrijvenuniversum op ticker of naam en voeg toe wat je wilt volgen.",
+    "placeholder": "Ticker of bedrijfsnaam",
+    "submit": "Zoeken",
+    "minLength": "Typ minstens twee tekens.",
+    "noResults": "Niets gevonden voor {query}.",
+    "resultCount": "{count} van {total} bedrijven getoond",
+    "add": "Aan volglijst toevoegen",
+    "adding": "Toevoegen…",
+    "onWatchlist": "Staat op je volglijst",
+    "open": "Analyse openen",
+    "notAnalysed": "Nog niet geanalyseerd",
+    "unknownSymbol": "Die ticker staat niet in het bedrijvenuniversum.",
+    "failed": "Toevoegen is niet gelukt. Probeer het opnieuw."
+  },
+  "watchlist": {
+    "remove": "Verwijderen",
+    "removing": "Verwijderen…",
+    "removed": "{symbol} is van de volglijst gehaald.",
+    "undo": "Ongedaan maken",
+    "restored": "{symbol} staat weer op de volglijst.",
+    "pending": "Toegevoegd. De nachtelijke scan analyseert het bedrijf.",
+    "notAnalysed": "Nog niet geanalyseerd",
+    "empty": "Je volglijst is nog leeg. Zoek een ticker om er een toe te voegen.",
+    "confirmRemove": "{symbol} van de volglijst verwijderen?"
   }
 }

@@ -9,7 +9,8 @@
     "suggestions": "Suggestions",
     "market": "Market context",
     "settings": "Settings",
-    "account": "Account"
+    "account": "Account",
+    "search": "Search"
   },
   "language": {
     "label": "Language",
@@ -196,5 +197,32 @@
     "title": "Not found",
     "body": "There is no page or ticker at this address. It may have been removed, or the symbol may be spelled differently.",
     "back": "Back to the watchlist"
+  },
+  "search": {
+    "title": "Find a ticker",
+    "intro": "Search the company universe by ticker or name, then add what you want followed.",
+    "placeholder": "Ticker or company name",
+    "submit": "Search",
+    "minLength": "Type at least two characters.",
+    "noResults": "Nothing matches {query}.",
+    "resultCount": "{count} of {total} companies shown",
+    "add": "Add to watchlist",
+    "adding": "Adding…",
+    "onWatchlist": "On your watchlist",
+    "open": "Open analysis",
+    "notAnalysed": "Not analysed yet",
+    "unknownSymbol": "That ticker is not in the company universe.",
+    "failed": "Could not add it. Try again."
+  },
+  "watchlist": {
+    "remove": "Remove",
+    "removing": "Removing…",
+    "removed": "{symbol} removed from the watchlist.",
+    "undo": "Undo",
+    "restored": "{symbol} is back on the watchlist.",
+    "pending": "Added. The nightly scan will analyse it.",
+    "notAnalysed": "Not analysed yet",
+    "empty": "Nothing on the watchlist yet. Search for a ticker to add one.",
+    "confirmRemove": "Remove {symbol} from the watchlist?"
   }
 }

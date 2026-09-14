@@ -3,7 +3,8 @@ import { getTranslations } from 'next-intl/server';
 import { MarketContextDashboard } from '@/components/MarketContextDashboard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
-import { getCompanyNames, getLatestSignals, type SignalRow } from '@/lib/data/queries';
+import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
+import { getWatchlist, type WatchlistEntry } from '@/lib/data/queries';
 import type { FocusSector } from '@/lib/sectors/mapping';
 
 export const dynamic = 'force-dynamic';
@@ -17,30 +18,45 @@ const SECTOR_ORDER: FocusSector[] = [
   'outside_focus',
 ];
 
-function groupBySector(signals: SignalRow[]): Map<FocusSector, SignalRow[]> {
-  const groups = new Map<FocusSector, SignalRow[]>();
+function groupBySector(entries: WatchlistEntry[]): Map<FocusSector, WatchlistEntry[]> {
+  const groups = new Map<FocusSector, WatchlistEntry[]>();
   for (const sector of SECTOR_ORDER) groups.set(sector, []);
-  for (const signal of signals) {
-    const bucket = groups.get(signal.focus_sector) ?? groups.get('outside_focus')!;
-    bucket.push(signal);
+  for (const entry of entries) {
+    const bucket = groups.get(entry.focus_sector) ?? groups.get('outside_focus')!;
+    bucket.push(entry);
   }
   for (const [sector, rows] of groups) if (rows.length === 0) groups.delete(sector);
   return groups;
 }
 
 export default async function WatchlistPage() {
-  const [t, tStatus, tSector] = await Promise.all([
-    getTranslations('app'),
+  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch] = await Promise.all([
     getTranslations('status'),
     getTranslations('sector'),
+    getTranslations('nav'),
+    getTranslations('data'),
+    getTranslations('watchlist'),
+    getTranslations('search'),
   ]);
 
-  const signals = await getLatestSignals();
-  const names = await getCompanyNames(signals.map((s) => s.symbol));
-  const groups = groupBySector(signals);
+  // Membership decides what is listed. The signal only decides what a row says:
+  // a ticker added today has none until the nightly job runs, and it belongs on
+  // the page from the moment it is added rather than the morning after.
+  const entries = await getWatchlist();
+  const groups = groupBySector(entries);
 
-  const buyWorthy = signals.filter((s) => s.status === 'buy_worthy').length;
-  const almost = signals.filter((s) => s.status === 'almost').length;
+  const analysed = entries.filter((e) => e.signal);
+  const buyWorthy = analysed.filter((e) => e.signal!.status === 'buy_worthy').length;
+  const almost = analysed.filter((e) => e.signal!.status === 'almost').length;
+  const asOf = analysed[0]?.signal?.as_of;
+
+  const removeLabels = {
+    remove: tWatchlist('remove'),
+    removing: tWatchlist('removing'),
+    removed: tWatchlist('removed'),
+    undo: tWatchlist('undo'),
+    restored: tWatchlist('restored'),
+  };
 
   return (
     <>
@@ -51,17 +67,25 @@ export default async function WatchlistPage() {
             not as a signal, so it sits above the watchlist rather than in it. */}
         <MarketContextDashboard />
 
-        <div className="mb-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="text-xl font-semibold">{(await getTranslations('nav'))('watchlist')}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {signals.length} · {buyWorthy} {tStatus('buy_worthy').toLowerCase()} · {almost}{' '}
-            {tStatus('almost').toLowerCase()}
-          </p>
+        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h1 className="text-xl font-semibold">{tNav('watchlist')}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {entries.length} · {buyWorthy} {tStatus('buy_worthy').toLowerCase()} · {almost}{' '}
+              {tStatus('almost').toLowerCase()}
+            </p>
+          </div>
+          <Link
+            href="/search"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {tSearch('title')}
+          </Link>
         </div>
 
-        {signals.length === 0 && (
+        {entries.length === 0 && (
           <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            {t('tagline')}
+            {tWatchlist('empty')}
           </p>
         )}
 
@@ -78,35 +102,52 @@ export default async function WatchlistPage() {
               </h2>
 
               <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
-                {rows.map((signal) => (
-                  <li key={signal.symbol}>
+                {rows.map((entry) => (
+                  <li
+                    key={entry.symbol}
+                    className="flex items-center justify-between gap-2 bg-white pr-2 transition hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                  >
+                    {/* Only the row body navigates: a remove button inside the
+                        link would open the stock page on its way to removing. */}
                     <Link
-                      href={`/stock/${encodeURIComponent(signal.symbol)}`}
-                      className="flex items-center justify-between gap-3 bg-white px-3 py-3 transition hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                      href={`/stock/${encodeURIComponent(entry.symbol)}`}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-3"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium">
-                          {signal.symbol}
+                          {entry.symbol}
                           <span className="ml-2 font-normal text-slate-500 dark:text-slate-400">
-                            {names.get(signal.symbol) ?? ''}
+                            {entry.name ?? ''}
                           </span>
                         </p>
                         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                          {tStatus('conditionsMet', {
-                            met: signal.conditions_met,
-                            total: signal.conditions_applicable,
-                          })}
+                          {entry.signal
+                            ? tStatus('conditionsMet', {
+                                met: entry.signal.conditions_met,
+                                total: entry.signal.conditions_applicable,
+                              })
+                            : tWatchlist('pending')}
                         </p>
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        <ConditionMeter
-                          met={signal.conditions_met}
-                          total={signal.conditions_applicable}
-                        />
-                        <StatusBadge status={signal.status} />
+                        {entry.signal ? (
+                          <>
+                            <ConditionMeter
+                              met={entry.signal.conditions_met}
+                              total={entry.signal.conditions_applicable}
+                            />
+                            <StatusBadge status={entry.signal.status} />
+                          </>
+                        ) : (
+                          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            {tWatchlist('notAnalysed')}
+                          </span>
+                        )}
                       </div>
                     </Link>
+
+                    <RemoveFromWatchlist symbol={entry.symbol} labels={removeLabels} compact />
                   </li>
                 ))}
               </ul>
@@ -115,7 +156,7 @@ export default async function WatchlistPage() {
         </div>
 
         <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
-          {signals[0] ? (await getTranslations('data'))('asOf', { date: signals[0].as_of }) : ''}
+          {asOf ? tData('asOf', { date: asOf }) : ''}
         </p>
       </main>
     </>

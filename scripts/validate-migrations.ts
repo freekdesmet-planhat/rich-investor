@@ -71,7 +71,16 @@ async function main() {
     // The stubs above stand in for these, so the CREATE EXTENSION itself is the
     // one statement that cannot run locally.
     sql = sql.replace(
-      /create extension if not exists (pg_cron|pg_net)\s*;/gi,
+      /create extension if not exists (pg_cron|pg_net|pg_trgm)\s*;/gi,
+      '-- $& (stubbed for local validation)',
+    );
+
+    // pg_trgm is a Supabase-platform extension like the two above, so the
+    // operator class its index depends on does not exist here either. The index
+    // is a performance structure rather than a schema guarantee, so skipping it
+    // locally costs nothing the rest of this check is looking for.
+    sql = sql.replace(
+      /create index [^;]*gin_trgm_ops[^;]*;/gi,
       '-- $& (stubbed for local validation)',
     );
     try {
