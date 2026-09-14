@@ -18,7 +18,9 @@ import {
   type RatioRow,
 } from '@/lib/data/queries';
 import type { Lang } from '@/lib/i18n/config';
+import { stripSourceSuffix } from '@/lib/i18n/docs';
 import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
+import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +57,26 @@ function formatRatio(row: RatioRow, lang: Lang): string {
       return formatBillions(row.value, row.currency ?? 'USD', lang);
     default:
       return formatNumber(row.value, lang);
+  }
+}
+
+/**
+ * The checklist's pass mark, for the cards whose healthy target is stricter.
+ *
+ * Condition 8 passes at 70% of net income and condition 9 at net debt/EBITDA
+ * 2.5, while those two cards state the healthy targets (1 and 1). Printing only
+ * one of the pair made the page contradict itself, so both are shown and both
+ * are read from the same constant — a change to `DEFAULT_THRESHOLDS` moves the
+ * checklist and the card together.
+ */
+function checklistGate(ratioKey: string, lang: Lang): string | null {
+  switch (ratioKey) {
+    case 'debt':
+      return `≤ ${formatNumber(DEFAULT_THRESHOLDS.debt.value.netDebtEbitdaOrange, lang, 1)}`;
+    case 'earnings_quality':
+      return `≥ ${formatPercent(DEFAULT_THRESHOLDS.earningsQuality.value.orange, lang, 0)}`;
+    default:
+      return null;
   }
 }
 
@@ -220,9 +242,12 @@ export default async function StockPage({
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+                  {/* The engine stores an English target on the row; the
+                      localised one lives in docs/ratios.<lang>.md beside the
+                      condition's name, so the criteria translate with it. */}
                   {!condition.applicable
                     ? tRatio('unavailable.not_applicable')
-                    : condition.target}
+                    : (docs.get(`condition:${condition.key}`)?.target ?? condition.target)}
                 </span>
               </li>
             ))}
@@ -236,6 +261,11 @@ export default async function StockPage({
               const row = byKey.get(key as RatioRow['ratio_key']);
               if (!row) return null;
               const doc = docs.get(`ratio:${key}`);
+
+              // The doc names the source in prose and the row carries it as
+              // data; the card renders it once, from the data.
+              const sourceLabel = tRatio(`source.${row.target_source}`);
+              const targetLabel = stripSourceSuffix(doc?.target ?? row.target_label);
 
               const detail = row.detail as { isApproximation?: boolean };
               const adjusted = row.is_adjusted
@@ -258,8 +288,12 @@ export default async function StockPage({
                   explanation={doc?.explanation ?? ''}
                   displayValue={formatRatio(row, locale)}
                   color={row.color}
-                  targetLabel={doc?.target ?? row.target_label}
-                  targetSourceLabel={tRatio(`source.${row.target_source}`)}
+                  targetLabel={targetLabel}
+                  targetSourceLabel={sourceLabel}
+                  gateLabel={(() => {
+                    const gate = checklistGate(key, locale);
+                    return gate ? tRatio('gate', { value: gate }) : null;
+                  })()}
                   history={row.history ?? []}
                   unavailableLabel={
                     row.value == null && row.unavailable_reason
@@ -340,6 +374,17 @@ export default async function StockPage({
               generatedAt: tThesis('generatedAt'),
               error: tThesis('error'),
               signedOut: tThesis('signedOut'),
+              failed: {
+                truncated: tThesis('failed.truncated'),
+                bad_json: tThesis('failed.bad_json'),
+                no_text: tThesis('failed.no_text'),
+                api: tThesis('failed.api'),
+                missing_symbol: tThesis('failed.missing_symbol'),
+                not_signed_in: tThesis('failed.not_signed_in'),
+                no_signal: tThesis('failed.no_signal'),
+                save_failed: tThesis('failed.save_failed'),
+                unknown: tThesis('failed.unknown'),
+              },
               langMismatch:
                 summary && !(locale === 'nl' ? summary.thesis_nl : summary.thesis_en)
                   ? tThesis('langMismatch', {

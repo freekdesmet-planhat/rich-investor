@@ -78,6 +78,36 @@ export function parseDocs(markdown: string): DocEntry[] {
   return entries;
 }
 
+/**
+ * Removes the source annotation a doc target ends with.
+ *
+ * The markdown states the source in prose so each file reads correctly on its
+ * own, and every ratio row also carries it as data (`target_source`). A card
+ * rendering both printed it twice, so the renderer drops the prose copy and
+ * keeps the data-driven one, which stays right if a threshold's source changes.
+ *
+ * A trailing parenthetical is the source by the format's own contract — the
+ * preamble of both files defines a target as "the target, noting whether it
+ * comes from the book". Matching the UI's label instead would not work: Dutch
+ * writes "(standaardinstelling van de app)" in prose where the label is the
+ * shorter "standaardinstelling", so an exact match left both on the card.
+ *
+ * The `translations` table is seeded from this same markdown, so this also runs
+ * on values read back from the database.
+ */
+export function stripSourceSuffix(target: string): string {
+  const trimmed = target.trimEnd();
+  if (!trimmed.endsWith(')')) return target;
+
+  const open = trimmed.lastIndexOf('(');
+  if (open <= 0) return target;
+
+  const stripped = trimmed.slice(0, open).trimEnd();
+  // A target that is nothing but a parenthetical is left as it is, rather than
+  // rendered as an empty target.
+  return stripped.length > 0 ? stripped : target;
+}
+
 export function docsPath(lang: Lang): string {
   return path.join(process.cwd(), 'docs', `ratios.${lang}.md`);
 }

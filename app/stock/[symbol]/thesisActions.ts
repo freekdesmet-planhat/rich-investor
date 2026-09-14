@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { generateThesis, type ThesisContext } from '@/lib/ai/thesis';
+import { generateThesis, ThesisError, type ThesisContext } from '@/lib/ai/thesis';
 
 export interface ThesisState {
   status: 'idle' | 'done' | 'error';
@@ -115,11 +115,20 @@ export async function generateThesisAction(
       },
       { onConflict: 'symbol' },
     );
-    if (error) return { status: 'error', message: error.message };
+    if (error) {
+      console.error(`thesis save failed for ${symbol}: ${error.message}`);
+      return { status: 'error', message: 'save_failed' };
+    }
 
     revalidatePath(`/stock/${symbol}`);
     return { status: 'done' };
   } catch (error) {
-    return { status: 'error', message: (error as Error).message };
+    // The page shows a translated sentence for the code; the provider's own
+    // wording stays in the server log, where it is useful and harmless.
+    console.error(`thesis generation failed for ${symbol}:`, error);
+    return {
+      status: 'error',
+      message: error instanceof ThesisError ? error.code : 'unknown',
+    };
   }
 }

@@ -49,7 +49,8 @@
       "raw": "Ruw",
       "roaNote": "De ruwe ROA wordt vertekend door settlementsaldi die typisch zijn voor betaalbedrijven; voor de koopwaardigheidstoets wordt de gecorrigeerde ROA gebruikt.",
       "approximation": "De correctie is een benadering."
-    }
+    },
+    "gate": "Drempel voor de checklist: {value}"
   },
   "signal": {
     "why": "Waarom",
@@ -163,7 +164,18 @@
     "generatedAt": "Gegenereerd op {date}",
     "error": "Genereren mislukt:",
     "signedOut": "Log in om een samenvatting te genereren.",
-    "langMismatch": "Geschreven in het {lang}. Vernieuw om hem opnieuw te genereren in de taal die je nu leest."
+    "langMismatch": "Geschreven in het {lang}. Vernieuw om hem opnieuw te genereren in de taal die je nu leest.",
+    "failed": {
+      "truncated": "De samenvatting werd afgebroken voordat die compleet was. Probeer het opnieuw.",
+      "bad_json": "Het model gaf geen bruikbare samenvatting terug. Probeer het opnieuw.",
+      "no_text": "Het model gaf niets terug. Probeer het opnieuw.",
+      "api": "De AI-dienst was niet bereikbaar. Probeer het zo meteen opnieuw.",
+      "missing_symbol": "Er is geen ticker meegegeven.",
+      "not_signed_in": "Log in om een samenvatting te genereren.",
+      "no_signal": "Deze ticker is nog niet beoordeeld.",
+      "save_failed": "De samenvatting is gegenereerd maar kon niet worden opgeslagen.",
+      "unknown": "Er ging iets mis. Probeer het zo meteen opnieuw."
+    }
   },
   "account": {
     "title": "Account",
@@ -176,5 +188,10 @@
     "saved": "Wachtwoord opgeslagen. Je kunt er nu mee inloggen.",
     "tooShort": "Gebruik minstens 10 tekens.",
     "mismatch": "De twee wachtwoorden komen niet overeen."
+  },
+  "notFound": {
+    "title": "Niet gevonden",
+    "body": "Op dit adres staat geen pagina of ticker. Mogelijk is die verwijderd, of wordt het symbool anders geschreven.",
+    "back": "Terug naar de volglijst"
   }
 }

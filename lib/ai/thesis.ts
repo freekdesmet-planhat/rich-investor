@@ -18,6 +18,27 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 /**
+ * Why a generation failed, as a code the UI can translate.
+ *
+ * The provider's own message is English and written for a developer; showing it
+ * to a Dutch reader put untranslated text on the page (and told them which
+ * environment variable was missing). The code travels instead, and each
+ * language supplies its own sentence under `thesis.failed`.
+ */
+export type ThesisErrorCode = 'truncated' | 'bad_json' | 'no_text' | 'api';
+
+export class ThesisError extends Error {
+  constructor(
+    readonly code: ThesisErrorCode,
+    /** The provider's wording, for the server log — never for the page. */
+    readonly detail?: string,
+  ) {
+    super(detail ? `${code}: ${detail}` : code);
+    this.name = 'ThesisError';
+  }
+}
+
+/**
  * Requested as claude-3-5-sonnet-latest, raised to the current generation.
  *
  * The stated reasons — fast, capable at reasoning, cost-effective — describe
@@ -191,7 +212,7 @@ export async function generateThesis(context: ThesisContext): Promise<ThesisResu
     });
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
-      throw new Error(`Anthropic API error ${error.status}: ${error.message}`);
+      throw new ThesisError('api', `Anthropic API error ${error.status}: ${error.message}`);
     }
     throw error;
   }
@@ -202,17 +223,15 @@ export async function generateThesis(context: ThesisContext): Promise<ThesisResu
     .join('\n')
     .trim();
 
-  if (!raw) throw new Error(`no text returned (stop_reason: ${response.stop_reason})`);
+  if (!raw) throw new ThesisError('no_text', `stop_reason: ${response.stop_reason}`);
 
   const parsed = parseThesisJson(raw);
   if (!parsed) {
     // Truncation is the likeliest cause, and it is worth naming: a silent
     // half-summary would be stored as though it were complete.
-    throw new Error(
-      response.stop_reason === 'max_tokens'
-        ? 'the reply was cut off before both languages were complete'
-        : 'the reply was not the requested {en, nl} JSON',
-    );
+    throw response.stop_reason === 'max_tokens'
+      ? new ThesisError('truncated', 'reply cut off before both languages were complete')
+      : new ThesisError('bad_json', 'reply was not the requested {en, nl} JSON');
   }
 
   return {

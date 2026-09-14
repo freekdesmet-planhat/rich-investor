@@ -17,6 +17,8 @@ export interface ThesisLabels {
   error: string;
   signedOut: string;
   langMismatch: string | null;
+  /** One sentence per failure code, from `thesis.failed` in the active language. */
+  failed: Record<string, string>;
 }
 
 /**
@@ -152,7 +154,8 @@ export function AiThesisCard({
           )}
           {state.status === 'error' && (
             <p className="text-xs text-rose-600 dark:text-rose-400">
-              {labels.error} {state.message}
+              {labels.error}{' '}
+              {labels.failed[state.message ?? ''] ?? labels.failed.unknown}
             </p>
           )}
         </div>

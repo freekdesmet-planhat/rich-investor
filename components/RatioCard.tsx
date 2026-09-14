@@ -14,6 +14,12 @@ export interface RatioCardProps {
   color: string;
   targetLabel: string;
   targetSourceLabel: string;
+  /**
+   * Set where the buy-worthy checklist passes on a looser number than the
+   * healthy target above it, so the card cannot appear to contradict the
+   * checklist. Both numbers come from the same threshold constant.
+   */
+  gateLabel?: string | null;
   history: Array<{ period: string; value: number }>;
   unavailableLabel: string | null;
   /** Set when the value shown is an adjusted figure (payment-processor ROA). */
@@ -40,6 +46,7 @@ export function RatioCard({
   color,
   targetLabel,
   targetSourceLabel,
+  gateLabel,
   history,
   unavailableLabel,
   adjusted,
@@ -103,6 +110,9 @@ export function RatioCard({
         {labels.target}: {targetLabel}{' '}
         <span className="text-slate-400 dark:text-slate-500">({targetSourceLabel})</span>
       </p>
+      {gateLabel && (
+        <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{gateLabel}</p>
+      )}
 
       {open && (
         <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
