@@ -174,13 +174,40 @@
   },
   "suggestions": {
     "title": "Suggesties",
-    "empty": "Nu even niets. De nachtelijke scan meldt alles wat de kwantitatieve drempel al haalt.",
-    "accept": "Aan volglijst toevoegen",
-    "dismiss": "Afwijzen",
-    "dismissedFor": "{days} dagen afgewezen",
+    "provenance": "{shown} wachten, uit {screened} gescreende namen ({universe} in het universum).",
+    "lastRaised": "Laatst aangedragen op {date}.",
+    "pending": "Wacht op je beslissing",
     "suggestedOn": "Gevonden op {date}",
-    "pending": "Wacht op jouw beslissing",
-    "recentlyDecided": "Recent beslist",
+    "tab": {
+      "pending": "Wachtend",
+      "rejected": "Afgewezen",
+      "accepted": "Toegevoegd"
+    },
+    "sortBy": "Sorteer op",
+    "sort": {
+      "newest": "Nieuwste",
+      "status": "Dichtst bij koopwaardig",
+      "symbol": "Ticker"
+    },
+    "empty": {
+      "pending": "Op dit moment niets nieuws. De nachtelijke scan dient alles in dat de kwantitatieve lat al haalt.",
+      "rejected": "Niets afgewezen. Wat je afwijst blijft hier bewaard en kun je terugzetten.",
+      "accepted": "Nog niets toegevoegd vanuit een suggestie."
+    },
+    "accept": "Aan volglijst toevoegen",
+    "accepting": "Toevoegen…",
+    "dismiss": "Afwijzen",
+    "dismissing": "Afwijzen…",
+    "dismissedFor": "Afgewezen voor {days} dagen",
+    "dismissedDaysLeft": "nog {days} dagen",
+    "acceptedToast": "{symbol} toegevoegd aan de volglijst.",
+    "dismissedToast": "{symbol} afgewezen voor {days} dagen.",
+    "restoredToast": "{symbol} staat weer in de lijst.",
+    "undo": "Ongedaan maken",
+    "restore": "Terugzetten",
+    "restoring": "Terugzetten…",
+    "openAnalysis": "Analyse openen",
+    "onWatchlist": "Staat op je volglijst",
     "accepted": "Toegevoegd",
     "rejected": "Afgewezen"
   },

@@ -174,13 +174,40 @@
   },
   "suggestions": {
     "title": "Suggestions",
-    "empty": "Nothing new right now. The nightly scan files anything that already clears the quantitative bar.",
-    "accept": "Add to watchlist",
-    "dismiss": "Dismiss",
-    "dismissedFor": "Dismissed for {days} days",
-    "suggestedOn": "Found {date}",
+    "provenance": "{shown} waiting, from {screened} screened names ({universe} in the universe).",
+    "lastRaised": "Last raised {date}.",
     "pending": "Waiting for your decision",
-    "recentlyDecided": "Recently decided",
+    "suggestedOn": "Found {date}",
+    "tab": {
+      "pending": "Waiting",
+      "rejected": "Dismissed",
+      "accepted": "Added"
+    },
+    "sortBy": "Sort by",
+    "sort": {
+      "newest": "Newest",
+      "status": "Closest to buyable",
+      "symbol": "Ticker"
+    },
+    "empty": {
+      "pending": "Nothing new right now. The nightly scan files anything that already clears the quantitative bar.",
+      "rejected": "Nothing dismissed. Anything you turn down is kept here, and can be put back.",
+      "accepted": "Nothing added from a suggestion yet."
+    },
+    "accept": "Add to watchlist",
+    "accepting": "Adding…",
+    "dismiss": "Dismiss",
+    "dismissing": "Dismissing…",
+    "dismissedFor": "Dismissed for {days} days",
+    "dismissedDaysLeft": "{days} days left",
+    "acceptedToast": "{symbol} added to the watchlist.",
+    "dismissedToast": "{symbol} dismissed for {days} days.",
+    "restoredToast": "{symbol} is back in the feed.",
+    "undo": "Undo",
+    "restore": "Put back",
+    "restoring": "Putting back…",
+    "openAnalysis": "Open analysis",
+    "onWatchlist": "On your watchlist",
     "accepted": "Added",
     "rejected": "Dismissed"
   },

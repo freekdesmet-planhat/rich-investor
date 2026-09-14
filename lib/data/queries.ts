@@ -433,6 +433,94 @@ export async function getSignalHistory(symbol: string, days = 90): Promise<Signa
   return data ?? [];
 }
 
+export interface RecentDismissal {
+  symbol: string;
+  name: string | null;
+  decided_at: string;
+}
+
+/**
+ * A suggestion this member dismissed a moment ago.
+ *
+ * The undo cannot live on the card: the page is force-dynamic, so the very
+ * render that follows the dismissal re-reads the rows, the card is no longer
+ * pending, and anything inside it is unmounted before it can be read. Asking
+ * the database what was just decided gives the page an undo that is rendered
+ * from server state — it survives the re-render, works with JavaScript off, and
+ * cannot expire before it is noticed the way a timed toast can.
+ *
+ * Five minutes, because this is a safety net for a mis-tap, not a history; the
+ * dismissed tab is the durable record.
+ */
+export async function getRecentDismissal(withinMinutes = 5): Promise<RecentDismissal | null> {
+  const supabase = await client();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const since = new Date(Date.now() - withinMinutes * 60_000).toISOString();
+
+  const { data } = await supabase
+    .from('suggestions')
+    .select('symbol,name,decided_at')
+    .eq('state', 'rejected')
+    .eq('decided_by', user.id)
+    .gte('decided_at', since)
+    .order('decided_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<RecentDismissal>();
+
+  return data ?? null;
+}
+
+export interface ScreeningProvenance {
+  /** Names in the universe that the scan's own filters would consider. */
+  screened: number | null;
+  /** The whole imported universe, for context on what that filter removed. */
+  universe: number | null;
+  /** The day the scan last raised a suggestion. */
+  lastSuggestedAt: string | null;
+}
+
+/**
+ * Where the suggestions came from.
+ *
+ * The page listed four cards with no denominator: no universe size, no scan
+ * date, nothing saying what had been looked at to produce them. Four out of a
+ * dozen and four out of six thousand are different claims, and the page was
+ * making neither.
+ *
+ * The screened figure applies the scan's own filters — see `runScan`, which
+ * walks `region in (US, Europe)`, `market_cap_band = Large Cap` and the primary
+ * exchanges. Counted with `head`, so no rows cross the wire.
+ */
+export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
+  const supabase = await client();
+
+  const [screened, universe, latest] = await Promise.all([
+    supabase
+      .from('universe')
+      .select('symbol', { count: 'exact', head: true })
+      .in('region', ['US', 'Europe'])
+      .in('market_cap_band', ['Large Cap'])
+      .in('exchange', PRIMARY_EXCHANGE_CODES),
+    supabase.from('universe').select('symbol', { count: 'exact', head: true }),
+    supabase
+      .from('suggestions')
+      .select('suggested_at')
+      .order('suggested_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<{ suggested_at: string }>(),
+  ]);
+
+  return {
+    screened: screened.count ?? null,
+    universe: universe.count ?? null,
+    lastSuggestedAt: latest.data?.suggested_at ?? null,
+  };
+}
+
 /** Just the symbols, for marking search results as already added. */
 export async function getWatchlistSymbols(): Promise<Set<string>> {
   const { data } = await (await client())
