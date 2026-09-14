@@ -126,6 +126,32 @@ export function stripSourceSuffix(target: string): string {
   return stripped.length > 0 ? stripped : target;
 }
 
+/**
+ * Rejoins prose that was hard-wrapped in the markdown source.
+ *
+ * Both files wrap at about 85 columns so they read well in an editor and diff
+ * cleanly. The card renders the explanation with `whitespace-pre-line`, which
+ * honours those newlines, so a paragraph written for an 85-column editor came
+ * out as a column of short ragged lines at whatever width the reader's screen
+ * happened to be — every one of the 52 entries in each language.
+ *
+ * Blank lines are real paragraph breaks and survive; a line break inside a
+ * paragraph becomes a space, and the browser wraps to the space available. List
+ * items keep their own lines, since a wrapped bullet is not a paragraph.
+ */
+export function unwrapParagraphs(text: string): string {
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => {
+      const lines = paragraph.split('\n');
+      const isList = lines.some((line) => /^\s*([-*+]|\d+[.)])\s/.test(line));
+      if (isList) return lines.join('\n');
+      return lines.map((line) => line.trim()).filter(Boolean).join(' ');
+    })
+    .join('\n\n')
+    .trim();
+}
+
 export function docsPath(lang: Lang): string {
   return path.join(process.cwd(), 'docs', `ratios.${lang}.md`);
 }

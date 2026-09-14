@@ -20,7 +20,7 @@ import {
   type RatioRow,
 } from '@/lib/data/queries';
 import type { Lang } from '@/lib/i18n/config';
-import { stripSourceSuffix } from '@/lib/i18n/docs';
+import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
@@ -187,9 +187,10 @@ export default async function StockPage({
                 labels={{
                   remove: tWatchlist('remove'),
                   removing: tWatchlist('removing'),
-                  removed: tWatchlist('removed'),
+                  // See app/page.tsx: {symbol} is substituted on the client.
+                  removed: tWatchlist.raw('removed') as string,
                   undo: tWatchlist('undo'),
-                  restored: tWatchlist('restored'),
+                  restored: tWatchlist.raw('restored') as string,
                 }}
               />
             )}
@@ -350,7 +351,9 @@ export default async function StockPage({
                   key={key}
                   ratioKey={key}
                   name={doc?.name ?? key}
-                  explanation={doc?.explanation ?? ''}
+                  // The markdown is hard-wrapped for an editor; the card is not an
+                  // editor, so the wrapping is undone and the browser decides.
+                  explanation={unwrapParagraphs(doc?.explanation ?? '')}
                   displayValue={formatRatio(row, locale)}
                   color={color}
                   variants={variants}
@@ -372,7 +375,7 @@ export default async function StockPage({
                     explain: tRatio('explain'),
                     target: tRatio('target'),
                     fiveYears: tRatio('fiveYears'),
-                    close: locale === 'nl' ? 'Sluiten' : 'Close',
+                    close: tRatio('close'),
                   }}
                 />
               );
@@ -435,7 +438,8 @@ export default async function StockPage({
                 generating: tThesis('generating'),
                 empty: tThesis('empty'),
                 staleNotice: tThesis('staleNotice'),
-                generatedAt: tThesis('generatedAt'),
+                // {date} is only known once a generation finishes, on the client.
+                generatedAt: tThesis.raw('generatedAt') as string,
                 error: tThesis('error'),
                 signedOut: tThesis('signedOut'),
                 failed: {

@@ -10,12 +10,14 @@
     "market": "Market context",
     "settings": "Settings",
     "account": "Account",
-    "search": "Search"
+    "search": "Search",
+    "menu": "Menu"
   },
   "language": {
     "label": "Language",
     "en": "English",
-    "nl": "Nederlands"
+    "nl": "Nederlands",
+    "switchTo": "Switch to {language}"
   },
   "status": {
     "buy_worthy": "Buy-worthy, over to your qualitative review",
@@ -55,7 +57,8 @@
     "peg": {
       "trailing": "trailing",
       "forward": "forward"
-    }
+    },
+    "close": "Close"
   },
   "signal": {
     "why": "Why",

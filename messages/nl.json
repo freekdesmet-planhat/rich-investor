@@ -10,12 +10,14 @@
     "market": "Marktcontext",
     "settings": "Instellingen",
     "account": "Account",
-    "search": "Zoeken"
+    "search": "Zoeken",
+    "menu": "Menu"
   },
   "language": {
     "label": "Taal",
     "en": "English",
-    "nl": "Nederlands"
+    "nl": "Nederlands",
+    "switchTo": "Overschakelen naar {language}"
   },
   "status": {
     "buy_worthy": "Koopwaardig, nu jouw kwalitatieve beoordeling",
@@ -55,7 +57,8 @@
     "peg": {
       "trailing": "historisch",
       "forward": "verwacht"
-    }
+    },
+    "close": "Sluiten"
   },
   "signal": {
     "why": "Waarom",

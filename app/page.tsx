@@ -53,9 +53,12 @@ export default async function WatchlistPage() {
   const removeLabels = {
     remove: tWatchlist('remove'),
     removing: tWatchlist('removing'),
-    removed: tWatchlist('removed'),
+    // `.raw` because {symbol} is filled in on the client, where the row is
+    // known. Formatting here without the value raises FORMATTING_ERROR and
+    // yields a string the reader cannot use.
+    removed: tWatchlist.raw('removed') as string,
     undo: tWatchlist('undo'),
-    restored: tWatchlist('restored'),
+    restored: tWatchlist.raw('restored') as string,
   };
 
   return (

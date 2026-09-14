@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ColorDot } from './ColorDot';
 import { Sparkline } from './Sparkline';
 
@@ -66,6 +66,15 @@ export function RatioCard({
   labels,
 }: RatioCardProps) {
   const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // showModal() cannot be set declaratively, so the state drives it.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
@@ -78,8 +87,8 @@ export function RatioCard({
         </div>
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
           aria-label={labels.explain}
           className="shrink-0 rounded-full border border-slate-300 px-1.5 text-xs leading-5 text-slate-500 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
         >
@@ -147,26 +156,61 @@ export function RatioCard({
         <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{gateLabel}</p>
       )}
 
-      {open && (
-        <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
-          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            {explanation}
+      {/* The explanation opens in a modal dialog rather than inside the card.
+          Expanding in place added ~400px to one cell, which stretched the two
+          cards beside it into tall empty boxes and pushed everything below down
+          a screen. A dialog is outside the grid, so the layout does not move,
+          and the platform gives Escape, a focus trap and a backdrop for free. */}
+      <dialog
+        ref={dialogRef}
+        onClose={() => setOpen(false)}
+        onClick={(event) => {
+          // A click on the dialog element itself is the backdrop: its children
+          // are the panel, so anything inside stops here.
+          if (event.target === dialogRef.current) dialogRef.current?.close();
+        }}
+        className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white p-0 text-slate-900 backdrop:bg-slate-900/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+      >
+        <div className="max-h-[80vh] overflow-y-auto p-4">
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200">{name}</h3>
+            <button
+              type="button"
+              onClick={() => dialogRef.current?.close()}
+              aria-label={labels.close}
+              className="-mr-1 -mt-1 shrink-0 rounded px-2 py-1 text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {labels.target}: {targetLabel}{' '}
+            <span className="text-slate-400 dark:text-slate-500">({targetSourceLabel})</span>
           </p>
+
+          {/* One <p> per paragraph, rather than `whitespace-pre-line` over the
+              whole thing. The source is hard-wrapped for an editor and those
+              newlines are what made the text ragged; the blank lines between
+              paragraphs are real, and become spacing rather than a line break. */}
+          <div className="mt-3 space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            {explanation
+              .split('\n\n')
+              .map((paragraph) => paragraph.trim())
+              .filter(Boolean)
+              .map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+          </div>
+
           {history.length > 1 && (
-            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-              {labels.fiveYears}:{' '}
-              {history.map((p) => p.period.slice(0, 4)).join(' · ')}
+            <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+              {labels.fiveYears}: {history.map((p) => p.period.slice(0, 4)).join(' · ')}
             </p>
           )}
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="mt-2 text-xs text-slate-500 underline dark:text-slate-400"
-          >
-            {labels.close}
-          </button>
         </div>
-      )}
+      </dialog>
+
     </div>
   );
 }
