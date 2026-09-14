@@ -22,7 +22,11 @@ export default async function SearchPage({
   const { q } = await searchParams;
   const query = (q ?? '').trim();
 
-  const [t, tNav] = await Promise.all([getTranslations('search'), getTranslations('nav')]);
+  const [t, tNav, tAnalyse] = await Promise.all([
+    getTranslations('search'),
+    getTranslations('nav'),
+    getTranslations('analyse'),
+  ]);
   const results = query.length >= 2 ? await searchUniverse(query) : [];
 
   return (
@@ -101,6 +105,13 @@ export default async function SearchPage({
                     onWatchlist: t('onWatchlist'),
                     unknownSymbol: t('unknownSymbol'),
                     failed: t('failed'),
+                  }}
+                  analyseLabels={{
+                    analyse: tAnalyse('analyse'),
+                    analysing: tAnalyse('analysing'),
+                    done: tAnalyse.raw('done') as string,
+                    failed: tAnalyse('failed'),
+                    noData: tAnalyse('noData'),
                   }}
                 />
               </li>

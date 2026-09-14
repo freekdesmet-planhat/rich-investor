@@ -365,5 +365,12 @@
     "notApplicable": "n.v.t.",
     "differing": "Ze verschillen op {count} van de voorwaarden — die rijen zijn gemarkeerd.",
     "identical": "Ze halen en missen precies dezelfde voorwaarden."
+  },
+  "analyse": {
+    "analyse": "Nu analyseren",
+    "analysing": "Analyseren…",
+    "done": "{symbol} geanalyseerd",
+    "failed": "Analyseren is niet gelukt. De nachtelijke scan probeert het opnieuw.",
+    "noData": "Geen bruikbare cijfers van de databronnen voor deze ticker."
   }
 }

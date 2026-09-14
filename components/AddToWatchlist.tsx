@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { AnalyseNow, type AnalyseLabels } from './AnalyseNow';
 import { useFormStatus } from 'react-dom';
 import { addToWatchlist, type WatchlistActionState } from '@/app/watchlist/actions';
 
@@ -37,21 +38,33 @@ export function AddToWatchlist({
   symbol,
   alreadyAdded,
   labels,
+  analyseLabels,
 }: {
   symbol: string;
   alreadyAdded: boolean;
   labels: AddLabels;
+  /** When given, an add starts the analysis instead of waiting for the night. */
+  analyseLabels?: AnalyseLabels;
 }) {
   const [state, action] = useActionState<WatchlistActionState, FormData>(addToWatchlist, {
     status: 'idle',
   });
 
-  const added = alreadyAdded || state.status === 'added' || state.status === 'restored';
+  const justAdded = state.status === 'added' || state.status === 'restored';
+  const added = alreadyAdded || justAdded;
 
   if (added) {
     return (
-      <span className="shrink-0 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-        ✓ {labels.onWatchlist}
+      <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+          ✓ {labels.onWatchlist}
+        </span>
+        {/* Only for an add that just happened here: a result already on the
+            watchlist has been analysed long since, and re-running it on every
+            search would spend provider calls to learn nothing. */}
+        {justAdded && analyseLabels && (
+          <AnalyseNow symbol={symbol} labels={analyseLabels} auto compact />
+        )}
       </span>
     );
   }

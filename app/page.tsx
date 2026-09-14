@@ -8,6 +8,7 @@ import { WatchlistControls } from '@/components/WatchlistControls';
 import { ChangedRecently } from '@/components/ChangedRecently';
 import { TrendCell, type TrendLabels } from '@/components/TrendCell';
 import { PegBasisBadge } from '@/components/PegBasisBadge';
+import { AnalyseNow, type AnalyseLabels } from '@/components/AnalyseNow';
 import { DataFreshness } from '@/components/DataFreshness';
 import {
   getMyReviewSummaries,
@@ -89,7 +90,7 @@ export default async function WatchlistPage({
       params.sector && (SECTOR_ORDER as string[]).includes(params.sector) ? params.sector : 'any',
   };
 
-  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch, tReview] = await Promise.all([
+  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch, tReview, tAnalyse] = await Promise.all([
     getTranslations('status'),
     getTranslations('sector'),
     getTranslations('nav'),
@@ -97,6 +98,7 @@ export default async function WatchlistPage({
     getTranslations('watchlist'),
     getTranslations('search'),
     getTranslations('review'),
+    getTranslations('analyse'),
   ]);
 
   // Membership decides what is listed. The signal only decides what a row says:
@@ -174,6 +176,14 @@ export default async function WatchlistPage({
       const label = CONDITION_LABEL[missing[0].key]?.[locale] ?? missing[0].key;
       return tWatchlist('missingOne', { condition: label });
     },
+  };
+
+  const analyseLabels: AnalyseLabels = {
+    analyse: tAnalyse('analyse'),
+    analysing: tAnalyse('analysing'),
+    done: tAnalyse.raw('done') as string,
+    failed: tAnalyse('failed'),
+    noData: tAnalyse('noData'),
   };
 
   const pegLabels = {
@@ -341,6 +351,7 @@ export default async function WatchlistPage({
                     trends={trends}
                     trendLabels={trendLabels}
                     pegLabels={pegLabels}
+                    analyseLabels={analyseLabels}
                   />
                 </section>
               ))
@@ -352,6 +363,7 @@ export default async function WatchlistPage({
                   trends={trends}
                   trendLabels={trendLabels}
                   pegLabels={pegLabels}
+                  analyseLabels={analyseLabels}
                 />
               )}
         </div>
@@ -396,6 +408,7 @@ function RowList({
   trends,
   trendLabels,
   pegLabels,
+  analyseLabels,
 }: {
   rows: WatchlistEntry[];
   labels: RowLabels;
@@ -409,6 +422,7 @@ function RowList({
   trends: Map<string, Trend>;
   trendLabels: TrendLabels;
   pegLabels: { label: string; title: string };
+  analyseLabels: AnalyseLabels;
 }) {
   return (
     <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
@@ -470,9 +484,10 @@ function RowList({
                   <StatusBadge status={entry.signal.status} />
                 </>
               ) : (
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                  {labels.notAnalysed}
-                </span>
+                // Not analysed yet, and — until the nightly schedule exists —
+                // not going to be. The row offers to do it rather than only
+                // reporting that something else will.
+                <AnalyseNow symbol={entry.symbol} labels={analyseLabels} compact />
               )}
             </div>
           </Link>

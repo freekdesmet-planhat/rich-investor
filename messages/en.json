@@ -365,5 +365,12 @@
     "notApplicable": "n/a",
     "differing": "They disagree on {count} of the conditions — those rows are highlighted.",
     "identical": "They pass and fail exactly the same conditions."
+  },
+  "analyse": {
+    "analyse": "Analyse now",
+    "analysing": "Analysing…",
+    "done": "{symbol} analysed",
+    "failed": "Could not analyse it. The nightly scan will try again.",
+    "noData": "No usable figures from the data providers for this ticker."
   }
 }
