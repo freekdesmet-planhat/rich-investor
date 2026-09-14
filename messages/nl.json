@@ -8,7 +8,8 @@
     "watchlist": "Volglijst",
     "suggestions": "Suggesties",
     "market": "Marktcontext",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "account": "Account"
   },
   "language": {
     "label": "Taal",
@@ -104,7 +105,13 @@
     "linkExpired": "Die link is verlopen of al gebruikt.",
     "tryAgain": "Opnieuw proberen",
     "signOut": "Uitloggen",
-    "signedInAs": "Ingelogd als {email}"
+    "signedInAs": "Ingelogd als {email}",
+    "password": "Wachtwoord",
+    "passwordHint": "Laat leeg om in plaats daarvan een inloglink per e-mail te krijgen.",
+    "signIn": "Inloggen",
+    "signingIn": "Bezig met inloggen…",
+    "invalidCredentials": "Die combinatie van e-mailadres en wachtwoord klopt niet.",
+    "passwordRequired": "Vul een wachtwoord in, of vraag een inloglink aan."
   },
   "suggestions": {
     "title": "Suggesties",
@@ -157,5 +164,17 @@
     "error": "Genereren mislukt:",
     "signedOut": "Log in om een samenvatting te genereren.",
     "langMismatch": "Geschreven in het {lang}. Vernieuw om hem opnieuw te genereren in de taal die je nu leest."
+  },
+  "account": {
+    "title": "Account",
+    "passwordTitle": "Wachtwoord",
+    "passwordIntro": "Accounts die via een inloglink zijn aangemaakt hebben geen wachtwoord. Stel er hier een in om ook met een wachtwoord in te loggen.",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmPassword": "Wachtwoord bevestigen",
+    "save": "Wachtwoord opslaan",
+    "saving": "Opslaan…",
+    "saved": "Wachtwoord opgeslagen. Je kunt er nu mee inloggen.",
+    "tooShort": "Gebruik minstens 10 tekens.",
+    "mismatch": "De twee wachtwoorden komen niet overeen."
   }
 }

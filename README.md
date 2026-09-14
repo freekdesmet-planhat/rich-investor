@@ -248,8 +248,16 @@ Two users, one household. Each table gets the rule that fits it:
 
 ### Authentication
 
-Magic link (Supabase Auth, passwordless), with an email whitelist enforced
-**twice**:
+Two ways in — a password, or a magic link — both from the same form on
+`/login`, and both gated by the same email whitelist. An account created through
+a magic link has no password, so `/account` is where a member sets one.
+
+The form reveals nothing: an address that is not on the whitelist fails
+*identically* to a wrong password, and a magic-link request answers the same way
+whether or not the address is approved. Otherwise the form would be a way to
+work out who has access.
+
+The whitelist is enforced **twice**:
 
 - Before a link is sent, so a stranger cannot make the app email them at all
 - In `is_allowed_user()`, called by every RLS policy, so a valid session for a
@@ -485,9 +493,20 @@ gitignored, so a fresh clone has to start from `cp .env.example .env.local`.
 Both clients now name the missing variable instead of raising that generic
 message.
 
+**No sign-in link arrives.** First check the address is on the allowlist — an
+unapproved address is answered with the same "link sent" message but nothing is
+sent, which is deliberate. If it is approved, the usual cause is Supabase's
+built-in SMTP: it is rate-limited to a handful of emails an hour and is often
+dropped by corporate filters. Point Supabase at Resend under Authentication →
+Emails → SMTP Settings, or sign in with a password instead.
+
 **Signing in does nothing / the magic link 404s.** Email sign-in is not enabled,
 or the callback URL is not on Supabase's allowlist. Both live under
 Authentication → Providers → Email and Authentication → URL Configuration.
+
+**Nobody has a password yet.** Sign in with a magic link once, then set one at
+`/account`. To issue a link without email delivery at all, generate one with the
+service role: `supabase.auth.admin.generateLink({ type: 'magiclink', email })`.
 
 **Alerts are not arriving.** Without `RESEND_API_KEY` the mailer logs instead of
 sending and records `skipped` in `notifications_log` with the reason. With a key

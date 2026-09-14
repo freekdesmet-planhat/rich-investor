@@ -39,6 +39,14 @@ export async function SiteHeader() {
             >
               {tNav('suggestions')}
             </Link>
+            {user && (
+              <Link
+                href="/account"
+                className="rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                {tNav('account')}
+              </Link>
+            )}
           </nav>
           <LanguageSwitcher />
           {user?.email && (

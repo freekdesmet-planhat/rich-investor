@@ -8,7 +8,8 @@
     "watchlist": "Watchlist",
     "suggestions": "Suggestions",
     "market": "Market context",
-    "settings": "Settings"
+    "settings": "Settings",
+    "account": "Account"
   },
   "language": {
     "label": "Language",
@@ -104,7 +105,13 @@
     "linkExpired": "That link has expired or was already used.",
     "tryAgain": "Try again",
     "signOut": "Sign out",
-    "signedInAs": "Signed in as {email}"
+    "signedInAs": "Signed in as {email}",
+    "password": "Password",
+    "passwordHint": "Leave blank to get a sign-in link by email instead.",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "invalidCredentials": "That email and password combination is not right.",
+    "passwordRequired": "Enter a password, or ask for a sign-in link instead."
   },
   "suggestions": {
     "title": "Suggestions",
@@ -157,5 +164,17 @@
     "error": "Could not generate:",
     "signedOut": "Sign in to generate a summary.",
     "langMismatch": "Written in {lang}. Refresh to regenerate it in the language you are reading."
+  },
+  "account": {
+    "title": "Account",
+    "passwordTitle": "Password",
+    "passwordIntro": "Accounts created through a sign-in link have no password. Set one here to sign in with a password as well.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "save": "Save password",
+    "saving": "Saving…",
+    "saved": "Password saved. You can now sign in with it.",
+    "tooShort": "Use at least 10 characters.",
+    "mismatch": "The two passwords do not match."
   }
 }

@@ -20,12 +20,21 @@ export default async function LoginPage() {
       <SignInForm
         labels={{
           email: tAuth('email'),
-          send: tAuth('sendLink'),
-          sending: tAuth('sending'),
-          sent: tAuth('linkSent'),
-          invalid: tAuth('invalidEmail'),
-          error: tAuth('error'),
+          password: tAuth('password'),
+          passwordHint: tAuth('passwordHint'),
+          signIn: tAuth('signIn'),
+          signingIn: tAuth('signingIn'),
+          orLink: tAuth('sendLink'),
+          sendingLink: tAuth('sending'),
+          linkSent: tAuth('linkSent'),
           hint: tAuth('whitelistHint'),
+          errors: {
+            invalid_email: tAuth('invalidEmail'),
+            invalid_credentials: tAuth('invalidCredentials'),
+            password_required: tAuth('passwordRequired'),
+            send_failed: tAuth('error'),
+            generic: tAuth('error'),
+          },
         }}
       />
     </main>
