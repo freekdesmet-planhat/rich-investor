@@ -422,6 +422,12 @@ export default async function StockPage({
         {thesisEnabled() && (
           <section className="mt-8">
             <AiThesisCard
+              // Keyed on the language so switching it remounts the card.
+              // Changing language posts a server action, which re-renders the
+              // tree without remounting client components — so the card kept
+              // the summary it already had in state, and an English page went
+              // on showing the Dutch text the server had just replaced.
+              key={`${symbol}-${locale}`}
               symbol={symbol}
               lang={locale}
               thesis={summary?.thesis ?? null}
