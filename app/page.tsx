@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { MarketContextDashboard } from '@/components/MarketContextDashboard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { WatchlistControls } from '@/components/WatchlistControls';
 import { getWatchlist, type WatchlistEntry } from '@/lib/data/queries';
+import { CONDITION_LABEL } from '@/lib/signal/explain';
 import {
   filterEntries,
   isSortKey,
@@ -15,6 +16,7 @@ import {
   type ViewOptions,
 } from '@/lib/data/watchlistView';
 import type { FocusSector } from '@/lib/sectors/mapping';
+import type { Lang } from '@/lib/i18n/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,7 @@ export default async function WatchlistPage({
   searchParams: Promise<{ status?: string; sort?: string; q?: string }>;
 }) {
   const params = await searchParams;
+  const locale = (await getLocale()) as Lang;
   const view: ViewOptions = {
     status: isStatusFilter(params.status) ? params.status : 'all',
     sort: isSortKey(params.sort) ? params.sort : 'sector',
@@ -78,6 +81,22 @@ export default async function WatchlistPage({
     conditionsMet: (met: number, total: number) => tStatus('conditionsMet', { met, total }),
     pending: tWatchlist('pending'),
     notAnalysed: tWatchlist('notAnalysed'),
+    /**
+     * The one condition standing in the way, when there is exactly one.
+     *
+     * ADBE and GOOGL both sit at 8 of 9 and wear different badges, because
+     * "almost there" also requires the first three conditions to hold and
+     * ADBE's missing one is among them. The count alone cannot explain that;
+     * the name of the condition can, and it saves opening the page at all.
+     */
+    missingOne: (entry: WatchlistEntry) => {
+      const signal = entry.signal;
+      if (!signal || signal.status === 'buy_worthy') return null;
+      const missing = signal.checklist.filter((c) => c.applicable && !c.passed);
+      if (missing.length !== 1) return null;
+      const label = CONDITION_LABEL[missing[0].key]?.[locale] ?? missing[0].key;
+      return tWatchlist('missingOne', { condition: label });
+    },
   };
 
   const removeLabels = {
@@ -191,6 +210,7 @@ interface RowLabels {
   conditionsMet: (met: number, total: number) => string;
   pending: string;
   notAnalysed: string;
+  missingOne: (entry: WatchlistEntry) => string | null;
 }
 
 /**
@@ -241,6 +261,15 @@ function RowList({
                       entry.signal.conditions_applicable,
                     )
                   : labels.pending}
+                {/* The one thing in the way, when there is exactly one. Two
+                    stocks on the same count can wear different badges, and the
+                    count alone cannot say why. */}
+                {labels.missingOne(entry) && (
+                  <span className="text-slate-400 dark:text-slate-500">
+                    {' · '}
+                    {labels.missingOne(entry)}
+                  </span>
+                )}
               </p>
             </div>
 

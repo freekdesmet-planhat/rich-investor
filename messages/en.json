@@ -242,6 +242,7 @@
     "filterApply": "Filter",
     "showing": "Showing {shown} of {total}",
     "noMatches": "Nothing on your watchlist matches that.",
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "missingOne": "missing: {condition}"
   }
 }

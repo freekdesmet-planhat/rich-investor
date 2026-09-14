@@ -8,6 +8,8 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { safeReturnTo } from '@/lib/auth/returnTo';
+import { isDefinitelySignedOut } from '@/lib/auth/sessionVerdict';
 
 const PUBLIC_PATHS = ['/login', '/auth/callback', '/auth/error'];
 
@@ -53,9 +55,21 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   // Must be getUser(), not getSession(): getUser() revalidates the token with
   // Supabase, while getSession() trusts whatever is in the cookie.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+  const user = data.user;
+
+  // Revalidating means a round trip, and a round trip can fail for reasons that
+  // have nothing to do with who is signed in. Treating every failure as
+  // "signed out" is what made a stock page throw itself back to the watchlist
+  // roughly once in thirty loads: a blip during token rotation redirected to
+  // /login, by which point the cookie was good again, and /login sent the
+  // now-recognised user to the home page.
+  //
+  // Only an answer *from* the auth server counts as a verdict. A transport
+  // failure leaves the request alone: the database is the real boundary — every
+  // table is behind RLS and is_allowed_user() — so the worst case is a page
+  // with nothing in it, which beats being ejected from the page you were on.
+  const unverifiable = Boolean(error && !isDefinitelySignedOut(error));
 
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
@@ -66,17 +80,27 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // secret for the nightly job — and replies with a status a client can read.
   if (!user && pathname.startsWith('/api/')) return response;
 
+  if (!user && unverifiable) return response;
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('next', pathname);
+    url.search = '';
+    url.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    // Honour where they were headed. This used to discard the querystring and
+    // send everyone to the watchlist, which is the other half of the bounce:
+    // the path the middleware had just recorded was thrown away one redirect
+    // later.
+    const target = safeReturnTo(request.nextUrl.searchParams.get('next'));
     url.search = '';
+    url.pathname = target.split('?')[0];
+    const query = target.split('?')[1];
+    if (query) url.search = `?${query}`;
     return NextResponse.redirect(url);
   }
 

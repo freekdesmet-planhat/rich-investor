@@ -4,7 +4,12 @@ import { SignInForm } from './SignInForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   const [t, tAuth] = await Promise.all([getTranslations('app'), getTranslations('auth')]);
 
   return (
@@ -18,6 +23,7 @@ export default async function LoginPage() {
       </div>
 
       <SignInForm
+        next={next ?? ''}
         labels={{
           email: tAuth('email'),
           password: tAuth('password'),

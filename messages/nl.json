@@ -242,6 +242,7 @@
     "filterApply": "Filteren",
     "showing": "{shown} van {total} getoond",
     "noMatches": "Niets op je volglijst komt daarmee overeen.",
-    "clear": "Filters wissen"
+    "clear": "Filters wissen",
+    "missingOne": "ontbreekt: {condition}"
   }
 }

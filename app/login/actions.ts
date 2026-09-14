@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isEmailAllowed } from '@/lib/auth/allowlist';
+import { safeReturnTo } from '@/lib/auth/returnTo';
 
 export interface SignInState {
   status: 'idle' | 'sent' | 'error';
@@ -28,6 +29,9 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
   const intent = String(formData.get('intent') ?? 'magiclink');
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
+  // Where the middleware interrupted them. Validated, because it comes from a
+  // querystring and would otherwise be an open redirect.
+  const next = safeReturnTo(String(formData.get('next') ?? ''));
 
   if (!email.includes('@')) return { status: 'error', message: 'invalid_email' };
 
@@ -46,7 +50,7 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
     // password"; ours deliberately does not.
     if (error) return { status: 'error', message: 'invalid_credentials' };
 
-    redirect('/');
+    redirect(next);
   }
 
   // --- magic link ----------------------------------------------------------
@@ -60,7 +64,9 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: `${await siteOrigin()}/auth/callback` },
+    options: {
+      emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+    },
   });
 
   if (error) return { status: 'error', message: 'send_failed' };

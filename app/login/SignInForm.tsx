@@ -47,7 +47,7 @@ function Buttons({ labels }: { labels: SignInLabels }) {
   );
 }
 
-export function SignInForm({ labels }: { labels: SignInLabels }) {
+export function SignInForm({ next, labels }: { next?: string; labels: SignInLabels }) {
   const [state, action] = useActionState<SignInState, FormData>(signIn, { status: 'idle' });
 
   if (state.status === 'sent') {
@@ -60,6 +60,9 @@ export function SignInForm({ labels }: { labels: SignInLabels }) {
 
   return (
     <form action={action} className="space-y-3">
+      {/* Where the middleware interrupted them, so signing in returns them
+          there instead of dropping everyone on the watchlist. */}
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="block">
         <span className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
           {labels.email}
