@@ -5,8 +5,16 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { WatchlistControls } from '@/components/WatchlistControls';
+import { ChangedRecently } from '@/components/ChangedRecently';
+import { TrendCell, type TrendLabels } from '@/components/TrendCell';
 import { DataFreshness } from '@/components/DataFreshness';
-import { getMyReviewSummaries, getWatchlist, type WatchlistEntry } from '@/lib/data/queries';
+import {
+  getMyReviewSummaries,
+  getTrends,
+  getWatchlist,
+  type WatchlistEntry,
+} from '@/lib/data/queries';
+import { movers, within, type Trend } from '@/lib/data/trend';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import {
   filterEntries,
@@ -23,6 +31,12 @@ import type { FocusSector } from '@/lib/sectors/mapping';
 import type { Lang } from '@/lib/i18n/config';
 
 export const dynamic = 'force-dynamic';
+
+/** How far back the row sparkline reaches: a quarter, the book's own cadence. */
+const TREND_DAYS = 90;
+
+/** What "recently" means in the changed-recently block. */
+const RECENT_DAYS = 7;
 
 /** The four focus sectors, in the order the book introduces them (chapter 2). */
 const SECTOR_ORDER: FocusSector[] = [
@@ -78,6 +92,13 @@ export default async function WatchlistPage({
   // verdict is on the stock page, where it can be attributed.
   const reviews = await getMyReviewSummaries();
 
+  // One fetch over the long window; the week's movers are a narrower reading of
+  // the same rows rather than a second round trip.
+  const trends = await getTrends(all.map((e) => e.symbol), TREND_DAYS);
+  const recent = movers(
+    [...trends.values()].map((t) => within(t, RECENT_DAYS)).filter((t): t is Trend => t != null),
+  );
+
   // Counts come from the whole list, never the filtered one: a chip that
   // recounted itself after being clicked could only ever show its own total.
   const counts = statusCounts(all);
@@ -131,6 +152,13 @@ export default async function WatchlistPage({
     },
   };
 
+  const trendLabels = {
+    gained: tWatchlist.raw('trendGained') as string,
+    lost: tWatchlist.raw('trendLost') as string,
+    steady: tWatchlist('trendSteady'),
+    chart: tWatchlist.raw('trendChart') as string,
+  };
+
   const removeLabels = {
     remove: tWatchlist('remove'),
     removing: tWatchlist('removing'),
@@ -165,6 +193,25 @@ export default async function WatchlistPage({
                 asOf: asOf ? tData('asOf', { date: asOf }) : '',
               }}
           warningOnly
+        />
+
+        {/* What moved, before the list of everything. On a quiet week this
+            renders nothing rather than restating the whole watchlist. */}
+        <ChangedRecently
+          movers={recent}
+          days={RECENT_DAYS}
+          labels={{
+            title: tWatchlist('changedTitle'),
+            intro: tWatchlist.raw('changedIntro') as string,
+            gained: tWatchlist.raw('changedGained') as string,
+            lost: tWatchlist.raw('changedLost') as string,
+            moved: tWatchlist.raw('changedMoved') as string,
+            status: {
+              buy_worthy: tStatus('short.buy_worthy'),
+              almost: tStatus('short.almost'),
+              watching: tStatus('short.watching'),
+            },
+          }}
         />
 
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
@@ -245,11 +292,23 @@ export default async function WatchlistPage({
                       </span>
                     )}
                   </h2>
-                  <RowList rows={rows} labels={rowLabels} removeLabels={removeLabels} />
+                  <RowList
+                    rows={rows}
+                    labels={rowLabels}
+                    removeLabels={removeLabels}
+                    trends={trends}
+                    trendLabels={trendLabels}
+                  />
                 </section>
               ))
             : visible.length > 0 && (
-                <RowList rows={visible} labels={rowLabels} removeLabels={removeLabels} />
+                <RowList
+                  rows={visible}
+                  labels={rowLabels}
+                  removeLabels={removeLabels}
+                  trends={trends}
+                  trendLabels={trendLabels}
+                />
               )}
         </div>
 
@@ -290,6 +349,8 @@ function RowList({
   rows,
   labels,
   removeLabels,
+  trends,
+  trendLabels,
 }: {
   rows: WatchlistEntry[];
   labels: RowLabels;
@@ -300,6 +361,8 @@ function RowList({
     undo: string;
     restored: string;
   };
+  trends: Map<string, Trend>;
+  trendLabels: TrendLabels;
 }) {
   return (
     <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
@@ -348,10 +411,8 @@ function RowList({
             <div className="flex shrink-0 items-center gap-2">
               {entry.signal ? (
                 <>
-                  <ConditionMeter
-                    met={entry.signal.conditions_met}
-                    total={entry.signal.conditions_applicable}
-                  />
+                  {/* Was a nine-segment meter restating the count beside it. */}
+                  <TrendCell trend={trends.get(entry.symbol) ?? null} labels={trendLabels} />
                   <StatusBadge status={entry.signal.status} />
                 </>
               ) : (
@@ -385,18 +446,3 @@ function ReviewMark({ text, done }: { text: string; done: boolean }) {
   );
 }
 
-/** Compact bar showing how many applicable conditions passed. */
-function ConditionMeter({ met, total }: { met: number; total: number }) {
-  return (
-    <span className="hidden items-center gap-0.5 sm:flex" aria-hidden="true">
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={`block h-4 w-1 rounded-sm ${
-            i < met ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
-          }`}
-        />
-      ))}
-    </span>
-  );
-}

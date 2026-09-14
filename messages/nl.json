@@ -76,6 +76,15 @@
       "forward": "alleen gehaald op verwachte groei",
       "both": "gehaald op zowel gerealiseerde als verwachte groei",
       "none": "niet gehaald"
+    },
+    "trend": {
+      "title": "Hoe dit bewoog",
+      "summary": "Van {from} naar {to} behaalde voorwaarden sinds {date}.",
+      "steady": "Onveranderd op {count} behaalde voorwaarden sinds {date}.",
+      "changesSince": "Sinds {date}:",
+      "started": "voldoet nu aan:",
+      "stopped": "voldoet niet meer aan:",
+      "tooSoon": "Nog maar één evaluatie. De nachtelijke scan bouwt dit vanaf nu op."
     }
   },
   "data": {
@@ -272,6 +281,15 @@
     "reviewBy": "Jouw beoordeling",
     "reviewAny": "Alles",
     "reviewNeededFilter": "Nog beoordelen",
-    "reviewedFilter": "Beoordeeld"
+    "reviewedFilter": "Beoordeeld",
+    "changedTitle": "Recent veranderd",
+    "changedIntro": "Wat er de afgelopen {days} dagen op je volglijst bewoog.",
+    "changedGained": "{count} voorwaarden meer",
+    "changedLost": "{count} voorwaarden minder",
+    "changedMoved": "{from} → {to}",
+    "trendGained": "{count} sinds {date}",
+    "trendLost": "{count} sinds {date}",
+    "trendSteady": "ongewijzigd",
+    "trendChart": "Behaalde voorwaarden gingen van {from} naar {to} sinds {date}."
   }
 }

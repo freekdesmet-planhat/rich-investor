@@ -6,9 +6,14 @@
  */
 export function Sparkline({
   points,
-  className = '',
+  className = 'h-6 w-24',
 }: {
   points: Array<{ period: string; value: number }>;
+  /**
+   * Size included, because Tailwind decides which of two conflicting utilities
+   * wins by its own ordering, not by where they sit in the attribute — a caller
+   * appending `h-5` to a hardcoded `h-6` gets whichever Tailwind emitted last.
+   */
   className?: string;
 }) {
   if (points.length < 2) return null;
@@ -33,7 +38,7 @@ export function Sparkline({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className={`h-6 w-24 overflow-visible ${className}`}
+      className={`overflow-visible ${className}`}
       aria-hidden="true"
     >
       <path

@@ -76,6 +76,15 @@
       "forward": "passed on expected growth only",
       "both": "passed on both realised and expected growth",
       "none": "not passed"
+    },
+    "trend": {
+      "title": "How this has moved",
+      "summary": "From {from} to {to} conditions met since {date}.",
+      "steady": "Steady at {count} conditions met since {date}.",
+      "changesSince": "Since {date}:",
+      "started": "now passes:",
+      "stopped": "no longer passes:",
+      "tooSoon": "Only one evaluation so far. The nightly scan builds this up from here."
     }
   },
   "data": {
@@ -272,6 +281,15 @@
     "reviewBy": "Your review",
     "reviewAny": "All",
     "reviewNeededFilter": "Needs review",
-    "reviewedFilter": "Reviewed"
+    "reviewedFilter": "Reviewed",
+    "changedTitle": "Changed recently",
+    "changedIntro": "What moved on your watchlist in the last {days} days.",
+    "changedGained": "{count} conditions more",
+    "changedLost": "{count} conditions fewer",
+    "changedMoved": "{from} → {to}",
+    "trendGained": "{count} since {date}",
+    "trendLost": "{count} since {date}",
+    "trendSteady": "unchanged",
+    "trendChart": "Conditions met went from {from} to {to} since {date}."
   }
 }

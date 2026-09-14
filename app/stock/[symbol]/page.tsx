@@ -9,10 +9,12 @@ import { AiThesisCard } from '@/components/AiThesisCard';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
+import { ConditionTrend } from '@/components/ConditionTrend';
 import { createClient } from '@/lib/supabase/server';
 import {
   getRatios,
   getReviews,
+  getSignalHistory,
   getSignal,
   getSnapshot,
   getTickerSummary,
@@ -22,11 +24,16 @@ import {
 } from '@/lib/data/queries';
 import type { Lang } from '@/lib/i18n/config';
 import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
+import { buildTrend, conditionChanges } from '@/lib/data/trend';
+import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
 
 export const dynamic = 'force-dynamic';
+
+/** A quarter of stored evaluations: long enough to show a recovery forming. */
+const TREND_DAYS = 90;
 
 /** Card order: valuation, then returns, then growth, then the core signal. */
 const CARD_ORDER = [
@@ -101,12 +108,13 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis] =
+  const [ratios, snapshot, docs, reviewData, history, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
     getDocTranslations(locale),
     getReviews(symbol),
+    getSignalHistory(symbol, TREND_DAYS),
     // Cached per language: a missing Dutch summary is a missing row, not a
     // reason to show the English one.
     getTickerSummary(symbol, locale),
@@ -137,6 +145,22 @@ export default async function StockPage({
     authorLabel: review.user_id === user?.id ? (user?.email ?? '') : review.user_id.slice(0, 8),
     isMine: review.user_id === user?.id,
   });
+
+  // The stored evaluations, read back as movement. The checklists come with
+  // them so the page can name the conditions that flipped, not only count them.
+  const trend = buildTrend(
+    symbol,
+    history.map((row) => ({
+      as_of: row.as_of,
+      conditions_met: row.conditions_met,
+      conditions_applicable: row.conditions_applicable,
+      status: row.status,
+    })),
+  );
+  const reference = trend?.reference
+    ? history.find((row) => row.as_of === trend.reference!.as_of)
+    : undefined;
+  const changes = reference ? conditionChanges(reference.checklist, signal.checklist) : [];
 
   const mine = reviewData.reviews.find((r) => r.user_id === user?.id);
   const others = reviewData.reviews.filter((r) => r.user_id !== user?.id).map(toRecord);
@@ -491,6 +515,22 @@ export default async function StockPage({
             />
           </section>
         )}
+
+        {/* --- what has moved since last time (the stored evaluations) -------- */}
+        <ConditionTrend
+          trend={trend}
+          changes={changes}
+          labels={{
+            title: tSignal('trend.title'),
+            summary: tSignal.raw('trend.summary') as string,
+            steady: tSignal.raw('trend.steady') as string,
+            changesSince: tSignal.raw('trend.changesSince') as string,
+            started: tSignal('trend.started'),
+            stopped: tSignal('trend.stopped'),
+            tooSoon: tSignal('trend.tooSoon'),
+            condition: (key) => CONDITION_LABEL[key]?.[locale] ?? key,
+          }}
+        />
 
         {/* --- the judgement the app cannot make (section 8) ------------------ */}
         <QualitativeReview

@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
 import type { FocusSector } from '@/lib/sectors/mapping';
+import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
 import { dedupeByCompany, PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
 import type { Lang } from '@/lib/i18n/config';
@@ -374,6 +375,62 @@ export async function getWatchlist(): Promise<WatchlistEntry[]> {
         a.symbol.localeCompare(b.symbol)
       );
     });
+}
+
+/**
+ * The stored evaluations for a set of tickers, lean enough to fetch for all of
+ * them at once.
+ *
+ * `signal_history` has been written nightly since the beginning and never read
+ * back. Only the four columns a trend needs are selected: the full rows carry a
+ * checklist and two ratio snapshots each, which over a 90-day window across a
+ * watchlist is megabytes to render one sparkline.
+ */
+export async function getTrends(symbols: string[], days = 90): Promise<Map<string, Trend>> {
+  if (symbols.length === 0) return new Map();
+  const supabase = await client();
+
+  const { data, error } = await supabase
+    .from('signal_history')
+    .select('symbol,as_of,conditions_met,conditions_applicable,status')
+    .in('symbol', symbols)
+    .gte('as_of', windowStart(days))
+    .order('as_of', { ascending: true })
+    .returns<Array<TrendPoint & { symbol: string }>>();
+  if (error) throw new Error(error.message);
+
+  const bySymbol = new Map<string, TrendPoint[]>();
+  for (const row of data ?? []) {
+    const list = bySymbol.get(row.symbol) ?? [];
+    list.push(row);
+    bySymbol.set(row.symbol, list);
+  }
+
+  const trends = new Map<string, Trend>();
+  for (const [symbol, points] of bySymbol) {
+    const trend = buildTrend(symbol, points);
+    if (trend) trends.set(symbol, trend);
+  }
+  return trends;
+}
+
+/**
+ * One ticker's history, with the checklists, so the page can say which
+ * conditions flipped rather than only how many.
+ */
+export async function getSignalHistory(symbol: string, days = 90): Promise<SignalRow[]> {
+  const supabase = await client();
+
+  const { data, error } = await supabase
+    .from('signal_history')
+    .select('symbol,as_of,status,conditions_met,conditions_applicable,checklist')
+    .eq('symbol', symbol)
+    .gte('as_of', windowStart(days))
+    .order('as_of', { ascending: true })
+    .returns<SignalRow[]>();
+  if (error) throw new Error(error.message);
+
+  return data ?? [];
 }
 
 /** Just the symbols, for marking search results as already added. */
