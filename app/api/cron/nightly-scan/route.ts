@@ -18,6 +18,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { runDailyPipeline, SEED_SYMBOLS } from '@/lib/pipeline/runDaily';
 import { runScan } from '@/lib/pipeline/scan';
+import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 
 /** Long enough for a full run; Netlify caps background functions well above this. */
 export const maxDuration = 300;
@@ -26,28 +27,8 @@ export const dynamic = 'force-dynamic';
 /** Candidates evaluated per nightly run — see the rate-limit note below. */
 const SCAN_BATCH = Number(process.env.SCAN_BATCH_SIZE ?? 60);
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return mismatch === 0;
-}
-
-function authorise(request: NextRequest): boolean {
-  const expected = process.env.CRON_SECRET;
-  // No secret configured means the endpoint is closed, not open.
-  if (!expected) return false;
-
-  const header =
-    request.headers.get('x-cron-secret') ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ??
-    '';
-
-  return timingSafeEqual(header, expected);
-}
-
 export async function POST(request: NextRequest) {
-  if (!authorise(request)) {
+  if (!isAuthorisedCron(request.headers)) {
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
@@ -157,7 +138,7 @@ async function saveCursor(client: SupabaseClient, cursor: number): Promise<void>
 export async function GET(request: NextRequest) {
   return NextResponse.json({
     ready: Boolean(process.env.CRON_SECRET && process.env.SUPABASE_SERVICE_ROLE_KEY),
-    authorised: authorise(request),
+    authorised: isAuthorisedCron(request.headers),
     scanBatchSize: SCAN_BATCH,
   });
 }

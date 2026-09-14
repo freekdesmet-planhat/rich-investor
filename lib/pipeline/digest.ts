@@ -17,6 +17,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createMailer, resolveRecipients, type Mailer } from '@/lib/email/mailer';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
+import { renderDigestHtml } from '@/lib/templates/digest-email';
 import type { SignalStatus } from '@/lib/signal/buyWorthy';
 import type { Lang } from '@/lib/i18n/config';
 
@@ -30,6 +31,19 @@ export interface DigestEntry {
   conditionsApplicable: number;
   /** Keys of the applicable conditions that did not pass. */
   missing: string[];
+  /**
+   * Valuation and quality figures, for the highlights in the HTML mail.
+   *
+   * Optional because the digest must still work from the nightly pipeline,
+   * which has them, and from anywhere that only knows the status.
+   */
+  peg?: number | null;
+  forwardPeg?: number | null;
+  roe?: number | null;
+  roa?: number | null;
+  drawdown?: number | null;
+  /** The stored AI summary in the reader's language, if one exists. */
+  thesis?: string | null;
 }
 
 export interface Digest {
@@ -195,7 +209,20 @@ export async function sendDailyDigest(
   client: SupabaseClient,
   entries: DigestEntry[],
   asOf: string,
-  options: { mailer?: Mailer; onProgress?: (message: string) => void } = {},
+  options: {
+    mailer?: Mailer;
+    onProgress?: (message: string) => void;
+    /** Absolute origin for the links. Without one, the mail goes text-only. */
+    baseUrl?: string;
+    /**
+     * Adjusts the entries for one reader's language.
+     *
+     * The AI summary exists per language, so which one belongs in the mail is
+     * not known until the recipient is. Everything else is language-neutral and
+     * passed through untouched.
+     */
+    perRecipient?: (lang: Lang) => DigestEntry[];
+  } = {},
 ): Promise<DigestOutcome[]> {
   const log = options.onProgress ?? (() => {});
   if (entries.length === 0) return [];
@@ -213,7 +240,8 @@ export async function sendDailyDigest(
 
   for (const recipient of recipients) {
     // Built per recipient: each member reads in their own language.
-    const digest = buildDigest(entries, asOf, recipient.lang);
+    const forReader = options.perRecipient?.(recipient.lang) ?? entries;
+    const digest = buildDigest(forReader, asOf, recipient.lang);
     if (!digest) {
       log(`nothing to report for ${recipient.email} — no digest sent`);
       continue;
@@ -246,10 +274,24 @@ export async function sendDailyDigest(
       continue;
     }
 
+    // The plain text is the record; the HTML is the same facts, rendered. A
+    // mail client that refuses the HTML still gets a complete digest.
+    const baseUrl = options.baseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? '';
+    const html = baseUrl
+      ? renderDigestHtml({
+          entries: forReader,
+          asOf,
+          lang: recipient.lang,
+          baseUrl,
+          subject: digest.subject,
+        })
+      : undefined;
+
     const result = await mailer.send({
       to: recipient.email,
       subject: digest.subject,
       text: digest.body,
+      html,
     });
 
     const patch: Record<string, unknown> | null = !result.ok

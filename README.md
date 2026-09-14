@@ -344,7 +344,7 @@ npx tsx --env-file=.env.local scripts/run-scan.ts --limit 60 # a batch of the un
 | `SUPABASE_SERVICE_ROLE_KEY` | **Bypasses RLS.** Nightly job and scripts only — never expose |
 | `ALLOWED_EMAILS` | Comma-separated sign-in whitelist. Run `sync-allowlist.ts` after changing |
 | `NEXT_PUBLIC_SITE_URL` | Absolute site URL, for the magic-link redirect |
-| `CRON_SECRET` | Shared secret for `/api/cron/nightly-scan`. Generate with `openssl rand -hex 32` |
+| `CRON_SECRET` | Shared secret for `/api/cron/nightly-scan` and `/api/cron/digest`. Generate with `openssl rand -hex 32` |
 
 ### Email alerts
 
@@ -409,6 +409,26 @@ Check it:
 select jobname, schedule, active from cron.job where jobname = 'nightly-scan';
 select * from cron.job_run_details order by start_time desc limit 5;
 ```
+
+### The digest, on its own schedule
+
+The daily digest runs at the end of the nightly pipeline, which is where it
+belongs — it reports on what that run computed. `/api/cron/digest` exists for
+the cases that are not that: sending it at a different hour from the scan,
+re-running after a failed send, or triggering one by hand. It reads what the
+last run stored rather than recomputing anything, so it is cheap and safe to
+call repeatedly — the per-recipient, per-day row in `notifications_log` is what
+stops a second call sending a second email.
+
+```bash
+curl -X POST https://<site>/api/cron/digest \
+  -H "Authorization: Bearer $CRON_SECRET"
+# {"ok":true,"asOf":"…","evaluated":27,"recipients":2,"sent":2,"simulated":0,"skipped":0,"failed":0}
+```
+
+`GET /api/cron/digest` reports readiness without sending anything. Note that
+`sent` counts mail that actually left; without `RESEND_API_KEY` the run is
+reported under `simulated`, never as sent.
 
 The endpoint is protected by `CRON_SECRET`, compared in constant time. A request
 without it is refused before any work starts, and if the secret is unset the

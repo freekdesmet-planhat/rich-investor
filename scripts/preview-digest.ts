@@ -8,12 +8,18 @@
  *
  *   npx tsx --env-file=.env.local scripts/preview-digest.ts
  *   npx tsx --env-file=.env.local scripts/preview-digest.ts --sample
+ *   npx tsx --env-file=.env.local scripts/preview-digest.ts --html out/digest
+ *
+ * `--html <prefix>` also writes the HTML body per language to
+ * `<prefix>.<lang>.html`, for opening in a browser. Still sends nothing.
  *
  * `--sample` additionally shows the mail for a made-up day on which something
  * moved, which is the only way to read the copy on a day when nothing did.
  */
 import { createClient } from '@supabase/supabase-js';
+import { writeFile } from 'node:fs/promises';
 import { buildDigest, type DigestEntry } from '@/lib/pipeline/digest';
+import { renderDigestHtml } from '@/lib/templates/digest-email';
 import type { SignalStatus } from '@/lib/signal/buyWorthy';
 import { LOCALES } from '@/lib/i18n/config';
 
@@ -25,6 +31,7 @@ interface SignalRow {
   conditions_met: number;
   conditions_applicable: number;
   checklist: Array<{ key: string; applicable: boolean; passed: boolean }>;
+  ratio_snapshot: Record<string, number | null> | null;
 }
 
 async function main() {
@@ -44,7 +51,7 @@ async function main() {
 
   const { data: signals } = await client
     .from('signal_history')
-    .select('symbol,as_of,status,previous_status,conditions_met,conditions_applicable,checklist')
+    .select('symbol,as_of,status,previous_status,conditions_met,conditions_applicable,checklist,ratio_snapshot')
     .in('symbol', symbols)
     .order('as_of', { ascending: false })
     .returns<SignalRow[]>();
@@ -52,17 +59,31 @@ async function main() {
   const newest = new Map<string, SignalRow>();
   for (const row of signals ?? []) if (!newest.has(row.symbol)) newest.set(row.symbol, row);
 
-  const entries: DigestEntry[] = [...newest.values()].map((row) => ({
-    symbol: row.symbol,
-    name: names.get(row.symbol) ?? null,
-    status: row.status,
-    previousStatus: row.previous_status,
-    conditionsMet: row.conditions_met,
-    conditionsApplicable: row.conditions_applicable,
-    missing: (row.checklist ?? [])
-      .filter((c) => c.applicable && !c.passed)
-      .map((c) => c.key),
-  }));
+  // The stored summaries, so the preview shows the same body the endpoint sends.
+  const { data: summaries } = await client
+    .from('ticker_summaries')
+    .select('symbol,lang,thesis')
+    .returns<Array<{ symbol: string; lang: string; thesis: string }>>();
+  const thesisFor = new Map((summaries ?? []).map((s) => [`${s.symbol}:${s.lang}`, s.thesis]));
+
+  const entries: DigestEntry[] = [...newest.values()].map((row) => {
+    const snapshot = row.ratio_snapshot ?? {};
+    return {
+      symbol: row.symbol,
+      name: names.get(row.symbol) ?? null,
+      status: row.status,
+      previousStatus: row.previous_status,
+      conditionsMet: row.conditions_met,
+      conditionsApplicable: row.conditions_applicable,
+      missing: (row.checklist ?? [])
+        .filter((c) => c.applicable && !c.passed)
+        .map((c) => c.key),
+      peg: snapshot.peg ?? null,
+      roe: snapshot.roe ?? null,
+      roa: snapshot.roa ?? null,
+      drawdown: snapshot.drawdown_5y ?? null,
+    };
+  });
 
   const asOf = [...newest.values()][0]?.as_of ?? new Date().toISOString().slice(0, 10);
   console.log(`${entries.length} watchlist ticker(s) evaluated, as of ${asOf}\n`);
@@ -80,6 +101,24 @@ async function main() {
     console.log(`Counts:  ${JSON.stringify(digest.counts)}\n`);
     console.log(digest.body);
     console.log();
+  }
+
+  const htmlFlag = process.argv.indexOf('--html');
+  if (htmlFlag !== -1) {
+    const prefix = process.argv[htmlFlag + 1] ?? 'digest';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://richinvestor.netlify.app';
+    for (const lang of LOCALES) {
+      const digest = buildDigest(entries, asOf, lang);
+      if (!digest) continue;
+      const forLang = entries.map((e) => ({
+        ...e,
+        thesis: thesisFor.get(`${e.symbol}:${lang}`) ?? null,
+      }));
+      const html = renderDigestHtml({ entries: forLang, asOf, lang, baseUrl, subject: digest.subject });
+      const file = `${prefix}.${lang}.html`;
+      await writeFile(file, html, 'utf8');
+      console.log(`wrote ${file} (${html.length} bytes)`);
+    }
   }
 
   if (!process.argv.includes('--sample')) return;

@@ -19,8 +19,14 @@ import { Resend } from 'resend';
 export interface Message {
   to: string;
   subject: string;
-  /** Plain text; the body is prose, so there is nothing HTML adds here. */
+  /**
+   * Plain text. Always sent, even alongside `html`: it is what a text-only
+   * client, a screen reader and a spam filter read, and a mail with no text
+   * part scores worse for deliverability than one with both.
+   */
   text: string;
+  /** Optional HTML part. The digest sends one; per-ticker alerts are prose. */
+  html?: string;
 }
 
 export interface SendResult {
@@ -67,6 +73,7 @@ export function createMailer(): Mailer {
           to: message.to,
           subject: message.subject,
           text: message.text,
+          ...(message.html ? { html: message.html } : {}),
         });
         if (error) return { to: message.to, ok: false, error: error.message, simulated: false };
         return { to: message.to, ok: true, providerId: data?.id, simulated: false };

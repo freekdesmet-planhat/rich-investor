@@ -86,7 +86,7 @@
 #     SUPABASE_SERVICE_ROLE_KEY       Bypasses RLS — server only, never public
 #     ALLOWED_EMAILS                  Comma-separated sign-in whitelist
 #     NEXT_PUBLIC_SITE_URL            Absolute site URL, for magic-link redirects
-#     CRON_SECRET                     Shared secret for /api/cron/nightly-scan
+#     CRON_SECRET                     Shared secret for both /api/cron/* endpoints
 #
 #   Email alerts
 #     RESEND_API_KEY                  Resend API key
