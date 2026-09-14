@@ -91,7 +91,9 @@ export function AiThesisCard({
         signal: controller.signal,
       });
 
-      if (!response.ok && !response.body) {
+      // A refusal (401, 429, 503) answers with a single JSON object rather than
+      // the stream, so it is read as JSON before any stream parsing.
+      if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { code?: string } | null;
         failed = payload?.code ?? 'unknown';
       } else if (!response.body) {

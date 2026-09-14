@@ -176,7 +176,8 @@
       "no_signal": "Deze ticker is nog niet beoordeeld.",
       "save_failed": "De samenvatting is gegenereerd maar kon niet worden opgeslagen.",
       "unknown": "Er ging iets mis. Probeer het zo meteen opnieuw.",
-      "disabled": "AI-samenvattingen zijn niet geconfigureerd."
+      "disabled": "AI-samenvattingen zijn niet geconfigureerd.",
+      "rate_limited": "Te veel samenvattingen achter elkaar. Wacht even en probeer het opnieuw."
     }
   },
   "account": {

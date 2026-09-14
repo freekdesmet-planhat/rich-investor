@@ -60,6 +60,12 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
+  // API routes answer for themselves. Redirecting a fetch() to the sign-in HTML
+  // gives the caller a 307 and a login page where it expected JSON; each route
+  // under /api checks its own caller — a session for /api/thesis, a shared
+  // secret for the nightly job — and replies with a status a client can read.
+  if (!user && pathname.startsWith('/api/')) return response;
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';

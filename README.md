@@ -204,7 +204,7 @@ A violation is logged loudly and recorded, never left to be spotted by eye.
 | Styling | Tailwind CSS v4 | |
 | i18n | next-intl, no routing | One household, so the locale is a preference, not a URL segment |
 | Email | Resend | |
-| AI summaries | `@anthropic-ai/sdk` | Optional; the app works fully without it |
+| AI summaries | `@google/genai` (pinned) | Optional; without a key the AI block is hidden |
 | Hosting | Netlify | |
 | Tests | Vitest | 141 tests |
 
@@ -358,8 +358,8 @@ npx tsx --env-file=.env.local scripts/run-scan.ts --limit 60 # a batch of the un
 
 | Variable | What it does |
 |---|---|
-| `ANTHROPIC_API_KEY` | Enables real AI thesis summaries. Without it a clearly-flagged placeholder is returned |
-| `ANTHROPIC_MODEL` | Defaults to `claude-sonnet-5` |
+| `GEMINI_API_KEY` | Enables AI thesis summaries. Without it the AI block is hidden and nothing is stored |
+| `GEMINI_MODEL` | Defaults to `gemini-3.6-flash` |
 | `FMP_API_KEY` | Analyst estimates. Free tier covers ~15 of the 27 seed tickers; yahoo-finance2 catches the rest |
 | `SEC_USER_AGENT` | Contact string EDGAR's access policy requires, e.g. `"app-name/0.1 (you@example.com)"` |
 | `SCAN_BATCH_SIZE` | Candidates evaluated per nightly run (default 60) |

@@ -25,11 +25,19 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { isLang } from '@/lib/i18n/config';
+import { rateLimit } from '@/lib/rateLimit';
 import { streamThesis, thesisEnabled, ThesisError, type ThesisContext } from '@/lib/ai/thesis';
 
 export const dynamic = 'force-dynamic';
 /** A summary takes seconds, not minutes, but the model sets the pace. */
 export const maxDuration = 60;
+
+/**
+ * Per signed-in user. Generous for a person reading one stock page, and far
+ * below what a retry loop would do to the bill.
+ */
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60_000;
 
 interface SignalRow {
   as_of: string;
@@ -51,8 +59,30 @@ interface RatioRow {
 const line = (value: unknown) => `${JSON.stringify(value)}\n`;
 
 export async function POST(request: NextRequest) {
-  // Without a key there is no feature: the page hides the block, and a stray
-  // request is refused rather than answered with a placeholder.
+  // Order matters. The session comes first, so an anonymous caller learns
+  // nothing about this deployment — not even whether the feature is
+  // configured — and the rate limit comes before any work, so a signed-in loop
+  // is stopped before it can reach the provider or the database.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  // The security boundary. Moving off a server action lost the implicit
+  // session, and this endpoint spends money on a public URL.
+  if (!user) {
+    return NextResponse.json({ type: 'error', code: 'not_signed_in' }, { status: 401 });
+  }
+
+  const limit = rateLimit(`thesis:${user.id}`, RATE_LIMIT, RATE_WINDOW_MS);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { type: 'error', code: 'rate_limited' },
+      { status: 429, headers: { 'retry-after': String(limit.retryAfter) } },
+    );
+  }
+
+  // Without a provider key there is no feature: the page hides the block, and a
+  // stray request is refused rather than answered with a placeholder.
   if (!thesisEnabled()) {
     return NextResponse.json({ type: 'error', code: 'disabled' }, { status: 503 });
   }
@@ -65,14 +95,6 @@ export async function POST(request: NextRequest) {
 
   if (!symbol || !lang) {
     return NextResponse.json({ type: 'error', code: 'missing_symbol' }, { status: 400 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ type: 'error', code: 'not_signed_in' }, { status: 401 });
   }
 
   const { data: signal } = await supabase
@@ -130,17 +152,33 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (value: unknown) => controller.enqueue(encoder.encode(line(value)));
+      // Delivery must never decide whether the row is written. If the reader
+      // has gone away, enqueue throws; that is not a generation failure, so it
+      // is swallowed and the generation is judged on its own completion. The
+      // client going away is handled by `request.signal` instead, which aborts
+      // the upstream call so nothing is generated for nobody.
+      let delivering = true;
+      const send = (value: unknown) => {
+        if (!delivering) return;
+        try {
+          controller.enqueue(encoder.encode(line(value)));
+        } catch {
+          delivering = false;
+        }
+      };
 
       try {
         // Driven by hand rather than `for await`, which discards a generator's
         // return value — and the return value is what gets stored.
-        const generation = streamThesis(context, lang);
+        const generation = streamThesis(context, lang, request.signal);
         let step = await generation.next();
         while (!step.done) {
           send({ type: 'delta', text: step.value });
           step = await generation.next();
         }
+        // Reaching here is the server's own completion of the provider call.
+        // An aborted stream throws above and never gets this far, so a partial
+        // reply cannot be stored.
         const result = step.value;
 
         const generatedAt = new Date().toISOString();
@@ -163,17 +201,34 @@ export async function POST(request: NextRequest) {
           console.error(`thesis save failed for ${symbol}/${lang}: ${error.message}`);
           send({ type: 'error', code: 'save_failed' });
         } else {
-          revalidatePath(`/stock/${symbol}`);
+          // Best effort: the row is already written, and the client already has
+          // the text. A failure to drop the cached page is not a failed
+          // generation, and reporting it as one would be a lie about stored
+          // state.
+          try {
+            revalidatePath(`/stock/${symbol}`);
+          } catch (cacheError) {
+            console.error(`thesis revalidate failed for ${symbol}:`, cacheError);
+          }
           send({ type: 'done', generatedAt });
         }
       } catch (error) {
-        console.error(`thesis generation failed for ${symbol}/${lang}:`, error);
-        send({
-          type: 'error',
-          code: error instanceof ThesisError ? error.code : 'unknown',
-        });
+        // An abort is the reader leaving, not a fault worth logging as one —
+        // and nothing has been written, which is the point.
+        const aborted = request.signal.aborted || (error as Error)?.name === 'AbortError';
+        if (!aborted) {
+          console.error(`thesis generation failed for ${symbol}/${lang}:`, error);
+          send({
+            type: 'error',
+            code: error instanceof ThesisError ? error.code : 'unknown',
+          });
+        }
       } finally {
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Already closed by the reader going away.
+        }
       }
     },
   });

@@ -94,8 +94,8 @@
 #     NOTIFY_EMAILS                   Fallback recipients before settings exist
 #
 #   Optional
-#     ANTHROPIC_API_KEY               Enables real AI thesis summaries
-#     ANTHROPIC_MODEL                 Override the default model
+#     GEMINI_API_KEY                  Enables AI thesis summaries; without it the block is hidden
+#     GEMINI_MODEL                    Override the default model
 #     FMP_API_KEY                     Analyst estimates for the tickers FMP covers
 #     SEC_USER_AGENT                  Contact string the SEC requires for EDGAR
 #     SCAN_BATCH_SIZE                 Candidates evaluated per nightly run

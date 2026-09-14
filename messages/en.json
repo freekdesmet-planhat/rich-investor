@@ -176,7 +176,8 @@
       "no_signal": "This ticker has not been evaluated yet.",
       "save_failed": "The summary was generated but could not be saved.",
       "unknown": "Something went wrong. Try again in a moment.",
-      "disabled": "AI summaries are not configured."
+      "disabled": "AI summaries are not configured.",
+      "rate_limited": "Too many summaries just now. Wait a moment and try again."
     }
   },
   "account": {

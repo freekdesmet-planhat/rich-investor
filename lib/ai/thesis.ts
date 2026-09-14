@@ -17,12 +17,16 @@
  * disambiguate, so the envelope that used to truncate is simply gone, and a
  * reply that runs long is short prose instead of an unparseable fragment.
  *
- * Without ANTHROPIC_API_KEY there is no placeholder and no stored row: the
+ * Without GEMINI_API_KEY there is no placeholder and no stored row: the
  * caller asks `thesisEnabled()` first and hides the block entirely. A
  * placeholder that reads like an analysis is worse than no analysis.
  */
-import Anthropic from '@anthropic-ai/sdk';
 import type { Lang } from '@/lib/i18n/config';
+import {
+  thesisProvider,
+  ThesisProviderError,
+  type ThesisProviderResult,
+} from '@/lib/thesis/provider';
 
 /**
  * Why a generation failed, as a code the UI can translate.
@@ -46,15 +50,6 @@ export class ThesisError extends Error {
 }
 
 /**
- * Requested as claude-3-5-sonnet-latest, raised to the current generation.
- *
- * The stated reasons — fast, capable at reasoning, cost-effective — describe
- * `claude-sonnet-5`; 3.5 Sonnet is two generations behind it on all three.
- * Overridable for anyone who wants a different tier.
- */
-const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5';
-
-/**
  * Room for one summary, with headroom.
  *
  * The system prompt caps a summary at 150 words, which is about 250 tokens of
@@ -74,8 +69,9 @@ const SHARED_INSTRUCTIONS =
 
 const FORMAT_INSTRUCTIONS =
   'Reply with the summary itself and nothing else: no preamble, no heading, no ' +
-  'bullet list, no JSON, no markdown. Two short paragraphs at most, under 150 ' +
-  'words in total.';
+  'bullet list, no JSON. Write plain prose — the page renders the reply as text, ' +
+  'so any markdown appears literally: no asterisks, no bold, no "Bull case:" ' +
+  'labels. Two short paragraphs at most, under 150 words in total.';
 
 /** The system turn for one language. Dutch is written as Dutch, not translated. */
 export function systemPromptFor(lang: Lang): string {
@@ -130,7 +126,7 @@ export interface ThesisResult {
  * key does not need a rebuild to pick it up.
  */
 export function thesisEnabled(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return thesisProvider().isConfigured();
 }
 
 const pct = (value: number | null) => (value == null ? 'unknown' : `${(value * 100).toFixed(1)}%`);
@@ -179,56 +175,58 @@ export function buildUserMessage(context: ThesisContext): string {
 export async function* streamThesis(
   context: ThesisContext,
   lang: Lang,
+  signal?: AbortSignal,
 ): AsyncGenerator<string, ThesisResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  // Unreachable through the UI, which hides the block without a key. Still a
-  // code rather than a crash, so a stray request fails the same way as any
-  // other failure.
-  if (!apiKey) throw new ThesisError('disabled', 'ANTHROPIC_API_KEY is not set');
+  const provider = thesisProvider();
 
-  const client = new Anthropic({ apiKey });
+  // Unreachable through the UI, which hides the block when the provider is not
+  // configured. Still a code rather than a crash, so a stray request fails the
+  // same way as any other failure — and names no environment variable.
+  if (!provider.isConfigured()) {
+    throw new ThesisError('disabled', 'no provider API key is configured');
+  }
 
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    system: systemPromptFor(lang),
-    // Summarising figures that are already computed is not a reasoning task,
-    // and the token budget is better spent on the summary itself.
-    thinking: { type: 'disabled' },
-    messages: [{ role: 'user', content: buildUserMessage(context) }],
+  const generation = provider.stream({
+    systemPrompt: systemPromptFor(lang),
+    userMessage: buildUserMessage(context),
+    maxOutputTokens: MAX_TOKENS,
+    signal,
   });
 
   let text = '';
+  let outcome: ThesisProviderResult;
+
   try {
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        text += event.delta.text;
-        yield event.delta.text;
-      }
+    // Driven by hand rather than `for await`, which discards the return value —
+    // and the return value is what says whether the reply actually finished.
+    let step = await generation.next();
+    while (!step.done) {
+      text += step.value;
+      yield step.value;
+      step = await generation.next();
     }
+    outcome = step.value;
   } catch (error) {
-    if (error instanceof Anthropic.APIError) {
-      throw new ThesisError('api', `Anthropic API error ${error.status}: ${error.message}`);
+    if (error instanceof ThesisProviderError) {
+      throw new ThesisError('api', error.message);
     }
     throw error;
   }
 
-  const final = await stream.finalMessage();
-
   const trimmed = text.trim();
-  if (!trimmed) throw new ThesisError('no_text', `stop_reason: ${final.stop_reason}`);
+  if (!trimmed) throw new ThesisError('no_text', `model: ${outcome.model}`);
 
   // A summary that stopped at the ceiling ends mid-sentence. Storing it would
   // put a half-written analysis on the page as though it were finished.
-  if (final.stop_reason === 'max_tokens') {
-    throw new ThesisError('truncated', `hit max_tokens (${MAX_TOKENS})`);
+  if (outcome.truncated) {
+    throw new ThesisError('truncated', `hit maxOutputTokens (${MAX_TOKENS})`);
   }
 
   return {
     text: trimmed,
     lang,
-    model: final.model,
-    inputTokens: final.usage.input_tokens,
-    outputTokens: final.usage.output_tokens,
+    model: outcome.model,
+    inputTokens: outcome.inputTokens,
+    outputTokens: outcome.outputTokens,
   };
 }

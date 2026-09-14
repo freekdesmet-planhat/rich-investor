@@ -1,66 +1,53 @@
 /**
  * AI thesis tests.
  *
- * Two behaviours matter most. Without an API key nothing is generated and
- * nothing is stored — the placeholder that used to be written here is what put
- * "Placeholder — ANTHROPIC_API_KEY is not set" on a stock page as though it were
+ * These exercise the thesis module against the provider *interface*, not a
+ * vendor SDK — which is the point of the seam: swapping provider must not
+ * rewrite this file.
+ *
+ * Two behaviours matter most. Without a configured provider nothing is
+ * generated and nothing is stored: the placeholder that used to be returned
+ * here is what put "Placeholder — no API key" on a stock page as though it were
  * an analysis. And a generation that does not finish cleanly raises a code
  * rather than returning half a summary.
  */
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import type { ThesisProviderRequest, ThesisProviderResult } from '@/lib/thesis/provider';
 
-/** Events and outcome for one fake call, set per test. */
+/** What the fake provider does on the next call, set per test. */
 const fake: {
+  configured: boolean;
   deltas: string[];
-  stopReason: string;
+  truncated: boolean;
   throws: unknown;
-} = { deltas: [], stopReason: 'end_turn', throws: null };
+  lastRequest: ThesisProviderRequest | null;
+} = { configured: true, deltas: [], truncated: false, throws: null, lastRequest: null };
 
-let lastRequest: Record<string, unknown> | null = null;
-
-vi.mock('@anthropic-ai/sdk', () => {
-  class APIError extends Error {
-    constructor(
-      readonly status: number,
-      message: string,
-    ) {
-      super(message);
-    }
-  }
-
-  class FakeAnthropic {
-    static APIError = APIError;
-
-    messages = {
-      stream: (request: Record<string, unknown>) => {
-        lastRequest = request;
+vi.mock('@/lib/thesis/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/thesis/provider')>();
+  return {
+    ...actual,
+    thesisProvider: () => ({
+      model: 'fake-model',
+      isConfigured: () => fake.configured,
+      async *stream(request: ThesisProviderRequest): AsyncGenerator<string, ThesisProviderResult> {
+        fake.lastRequest = request;
+        if (fake.throws) throw fake.throws;
+        for (const text of fake.deltas) yield text;
         return {
-          async *[Symbol.asyncIterator]() {
-            if (fake.throws) throw fake.throws;
-            for (const text of fake.deltas) {
-              yield { type: 'content_block_delta', delta: { type: 'text_delta', text } };
-            }
-          },
-          finalMessage: async () => ({
-            stop_reason: fake.stopReason,
-            model: 'claude-sonnet-5',
-            usage: { input_tokens: 111, output_tokens: 222 },
-          }),
+          model: 'fake-model',
+          inputTokens: 111,
+          outputTokens: 222,
+          truncated: fake.truncated,
         };
       },
-    };
-  }
-
-  return { default: FakeAnthropic };
+    }),
+  };
 });
 
-const {
-  buildUserMessage,
-  streamThesis,
-  systemPromptFor,
-  thesisEnabled,
-  ThesisError,
-}: typeof import('./thesis') = await import('./thesis');
+const { buildUserMessage, streamThesis, systemPromptFor, thesisEnabled, ThesisError } =
+  await import('./thesis');
+const { ThesisProviderError } = await import('@/lib/thesis/provider');
 type ThesisContext = import('./thesis').ThesisContext;
 
 const context = (overrides: Partial<ThesisContext> = {}): ThesisContext => ({
@@ -89,7 +76,6 @@ const context = (overrides: Partial<ThesisContext> = {}): ThesisContext => ({
   ...overrides,
 });
 
-/** Drains the generator, returning the deltas and the final result. */
 async function run(lang: 'en' | 'nl' = 'en') {
   const generation = streamThesis(context(), lang);
   const deltas: string[] = [];
@@ -101,21 +87,15 @@ async function run(lang: 'en' | 'nl' = 'en') {
   return { deltas, result: step.value };
 }
 
-const originalKey = process.env.ANTHROPIC_API_KEY;
-
 beforeEach(() => {
-  process.env.ANTHROPIC_API_KEY = 'test-key';
+  fake.configured = true;
   fake.deltas = ['The bull case ', 'is strong.'];
-  fake.stopReason = 'end_turn';
+  fake.truncated = false;
   fake.throws = null;
-  lastRequest = null;
+  fake.lastRequest = null;
 });
 
-afterEach(() => {
-  if (originalKey === undefined) delete process.env.ANTHROPIC_API_KEY;
-  else process.env.ANTHROPIC_API_KEY = originalKey;
-  vi.restoreAllMocks();
-});
+afterEach(() => vi.restoreAllMocks());
 
 describe('the prompt sent to the model', () => {
   it('carries the identity, sector and growth category', () => {
@@ -174,20 +154,30 @@ describe('one language per call', () => {
     expect(prompt).toContain('directly in Dutch');
   });
 
-  it('never asks for both languages, or for JSON', () => {
+  it('never asks for both languages, or for a JSON envelope', () => {
     for (const lang of ['en', 'nl'] as const) {
       const prompt = systemPromptFor(lang);
+      // The envelope that used to truncate: a shape with both languages in it.
       expect(prompt).not.toContain('{"en"');
-      expect(prompt).not.toMatch(/\bJSON\b(?!,)/);
+      expect(prompt).not.toMatch(/respond with (valid )?json/i);
+      expect(prompt).not.toMatch(/matching exactly this shape/i);
+      // It may mention JSON, but only to forbid it.
+      expect(prompt).toMatch(/no JSON/i);
     }
   });
 
-  it('sends the language-specific system prompt and a real token ceiling', async () => {
+  it('forbids markdown, which the card would render literally', () => {
+    // The model reaches for "**Bull case:**" unless told not to, and the card
+    // renders plain text, so the asterisks would show.
+    expect(systemPromptFor('en')).toMatch(/no asterisks/i);
+  });
+
+  it('hands the provider the language prompt and a real token ceiling', async () => {
     await run('nl');
 
-    expect(lastRequest?.system).toBe(systemPromptFor('nl'));
+    expect(fake.lastRequest?.systemPrompt).toBe(systemPromptFor('nl'));
     // The old ceiling of 600 had to cover both languages plus an envelope.
-    expect(lastRequest?.max_tokens as number).toBeGreaterThan(600);
+    expect(fake.lastRequest?.maxOutputTokens ?? 0).toBeGreaterThan(600);
   });
 });
 
@@ -203,7 +193,7 @@ describe('streaming', () => {
 
     expect(result.text).toBe('The bull case is strong.');
     expect(result.lang).toBe('nl');
-    expect(result.model).toBe('claude-sonnet-5');
+    expect(result.model).toBe('fake-model');
     expect(result.inputTokens).toBe(111);
     expect(result.outputTokens).toBe(222);
   });
@@ -211,7 +201,7 @@ describe('streaming', () => {
 
 describe('failures carry a code, never the provider wording', () => {
   it('raises `truncated` when the reply hit the ceiling', async () => {
-    fake.stopReason = 'max_tokens';
+    fake.truncated = true;
 
     await expect(run()).rejects.toMatchObject({ code: 'truncated' });
   });
@@ -223,11 +213,7 @@ describe('failures carry a code, never the provider wording', () => {
   });
 
   it('raises `api` for a provider error, keeping its wording off the page', async () => {
-    // The mock's APIError takes (status, message); the real one takes more, and
-    // tsc checks against the real signature.
-    const ApiError = (await import('@anthropic-ai/sdk')).default
-      .APIError as unknown as new (status: number, message: string) => Error;
-    fake.throws = new ApiError(429, 'rate limit exceeded');
+    fake.throws = new ThesisProviderError('Gemini API error 429: rate limit exceeded', 429);
 
     const error = await run().catch((e) => e);
 
@@ -236,17 +222,25 @@ describe('failures carry a code, never the provider wording', () => {
     // The detail exists for the log; the code is what the UI is given.
     expect(error.detail).toContain('rate limit exceeded');
   });
+
+  it('names no environment variable in anything it raises', async () => {
+    fake.configured = false;
+
+    const error = await run().catch((e) => e);
+
+    expect(error.message).not.toMatch(/GEMINI_API_KEY|ANTHROPIC/);
+  });
 });
 
-describe('without an API key', () => {
+describe('without a configured provider', () => {
   it('reports the feature as unconfigured, so the block can be hidden', () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    fake.configured = false;
 
     expect(thesisEnabled()).toBe(false);
   });
 
-  it('reports it as configured once a key is present', () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key';
+  it('reports it as configured once the provider has a key', () => {
+    fake.configured = true;
 
     expect(thesisEnabled()).toBe(true);
   });
@@ -257,7 +251,7 @@ describe('without an API key', () => {
    * placeholder ever reaching the database.
    */
   it('generates nothing rather than a placeholder', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    fake.configured = false;
 
     const error = await run().catch((e) => e);
 
@@ -266,7 +260,7 @@ describe('without an API key', () => {
   });
 
   it('never produces text a reader could mistake for an analysis', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    fake.configured = false;
 
     const error = await run().catch((e) => e);
 
