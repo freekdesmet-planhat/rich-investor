@@ -66,7 +66,20 @@
     },
     "close": "Close",
     "entryThreshold": "Meets the 50% entry threshold",
-    "nearEntryThreshold": "Approaching the entry threshold"
+    "nearEntryThreshold": "Approaching the entry threshold",
+    "trajectory": {
+      "title": "Why this growth category",
+      "intro": "The bars are reported earnings per share; the line is the growth rate fitted through them, which is what the category is read from.",
+      "fitted": "Fitted growth {range}",
+      "endpoint": "Endpoint CAGR",
+      "dips": "Down years ({count})",
+      "steady": "none",
+      "band": "Category",
+      "eps": "EPS",
+      "yoy": "Year on year",
+      "curve": "Earnings per share per year, with the fitted growth rate drawn through them.",
+      "noFit": "Too few positive years to fit a rate; the endpoint figure is used instead."
+    }
   },
   "signal": {
     "why": "Why",
@@ -290,6 +303,13 @@
     "trendGained": "{count} since {date}",
     "trendLost": "{count} since {date}",
     "trendSteady": "unchanged",
-    "trendChart": "Conditions met went from {from} to {to} since {date}."
+    "trendChart": "Conditions met went from {from} to {to} since {date}.",
+    "growthBy": "Growth",
+    "growthAny": "All",
+    "growthOutside": "Outside focus",
+    "sectorBy": "Sector",
+    "sectorAny": "All",
+    "pegForward": "forward PEG",
+    "pegForwardHelp": "The valuation test passes on expected growth, not on earnings already delivered."
   }
 }

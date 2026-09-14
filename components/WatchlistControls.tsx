@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import {
+  GROWTH_FILTERS,
   REVIEW_FILTERS,
   SORT_KEYS,
   STATUS_FILTERS,
   viewHref,
+  type GrowthFilter,
   type ReviewFilter,
   type SortKey,
   type StatusFilter,
@@ -21,6 +23,13 @@ export interface ControlLabels {
   /** One per review filter, including "any". */
   review: Record<ReviewFilter, string>;
   reviewBy: string;
+  /** One per growth band, including "any". */
+  growth: Record<GrowthFilter, string>;
+  growthBy: string;
+  sectorBy: string;
+  anySector: string;
+  /** Translated name per focus-sector key. */
+  sector: Record<string, string>;
 }
 
 /**
@@ -35,11 +44,16 @@ export function WatchlistControls({
   view,
   counts,
   reviewCounts,
+  growthCounts,
+  sectors,
   labels,
 }: {
   view: ViewOptions;
   counts: Record<StatusFilter, number>;
   reviewCounts: Record<ReviewFilter, number>;
+  growthCounts: Record<GrowthFilter, number>;
+  /** Sectors present on the list, with counts, in the book's own order. */
+  sectors: Array<{ sector: string; count: number }>;
   labels: ControlLabels;
 }) {
   const chip = (active: boolean) =>
@@ -53,7 +67,9 @@ export function WatchlistControls({
     view.status !== 'all' ||
     view.query.trim() !== '' ||
     view.sort !== 'sector' ||
-    view.review !== 'any';
+    view.review !== 'any' ||
+    view.growth !== 'any' ||
+    view.sector !== 'any';
 
   return (
     <div className="mb-4 space-y-3">
@@ -92,6 +108,54 @@ export function WatchlistControls({
         ))}
       </div>
 
+      {/* What kind of company, which is a different question from how close it
+          is to buyable: a high-growth name at 7 of 9 and a low-growth one at the
+          same count are not the same proposition. Bands nobody holds still show,
+          at zero, so the row does not reshuffle between visits. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-500 dark:text-slate-400">{labels.growthBy}:</span>
+        {GROWTH_FILTERS.map((growth) => (
+          <Link
+            key={growth}
+            href={viewHref(view, { growth })}
+            aria-current={view.growth === growth ? 'true' : undefined}
+            className={chip(view.growth === growth)}
+          >
+            {labels.growth[growth]}
+            <span className="ml-1.5 tabular-nums opacity-70">{growthCounts[growth]}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Sector is a select rather than chips: five of them plus counts would
+          wrap to three lines on a phone, and unlike the bands this list is
+          whatever happens to be on the watchlist. */}
+      {sectors.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-500 dark:text-slate-400">{labels.sectorBy}:</span>
+          <span className="flex flex-wrap items-center gap-2">
+            <Link
+              href={viewHref(view, { sector: 'any' })}
+              aria-current={view.sector === 'any' ? 'true' : undefined}
+              className={chip(view.sector === 'any')}
+            >
+              {labels.anySector}
+            </Link>
+            {sectors.map(({ sector, count }) => (
+              <Link
+                key={sector}
+                href={viewHref(view, { sector })}
+                aria-current={view.sector === sector ? 'true' : undefined}
+                className={chip(view.sector === sector)}
+              >
+                {labels.sector[sector] ?? sector}
+                <span className="ml-1.5 tabular-nums opacity-70">{count}</span>
+              </Link>
+            ))}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-500 dark:text-slate-400">{labels.sortBy}:</span>
@@ -117,6 +181,8 @@ export function WatchlistControls({
           {view.status !== 'all' && <input type="hidden" name="status" value={view.status} />}
           {view.sort !== 'sector' && <input type="hidden" name="sort" value={view.sort} />}
           {view.review !== 'any' && <input type="hidden" name="review" value={view.review} />}
+          {view.growth !== 'any' && <input type="hidden" name="growth" value={view.growth} />}
+          {view.sector !== 'any' && <input type="hidden" name="sector" value={view.sector} />}
           <input
             type="search"
             name="q"

@@ -22,9 +22,33 @@ export type SortKey = 'sector' | 'conditions' | 'drawdown' | 'symbol';
  */
 export type ReviewFilter = 'any' | 'needed' | 'reviewed';
 
+/**
+ * The book's three growth bands, as a filter.
+ *
+ * Separate again from status and from review: the band is what kind of company
+ * this is, and it changes what you are looking for — a high-growth name at 7 of
+ * 9 is a different proposition from a low-growth one at the same count.
+ * 'outside' collects the categories the book puts outside its focus (cyclical,
+ * turnaround, financial institution, unknown) rather than pretending they are a
+ * fourth band.
+ */
+export type GrowthFilter = 'any' | 'high_growth' | 'average_growth' | 'low_growth' | 'outside';
+
+/** Sector filter values are the focus sectors themselves, plus 'any'. */
+export type SectorFilter = string;
+
+const BANDS = ['high_growth', 'average_growth', 'low_growth'] as const;
+
 export const STATUS_FILTERS: StatusFilter[] = ['all', 'buy_worthy', 'almost', 'watching'];
 export const SORT_KEYS: SortKey[] = ['sector', 'conditions', 'drawdown', 'symbol'];
 export const REVIEW_FILTERS: ReviewFilter[] = ['any', 'needed', 'reviewed'];
+export const GROWTH_FILTERS: GrowthFilter[] = [
+  'any',
+  'high_growth',
+  'average_growth',
+  'low_growth',
+  'outside',
+];
 
 export const isStatusFilter = (value: unknown): value is StatusFilter =>
   typeof value === 'string' && (STATUS_FILTERS as string[]).includes(value);
@@ -35,6 +59,15 @@ export const isSortKey = (value: unknown): value is SortKey =>
 export const isReviewFilter = (value: unknown): value is ReviewFilter =>
   typeof value === 'string' && (REVIEW_FILTERS as string[]).includes(value);
 
+export const isGrowthFilter = (value: unknown): value is GrowthFilter =>
+  typeof value === 'string' && (GROWTH_FILTERS as string[]).includes(value);
+
+/** Which growth filter a stored Lynch category answers to. */
+export function growthBandOf(category: string | null | undefined): GrowthFilter {
+  if (!category) return 'outside';
+  return (BANDS as readonly string[]).includes(category) ? (category as GrowthFilter) : 'outside';
+}
+
 /** The shape this module needs; the query type satisfies it. */
 export interface ViewableEntry {
   symbol: string;
@@ -44,6 +77,7 @@ export interface ViewableEntry {
     status: 'buy_worthy' | 'almost' | 'watching';
     conditions_met: number;
     conditions_applicable: number;
+    lynch_category?: string;
     checklist: Array<{ key: string; value: number | null }>;
   } | null;
 }
@@ -72,6 +106,9 @@ export interface ViewOptions {
   /** Free text over ticker and company name. */
   query: string;
   review: ReviewFilter;
+  growth: GrowthFilter;
+  /** A focus sector key, or 'any'. */
+  sector: SectorFilter;
 }
 
 /** The part of a saved review this module needs. */
@@ -135,6 +172,13 @@ export function filterEntries<T extends ViewableEntry>(
     if (options.review !== 'any') {
       const outstanding = needsReview(reviews.get(entry.symbol));
       if (outstanding !== (options.review === 'needed')) return false;
+    }
+    if (options.sector !== 'any' && entry.focus_sector !== options.sector) return false;
+    if (options.growth !== 'any') {
+      // A ticker with no evaluation has no category to match; like the status
+      // filter, that excludes it rather than guessing one for it.
+      if (!entry.signal) return false;
+      if (growthBandOf(entry.signal.lynch_category) !== options.growth) return false;
     }
     if (needle) {
       const haystack = `${entry.symbol} ${entry.name ?? ''}`.toLowerCase();
@@ -201,6 +245,41 @@ export function statusCounts<T extends ViewableEntry>(
   };
 }
 
+/**
+ * Counts per growth band, over the unfiltered list for the same reason.
+ *
+ * Bands nobody holds still appear, at zero, so the set of chips does not shift
+ * about between visits.
+ */
+export function growthCounts<T extends ViewableEntry>(entries: T[]): Record<GrowthFilter, number> {
+  const counts: Record<GrowthFilter, number> = {
+    any: entries.length,
+    high_growth: 0,
+    average_growth: 0,
+    low_growth: 0,
+    outside: 0,
+  };
+  for (const entry of entries) {
+    if (!entry.signal) continue;
+    counts[growthBandOf(entry.signal.lynch_category)] += 1;
+  }
+  return counts;
+}
+
+/** Sectors present on the list, with counts, in the order given. */
+export function sectorCounts<T extends ViewableEntry>(
+  entries: T[],
+  order: readonly string[],
+): Array<{ sector: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    counts.set(entry.focus_sector, (counts.get(entry.focus_sector) ?? 0) + 1);
+  }
+  return order
+    .filter((sector) => counts.has(sector))
+    .map((sector) => ({ sector, count: counts.get(sector)! }));
+}
+
 /** Counts for the review chips, over the unfiltered list for the same reason. */
 export function reviewCounts<T extends ViewableEntry>(
   entries: T[],
@@ -222,6 +301,8 @@ export function viewHref(current: ViewOptions, change: Partial<ViewOptions>): st
   if (next.status !== 'all') params.set('status', next.status);
   if (next.sort !== 'sector') params.set('sort', next.sort);
   if (next.review !== 'any') params.set('review', next.review);
+  if (next.growth !== 'any') params.set('growth', next.growth);
+  if (next.sector !== 'any') params.set('sector', next.sector);
   if (next.query.trim()) params.set('q', next.query.trim());
   const qs = params.toString();
   return qs ? `/?${qs}` : '/';

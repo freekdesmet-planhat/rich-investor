@@ -10,6 +10,9 @@ import { describe, expect, it } from 'vitest';
 import {
   drawdownOf,
   filterEntries,
+  growthBandOf,
+  growthCounts,
+  sectorCounts,
   needsReview,
   reviewCounts,
   reviewMarkOf,
@@ -58,6 +61,8 @@ const view = (overrides: Partial<ViewOptions> = {}): ViewOptions => ({
   sort: 'sector',
   query: '',
   review: 'any',
+  growth: 'any',
+  sector: 'any',
   ...overrides,
 });
 
@@ -292,5 +297,87 @@ describe('what a row says about your verdict', () => {
       updated_at: '2026-05-20T08:00:00Z',
     });
     expect(mark).toEqual({ done: true, assessment: 'temporary', date: '2026-05-20' });
+  });
+});
+
+describe('filtering by what kind of company it is', () => {
+  const withBand = (symbol: string, lynch: string, sector = 'information_technology') => {
+    const base = entry(symbol);
+    return {
+      ...base,
+      focus_sector: sector,
+      signal: base.signal ? { ...base.signal, lynch_category: lynch } : null,
+    };
+  };
+
+  const rows = [
+    withBand('NVDA', 'high_growth'),
+    withBand('MSFT', 'average_growth'),
+    withBand('ADBE', 'low_growth'),
+    withBand('AXP', 'financial_institution', 'financial_services_non_bank'),
+  ];
+
+  it('maps the book’s categories onto the three bands, everything else outside', () => {
+    expect(growthBandOf('high_growth')).toBe('high_growth');
+    expect(growthBandOf('average_growth')).toBe('average_growth');
+    expect(growthBandOf('low_growth')).toBe('low_growth');
+    expect(growthBandOf('cyclical')).toBe('outside');
+    expect(growthBandOf('turnaround')).toBe('outside');
+    expect(growthBandOf('financial_institution')).toBe('outside');
+    expect(growthBandOf('unknown')).toBe('outside');
+    expect(growthBandOf(null)).toBe('outside');
+  });
+
+  it('filters to one band', () => {
+    expect(filterEntries(rows, view({ growth: 'high_growth' })).map((r) => r.symbol)).toEqual([
+      'NVDA',
+    ]);
+    expect(filterEntries(rows, view({ growth: 'outside' })).map((r) => r.symbol)).toEqual(['AXP']);
+  });
+
+  /** An unevaluated ticker has no category, so a band filter excludes it. */
+  it('excludes a ticker with no evaluation', () => {
+    const list = [...rows, pending('NEW')];
+    expect(filterEntries(list, view({ growth: 'any' }))).toHaveLength(5);
+    expect(filterEntries(list, view({ growth: 'high_growth' })).map((r) => r.symbol)).toEqual([
+      'NVDA',
+    ]);
+  });
+
+  it('counts every band, including ones nobody holds', () => {
+    expect(growthCounts(rows)).toEqual({
+      any: 4,
+      high_growth: 1,
+      average_growth: 1,
+      low_growth: 1,
+      outside: 1,
+    });
+  });
+
+  it('filters by focus sector', () => {
+    expect(filterEntries(rows, view({ sector: 'financial_services_non_bank' })).map((r) => r.symbol)).toEqual([
+      'AXP',
+    ]);
+  });
+
+  it('lists only the sectors actually present, in the given order', () => {
+    const order = ['information_technology', 'luxury_consumer', 'financial_services_non_bank'];
+    expect(sectorCounts(rows, order)).toEqual([
+      { sector: 'information_technology', count: 3 },
+      { sector: 'financial_services_non_bank', count: 1 },
+    ]);
+  });
+
+  it('combines with the other filters rather than replacing them', () => {
+    const result = filterEntries(rows, view({ growth: 'high_growth', query: 'msft' }));
+    expect(result).toEqual([]);
+  });
+
+  it('rides along in the URL, and stays out of it when unset', () => {
+    expect(viewHref(view(), { growth: 'any' })).toBe('/');
+    expect(viewHref(view(), { growth: 'low_growth' })).toContain('growth=low_growth');
+    expect(viewHref(view({ sector: 'luxury_consumer' }), { growth: 'low_growth' })).toContain(
+      'sector=luxury_consumer',
+    );
   });
 });

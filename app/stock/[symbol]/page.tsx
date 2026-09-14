@@ -10,6 +10,8 @@ import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { ConditionTrend } from '@/components/ConditionTrend';
+import { GrowthTrajectory } from '@/components/GrowthTrajectory';
+import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { createClient } from '@/lib/supabase/server';
 import {
   getRatios,
@@ -25,6 +27,7 @@ import {
 import type { Lang } from '@/lib/i18n/config';
 import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
+import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
@@ -162,6 +165,22 @@ export default async function StockPage({
     : undefined;
   const changes = reference ? conditionChanges(reference.checklist, signal.checklist) : [];
 
+  // The EPS series, the fitted rate and the endpoint CAGR are all already on
+  // the PEG row — that is the series the growth figure was measured from, so
+  // the panel explains the label rather than computing a second opinion.
+  const pegRow = byKey.get('peg');
+  const pegGrowth = (pegRow?.detail ?? {}) as { epsCagr?: number | null; endpointCagr?: number | null };
+  const trajectory = pegRow?.history?.length
+    ? buildTrajectory(pegRow.history, {
+        rate: pegGrowth.epsCagr ?? null,
+        endpointCagr: pegGrowth.endpointCagr ?? null,
+        bands: {
+          highGrowth: DEFAULT_THRESHOLDS.lynch.value.highGrowth,
+          averageGrowth: DEFAULT_THRESHOLDS.lynch.value.averageGrowth,
+        },
+      })
+    : null;
+
   const mine = reviewData.reviews.find((r) => r.user_id === user?.id);
   const others = reviewData.reviews.filter((r) => r.user_id !== user?.id).map(toRecord);
 
@@ -197,6 +216,13 @@ export default async function StockPage({
                   {lynch.name}
                 </span>
               )}
+              {/* Says on the page header what the PEG card says in a caption:
+                  the valuation test was carried by expected growth. */}
+              <PegBasisBadge
+                basis={signal.peg_basis as 'forward' | 'trailing' | 'both' | 'none' | null}
+                label={tWatchlist('pegForward')}
+                title={tWatchlist('pegForwardHelp')}
+              />
               {snapshot?.price != null && (
                 <span className="tabular-nums">
                   {formatNumber(snapshot.price, locale)} {snapshot.currency}
@@ -286,25 +312,28 @@ export default async function StockPage({
           </h2>
           <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-800">
             {signal.checklist.map((condition) => (
+              // Condition and criterion sit side by side where there is room
+              // and stack where there is not. They used to share one line at
+              // every width, with the name truncated — on a phone that cut
+              // "Operating cash flow >= 70% of net income" down to a few words
+              // and dropped exactly the part that says what is being tested.
               <li
                 key={condition.key}
-                className="flex items-center justify-between gap-3 bg-white px-3 py-2 dark:bg-slate-900"
+                className="flex flex-col gap-0.5 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 dark:bg-slate-900"
               >
-                <span className="flex min-w-0 items-center gap-2">
+                <span className="flex min-w-0 items-start gap-2 sm:items-center">
                   <span aria-hidden="true" className="w-4 shrink-0 text-center">
                     {!condition.applicable ? '–' : condition.passed ? '✓' : '✗'}
                   </span>
                   <span
                     className={
-                      !condition.applicable
-                        ? 'truncate text-slate-400 dark:text-slate-500'
-                        : 'truncate'
+                      !condition.applicable ? 'text-slate-400 dark:text-slate-500' : undefined
                     }
                   >
                     {docs.get(`condition:${condition.key}`)?.name ?? condition.key}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+                <span className="pl-6 text-xs text-slate-500 sm:shrink-0 sm:pl-0 dark:text-slate-400">
                   {/* The engine stores an English target on the row; the
                       localised one lives in docs/ratios.<lang>.md beside the
                       condition's name, so the criteria translate with it. */}
@@ -317,9 +346,36 @@ export default async function StockPage({
           </ul>
         </section>
 
+        {/* --- why this growth category (the series behind the label) -------- */}
+        {trajectory && (
+          <GrowthTrajectory
+            trajectory={trajectory}
+            bandName={lynch?.name ?? null}
+            formatPercent={(value) => formatPercent(value, locale)}
+            formatNumber={(value) => formatNumber(value, locale)}
+            labels={{
+              title: tRatio('trajectory.title'),
+              intro: tRatio('trajectory.intro'),
+              fitted: tRatio.raw('trajectory.fitted') as string,
+              endpoint: tRatio('trajectory.endpoint'),
+              dips: tRatio.raw('trajectory.dips') as string,
+              steady: tRatio('trajectory.steady'),
+              band: tRatio('trajectory.band'),
+              eps: tRatio('trajectory.eps'),
+              yoy: tRatio('trajectory.yoy'),
+              curve: tRatio('trajectory.curve'),
+              noFit: tRatio('trajectory.noFit'),
+            }}
+          />
+        )}
+
         {/* --- ratio cards -------------------------------------------------- */}
         <section className="mt-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* One column below 768px. Two columns at 640px put a ratio name, a
+              value and a target into ~300px, which is where the truncation
+              started; the cards are readable in one column and the grid only
+              splits once there is room for them. */}
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {CARD_ORDER.map((key) => {
               const row = byKey.get(key as RatioRow['ratio_key']);
               if (!row) return null;

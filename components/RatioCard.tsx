@@ -79,9 +79,12 @@ export function RatioCard({
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-start gap-2">
           <ColorDot color={color} label={color} />
-          <h3 className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+          {/* Wraps rather than truncates: the name is the only thing saying
+              which ratio this card is, and "Operating cash flow / net inc…"
+              is not a thing you can look up. */}
+          <h3 className="min-w-0 text-sm font-medium text-slate-700 dark:text-slate-200">
             {name}
           </h3>
         </div>
@@ -96,9 +99,9 @@ export function RatioCard({
         </button>
       </div>
 
-      <div className="mt-2 flex items-end justify-between gap-3">
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="min-w-0">
-          <p className="text-2xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+          <p className="break-words text-2xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
             {displayValue}
           </p>
           {unavailableLabel && (
@@ -130,7 +133,7 @@ export function RatioCard({
 
       {adjusted && (
         <div className="mt-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-700 dark:bg-slate-800/60">
-          <p className="flex items-center justify-between gap-2">
+          <p className="flex flex-wrap items-center justify-between gap-2">
             {/* The raw figure stays visible, greyed out, beside the adjusted one. */}
             <span className="text-slate-400 line-through dark:text-slate-500">
               {adjusted.rawLabel} {adjusted.rawDisplayValue}

@@ -66,7 +66,20 @@
     },
     "close": "Sluiten",
     "entryThreshold": "Voldoet aan de instapdrempel van 50%",
-    "nearEntryThreshold": "Nadert de instapdrempel"
+    "nearEntryThreshold": "Nadert de instapdrempel",
+    "trajectory": {
+      "title": "Waarom deze groeicategorie",
+      "intro": "De staven zijn de gerapporteerde winst per aandeel; de lijn is het groeipercentage dat erdoorheen is gefit, en daar wordt de categorie uit afgelezen.",
+      "fitted": "Gefitte groei {range}",
+      "endpoint": "CAGR op eindpunten",
+      "dips": "Jaren met daling ({count})",
+      "steady": "geen",
+      "band": "Categorie",
+      "eps": "WPA",
+      "yoy": "Jaar op jaar",
+      "curve": "Winst per aandeel per jaar, met het gefitte groeipercentage erdoorheen getekend.",
+      "noFit": "Te weinig positieve jaren om een percentage te fitten; het eindpuntcijfer wordt gebruikt."
+    }
   },
   "signal": {
     "why": "Waarom",
@@ -290,6 +303,13 @@
     "trendGained": "{count} sinds {date}",
     "trendLost": "{count} sinds {date}",
     "trendSteady": "ongewijzigd",
-    "trendChart": "Behaalde voorwaarden gingen van {from} naar {to} sinds {date}."
+    "trendChart": "Behaalde voorwaarden gingen van {from} naar {to} sinds {date}.",
+    "growthBy": "Groei",
+    "growthAny": "Alles",
+    "growthOutside": "Buiten focus",
+    "sectorBy": "Sector",
+    "sectorAny": "Alles",
+    "pegForward": "verwachte PEG",
+    "pegForwardHelp": "De waarderingstoets slaagt op verwachte groei, niet op al gerealiseerde winst."
   }
 }

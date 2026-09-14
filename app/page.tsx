@@ -7,9 +7,11 @@ import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { WatchlistControls } from '@/components/WatchlistControls';
 import { ChangedRecently } from '@/components/ChangedRecently';
 import { TrendCell, type TrendLabels } from '@/components/TrendCell';
+import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { DataFreshness } from '@/components/DataFreshness';
 import {
   getMyReviewSummaries,
+  getTranslations as getDocTranslations,
   getTrends,
   getWatchlist,
   type WatchlistEntry,
@@ -18,11 +20,14 @@ import { movers, within, type Trend } from '@/lib/data/trend';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import {
   filterEntries,
+  growthCounts,
+  isGrowthFilter,
   isReviewFilter,
   isSortKey,
   isStatusFilter,
   reviewCounts,
   reviewMarkOf,
+  sectorCounts,
   sortEntries,
   statusCounts,
   type ViewOptions,
@@ -61,7 +66,14 @@ function groupBySector(entries: WatchlistEntry[]): Map<FocusSector, WatchlistEnt
 export default async function WatchlistPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; sort?: string; q?: string; review?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    sort?: string;
+    q?: string;
+    review?: string;
+    growth?: string;
+    sector?: string;
+  }>;
 }) {
   const params = await searchParams;
   const locale = (await getLocale()) as Lang;
@@ -70,6 +82,11 @@ export default async function WatchlistPage({
     sort: isSortKey(params.sort) ? params.sort : 'sector',
     query: params.q ?? '',
     review: isReviewFilter(params.review) ? params.review : 'any',
+    growth: isGrowthFilter(params.growth) ? params.growth : 'any',
+    // Any focus sector the app knows; anything else falls back to no filter
+    // rather than silently matching nothing.
+    sector:
+      params.sector && (SECTOR_ORDER as string[]).includes(params.sector) ? params.sector : 'any',
   };
 
   const [tStatus, tSector, tNav, tData, tWatchlist, tSearch, tReview] = await Promise.all([
@@ -92,6 +109,11 @@ export default async function WatchlistPage({
   // verdict is on the stock page, where it can be attributed.
   const reviews = await getMyReviewSummaries();
 
+  // The growth-band names live in docs/ratios.<lang>.md beside their
+  // explanations, like every other piece of framework vocabulary in the app.
+  const docs = await getDocTranslations(locale);
+  const bandName = (key: string) => docs.get(`lynch:${key}`)?.name ?? key;
+
   // One fetch over the long window; the week's movers are a narrower reading of
   // the same rows rather than a second round trip.
   const trends = await getTrends(all.map((e) => e.symbol), TREND_DAYS);
@@ -103,6 +125,8 @@ export default async function WatchlistPage({
   // recounted itself after being clicked could only ever show its own total.
   const counts = statusCounts(all);
   const reviewTotals = reviewCounts(all, reviews);
+  const growthTotals = growthCounts(all);
+  const sectors = sectorCounts(all, SECTOR_ORDER);
   const visible = sortEntries(filterEntries(all, view, reviews), view.sort);
   // Sector is a sort option now, so the grouped layout belongs to that option
   // alone; any other ordering would be cut apart by the group headings.
@@ -150,6 +174,11 @@ export default async function WatchlistPage({
       const label = CONDITION_LABEL[missing[0].key]?.[locale] ?? missing[0].key;
       return tWatchlist('missingOne', { condition: label });
     },
+  };
+
+  const pegLabels = {
+    label: tWatchlist('pegForward'),
+    title: tWatchlist('pegForwardHelp'),
   };
 
   const trendLabels = {
@@ -261,8 +290,21 @@ export default async function WatchlistPage({
                 reviewed: tWatchlist('reviewedFilter'),
               },
               reviewBy: tWatchlist('reviewBy'),
+              growthBy: tWatchlist('growthBy'),
+              growth: {
+                any: tWatchlist('growthAny'),
+                high_growth: bandName('high_growth'),
+                average_growth: bandName('average_growth'),
+                low_growth: bandName('low_growth'),
+                outside: tWatchlist('growthOutside'),
+              },
+              sectorBy: tWatchlist('sectorBy'),
+              anySector: tWatchlist('sectorAny'),
+              sector: Object.fromEntries(SECTOR_ORDER.map((key) => [key, tSector(key)])),
             }}
             reviewCounts={reviewTotals}
+            growthCounts={growthTotals}
+            sectors={sectors}
           />
         )}
 
@@ -298,6 +340,7 @@ export default async function WatchlistPage({
                     removeLabels={removeLabels}
                     trends={trends}
                     trendLabels={trendLabels}
+                    pegLabels={pegLabels}
                   />
                 </section>
               ))
@@ -308,6 +351,7 @@ export default async function WatchlistPage({
                   removeLabels={removeLabels}
                   trends={trends}
                   trendLabels={trendLabels}
+                  pegLabels={pegLabels}
                 />
               )}
         </div>
@@ -351,6 +395,7 @@ function RowList({
   removeLabels,
   trends,
   trendLabels,
+  pegLabels,
 }: {
   rows: WatchlistEntry[];
   labels: RowLabels;
@@ -363,6 +408,7 @@ function RowList({
   };
   trends: Map<string, Trend>;
   trendLabels: TrendLabels;
+  pegLabels: { label: string; title: string };
 }) {
   return (
     <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
@@ -399,6 +445,14 @@ function RowList({
                     {' · '}
                     {labels.missingOne(entry)}
                   </span>
+                )}
+                {/* Passing on estimates rather than delivered earnings is the
+                    one thing about the valuation test worth saying on a row. */}
+                {entry.signal?.peg_basis === 'forward' && (
+                  <>
+                    {' '}
+                    <PegBasisBadge basis="forward" {...pegLabels} compact />
+                  </>
                 )}
               </p>
 
