@@ -11,7 +11,7 @@ import {
   MAX_COMPARED,
 } from '@/lib/data/compareView';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
-import { formatNumber } from '@/lib/i18n/format';
+import { formatConditionValue } from '@/lib/signal/conditionFormat';
 import type { Lang } from '@/lib/i18n/locale';
 
 export const dynamic = 'force-dynamic';
@@ -177,10 +177,13 @@ export default async function ComparePage({
                               }
                             >
                               <span aria-hidden="true">{cell.condition.passed ? '✓' : '✗'}</span>{' '}
+                              {/* Through the same formatters as every other
+                                  surface: this printed a market cap as a
+                                  twelve-digit integer and a 61% decline as
+                                  -0,61, because it formatted all nine
+                                  conditions as if they were plain numbers. */}
                               <span className="tabular-nums text-slate-600 dark:text-slate-300">
-                                {cell.condition.value == null
-                                  ? ''
-                                  : formatNumber(cell.condition.value, locale)}
+                                {formatConditionValue(cell.condition.key, cell.condition.value, locale)}
                               </span>
                             </span>
                           )}
