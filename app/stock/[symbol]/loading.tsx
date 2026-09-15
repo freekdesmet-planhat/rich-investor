@@ -6,6 +6,8 @@
  * render anything. Standing in for the real shape means the metric grid does
  * not appear to shove the header down when it arrives.
  */
+import { StuckLoadingEscape } from '@/components/StuckLoadingEscape';
+
 export default function StockLoading() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-6" aria-busy="true">
@@ -40,6 +42,9 @@ export default function StockLoading() {
           />
         ))}
       </div>
+      {/* A skeleton cannot time out on its own; this gives it one. */}
+      <StuckLoadingEscape id="stock-stuck" />
+
     </main>
   );
 }

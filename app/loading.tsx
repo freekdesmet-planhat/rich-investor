@@ -9,6 +9,8 @@
  * Shaped like the page it stands in for, so the layout does not jump when the
  * real rows arrive.
  */
+import { StuckLoadingEscape } from '@/components/StuckLoadingEscape';
+
 export default function WatchlistLoading() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-6" aria-busy="true">
@@ -45,6 +47,9 @@ export default function WatchlistLoading() {
           </li>
         ))}
       </ul>
+      {/* A skeleton cannot time out on its own; this gives it one. */}
+      <StuckLoadingEscape id="watchlist-stuck" />
+
     </main>
   );
 }
