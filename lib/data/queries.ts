@@ -565,6 +565,45 @@ export async function getHeldSymbols(): Promise<Set<string>> {
   return new Set((data ?? []).map((row) => row.symbol));
 }
 
+export interface MemberSettings {
+  language: string | null;
+  notify_email: string | null;
+  notify_enabled: boolean;
+  notify_on_buy: boolean;
+  weekly_summary: boolean;
+}
+
+/**
+ * The signed-in member's own settings row, with the defaults the table would
+ * have applied if one existed.
+ *
+ * Absent is the normal state rather than an error: the row is created the first
+ * time anything is saved, and until then the mailer falls back to NOTIFY_EMAILS.
+ */
+export async function getSettings(): Promise<MemberSettings> {
+  const fallback: MemberSettings = {
+    language: null,
+    notify_email: null,
+    notify_enabled: true,
+    notify_on_buy: true,
+    weekly_summary: true,
+  };
+
+  const supabase = await client();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fallback;
+
+  const { data } = await supabase
+    .from('settings')
+    .select('language,notify_email,notify_enabled,notify_on_buy,weekly_summary')
+    .eq('user_id', user.id)
+    .maybeSingle<MemberSettings>();
+
+  return data ?? fallback;
+}
+
 /** Just the symbols, for marking search results as already added. */
 export async function getWatchlistSymbols(): Promise<Set<string>> {
   const { data } = await (await client())

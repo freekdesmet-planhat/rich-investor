@@ -286,7 +286,40 @@
     "saving": "Opslaan…",
     "saved": "Wachtwoord opgeslagen. Je kunt er nu mee inloggen.",
     "tooShort": "Gebruik minstens 10 tekens.",
-    "mismatch": "De twee wachtwoorden komen niet overeen."
+    "mismatch": "De twee wachtwoorden komen niet overeen.",
+    "notifications": {
+      "title": "Dagelijkse samenvatting",
+      "intro": "Waar de samenvatting heen gaat. Zolang hier geen adres staat, valt de app terug op de omgevingsvariabele NOTIFY_EMAILS.",
+      "email": "Stuur naar",
+      "emailHint": "Laat leeg om niets te ontvangen.",
+      "enabled": "Stuur mij de samenvatting",
+      "onBuy": "Laat het weten als iets koopwaardig wordt",
+      "weekly": "Inclusief het weekoverzicht"
+    },
+    "language": {
+      "title": "Taal",
+      "intro": "Geldt voor deze browser en voor de taal waarin je samenvatting binnenkomt.",
+      "en": "English",
+      "nl": "Nederlands"
+    },
+    "security": {
+      "title": "Sessies",
+      "intro": "Logt overal uit, niet alleen hier — waar je naar grijpt als een apparaat kwijtraakt.",
+      "signOutEverywhere": "Overal uitloggen",
+      "signingOut": "Uitloggen…"
+    },
+    "export": {
+      "title": "Jouw gegevens",
+      "intro": "De volglijst, je beoordelingen en hun geschiedenis, je notities en je posities, als één JSON-bestand. De cijfers zitten er niet in: die zijn opnieuw op te halen, jouw oordeel niet.",
+      "download": "Kopie downloaden"
+    },
+    "errors": {
+      "email": "Dat lijkt geen e-mailadres.",
+      "language": "Kies een taal."
+    },
+    "saveSettings": "Opslaan",
+    "savingSettings": "Opslaan…",
+    "savedSettings": "Opgeslagen."
   },
   "notFound": {
     "title": "Niet gevonden",

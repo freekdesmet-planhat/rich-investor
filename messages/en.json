@@ -286,7 +286,40 @@
     "saving": "Saving…",
     "saved": "Password saved. You can now sign in with it.",
     "tooShort": "Use at least 10 characters.",
-    "mismatch": "The two passwords do not match."
+    "mismatch": "The two passwords do not match.",
+    "notifications": {
+      "title": "Daily digest",
+      "intro": "Where the digest goes. Until an address is saved here, the deployment falls back to the NOTIFY_EMAILS environment variable.",
+      "email": "Send it to",
+      "emailHint": "Leave blank to receive nothing.",
+      "enabled": "Send me the digest",
+      "onBuy": "Tell me when something turns buy-worthy",
+      "weekly": "Include the weekly summary"
+    },
+    "language": {
+      "title": "Language",
+      "intro": "Used for this browser and for the language your digest arrives in.",
+      "en": "English",
+      "nl": "Nederlands"
+    },
+    "security": {
+      "title": "Sessions",
+      "intro": "Signs out every browser and phone, not just this one — the thing to reach for if a device goes missing.",
+      "signOutEverywhere": "Sign out everywhere",
+      "signingOut": "Signing out…"
+    },
+    "export": {
+      "title": "Your data",
+      "intro": "The watchlist, your reviews and their history, your notes and your holdings, as one JSON file. The figures are not included: they can be fetched again, and your judgement cannot.",
+      "download": "Download a copy"
+    },
+    "errors": {
+      "email": "That does not look like an email address.",
+      "language": "Pick a language."
+    },
+    "saveSettings": "Save",
+    "savingSettings": "Saving…",
+    "savedSettings": "Saved."
   },
   "notFound": {
     "title": "Not found",
