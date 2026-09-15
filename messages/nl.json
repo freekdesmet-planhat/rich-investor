@@ -384,5 +384,35 @@
     "done": "{symbol} geanalyseerd",
     "failed": "Analyseren is niet gelukt. De nachtelijke scan probeert het opnieuw.",
     "noData": "Geen bruikbare cijfers van de databronnen voor deze ticker."
+  },
+  "position": {
+    "title": "Heb je dit in bezit?",
+    "intro": "De verkoopsignalen hieronder zijn vragen over een positie. Leg vast wat je betaalde en het wordt een beoordeling van iets echts, met het rendement ernaast.",
+    "add": "Ik heb dit",
+    "edit": "Wijzigen",
+    "entryPrice": "Betaalde prijs, per aandeel",
+    "entryDate": "Aankoopdatum",
+    "quantity": "Aandelen",
+    "quantityHint": "Optioneel",
+    "note": "Notitie",
+    "save": "Opslaan",
+    "saving": "Opslaan…",
+    "clear": "Verkocht, of verwijderen",
+    "clearing": "Verwijderen…",
+    "cancel": "Annuleren",
+    "since": "Sinds aankoop",
+    "held": "In bezit sinds {days} dagen, vanaf",
+    "value": "Nu waard",
+    "gain": "Winst",
+    "saved": "Positie opgeslagen.",
+    "cleared": "Positie verwijderd.",
+    "errors": {
+      "price": "Geef de prijs die je per aandeel betaalde, hoger dan nul.",
+      "date": "Geef de aankoopdatum, als jaar-maand-dag.",
+      "future": "Die datum ligt in de toekomst.",
+      "quantity": "Laat het aantal aandelen leeg, of geef een getal hoger dan nul.",
+      "notSignedIn": "Je bent uitgelogd.",
+      "unknown": "Dat is niet opgeslagen."
+    }
   }
 }

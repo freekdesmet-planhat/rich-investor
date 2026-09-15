@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
 import type { FocusSector } from '@/lib/sectors/mapping';
 import type { WhyPart } from '@/lib/signal/explain';
+import type { Position } from './position';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
 import { dedupeByCompany, PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
@@ -522,6 +523,46 @@ export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
     universe: universe.count ?? null,
     lastSuggestedAt: latest.data?.suggested_at ?? null,
   };
+}
+
+/**
+ * The signed-in member's holding in one ticker, if there is one.
+ *
+ * Per person: RLS restricts this to the caller's own rows, and the query says
+ * the same thing so the intent is readable without going to the policy.
+ */
+export async function getPosition(symbol: string): Promise<Position | null> {
+  const supabase = await client();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from('positions')
+    .select('symbol,entry_price,entry_date,quantity,currency,note')
+    .eq('symbol', symbol)
+    .eq('user_id', user.id)
+    .maybeSingle<Position>();
+
+  return data ?? null;
+}
+
+/** Every symbol the member holds, for marking them on a list. */
+export async function getHeldSymbols(): Promise<Set<string>> {
+  const supabase = await client();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Set();
+
+  const { data } = await supabase
+    .from('positions')
+    .select('symbol')
+    .eq('user_id', user.id)
+    .returns<Array<{ symbol: string }>>();
+
+  return new Set((data ?? []).map((row) => row.symbol));
 }
 
 /** Just the symbols, for marking search results as already added. */

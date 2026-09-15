@@ -384,5 +384,35 @@
     "done": "{symbol} analysed",
     "failed": "Could not analyse it. The nightly scan will try again.",
     "noData": "No usable figures from the data providers for this ticker."
+  },
+  "position": {
+    "title": "Do you own this?",
+    "intro": "The sell signals below are questions about a holding. Record what you paid and they become a review of something real, with the return beside them.",
+    "add": "I own this",
+    "edit": "Edit",
+    "entryPrice": "Price paid, per share",
+    "entryDate": "Date bought",
+    "quantity": "Shares",
+    "quantityHint": "Optional",
+    "note": "Note",
+    "save": "Save",
+    "saving": "Saving…",
+    "clear": "Sold, or remove",
+    "clearing": "Removing…",
+    "cancel": "Cancel",
+    "since": "Since you bought",
+    "held": "Held {days} days, since",
+    "value": "Worth now",
+    "gain": "Gain",
+    "saved": "Holding saved.",
+    "cleared": "Holding removed.",
+    "errors": {
+      "price": "Give the price you paid per share, above zero.",
+      "date": "Give the date you bought, as year-month-day.",
+      "future": "That date is in the future.",
+      "quantity": "Leave the number of shares blank, or give a number above zero.",
+      "notSignedIn": "You are signed out.",
+      "unknown": "That did not save."
+    }
   }
 }

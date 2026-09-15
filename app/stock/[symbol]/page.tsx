@@ -16,6 +16,7 @@ import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { createClient } from '@/lib/supabase/server';
 import {
   getRatios,
+  getPosition,
   getReviews,
   getSignalHistory,
   getSignal,
@@ -31,6 +32,8 @@ import { buildTrend, conditionChanges } from '@/lib/data/trend';
 import { dataQualityOf, sourcesForRatio } from '@/lib/data/dataQuality';
 import { DataQualityNotice } from '@/components/DataQualityNotice';
 import { WhyBlock } from '@/components/WhyBlock';
+import { PositionBlock } from '@/components/PositionBlock';
+import { positionReturn } from '@/lib/data/position';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
@@ -122,12 +125,13 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, history, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav] =
+  const [ratios, snapshot, docs, reviewData, position, history, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
     getDocTranslations(locale),
     getReviews(symbol),
+    getPosition(symbol),
     getSignalHistory(symbol, TREND_DAYS),
     // Cached per language: a missing Dutch summary is a missing row, not a
     // reason to show the English one.
@@ -140,6 +144,7 @@ export default async function StockPage({
     getTranslations('thesis'),
     getTranslations('chart'),
     getTranslations('nav'),
+    getTranslations('position'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -686,6 +691,62 @@ export default async function StockPage({
             stopped: tSignal('trend.stopped'),
             tooSoon: tSignal('trend.tooSoon'),
             condition: (key) => CONDITION_LABEL[key]?.[locale] ?? key,
+          }}
+        />
+
+        {/* --- what you own, above the sell signals it gives meaning to ------ */}
+        <PositionBlock
+          symbol={symbol}
+          position={position}
+          currency={snapshot?.currency ?? null}
+          summary={
+            position
+              ? (() => {
+                  const result = positionReturn(position, snapshot?.price ?? null);
+                  return {
+                    change: result.change == null ? null : formatPercent(result.change, locale),
+                    value:
+                      result.value == null
+                        ? null
+                        : formatCurrency(result.value, snapshot?.currency ?? null, locale),
+                    gain:
+                      result.gain == null
+                        ? null
+                        : formatCurrency(result.gain, snapshot?.currency ?? null, locale),
+                    days: result.daysHeld,
+                  };
+                })()
+              : null
+          }
+          labels={{
+            title: tPosition('title'),
+            intro: tPosition('intro'),
+            add: tPosition('add'),
+            edit: tPosition('edit'),
+            entryPrice: tPosition('entryPrice'),
+            entryDate: tPosition('entryDate'),
+            quantity: tPosition('quantity'),
+            quantityHint: tPosition('quantityHint'),
+            note: tPosition('note'),
+            save: tPosition('save'),
+            saving: tPosition('saving'),
+            clear: tPosition('clear'),
+            clearing: tPosition('clearing'),
+            cancel: tPosition('cancel'),
+            since: tPosition('since'),
+            held: tPosition.raw('held') as string,
+            value: tPosition('value'),
+            gain: tPosition('gain'),
+            saved: tPosition('saved'),
+            cleared: tPosition('cleared'),
+            errors: {
+              price: tPosition('errors.price'),
+              date: tPosition('errors.date'),
+              future: tPosition('errors.future'),
+              quantity: tPosition('errors.quantity'),
+              not_signed_in: tPosition('errors.notSignedIn'),
+              unknown: tPosition('errors.unknown'),
+            },
           }}
         />
 
