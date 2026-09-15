@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -10,8 +10,25 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('app');
-  return { title: t('name'), description: t('tagline') };
+  return {
+    title: t('name'),
+    description: t('tagline'),
+    // Installed on iOS this opens without browser chrome, like the manifest's
+    // `standalone` does elsewhere; Safari reads its own meta rather than the
+    // manifest for that.
+    appleWebApp: { capable: true, title: t('name'), statusBarStyle: 'default' },
+  };
 }
+
+/**
+ * The colour the browser paints around the app once installed.
+ *
+ * slate-900 is the app's own ink, so a phone's status bar does not flash a
+ * colour that appears nowhere in the design.
+ */
+export const viewport: Viewport = {
+  themeColor: '#0f172a',
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
