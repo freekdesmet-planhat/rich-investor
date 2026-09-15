@@ -41,7 +41,22 @@ export interface RatioCardProps {
     note: string;
     approximationNote: string | null;
   } | null;
-  labels: { explain: string; target: string; fiveYears: string; close: string };
+  /**
+   * Where this metric's figures came from, and when.
+   *
+   * The footer named the providers for the whole page, which told the reader
+   * nothing about any particular number. This is per metric, in the dialog
+   * that already exists to explain it.
+   */
+  provenance?: { sources: string[]; asOf: string } | null;
+  labels: {
+    explain: string;
+    target: string;
+    fiveYears: string;
+    close: string;
+    /** Carries {sources} and {date}. */
+    source: string;
+  };
 }
 
 /**
@@ -63,6 +78,7 @@ export function RatioCard({
   history,
   unavailableLabel,
   adjusted,
+  provenance,
   labels,
 }: RatioCardProps) {
   const [open, setOpen] = useState(false);
@@ -209,6 +225,14 @@ export function RatioCard({
           {history.length > 1 && (
             <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
               {labels.fiveYears}: {history.map((p) => p.period.slice(0, 4)).join(' · ')}
+            </p>
+          )}
+
+          {provenance && provenance.sources.length > 0 && (
+            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+              {labels.source
+                .replace('{sources}', provenance.sources.join(', '))
+                .replace('{date}', provenance.asOf)}
             </p>
           )}
         </div>

@@ -142,6 +142,22 @@ describe('locale-aware formatting', () => {
     expect(formatBillions(652_317_032_448, 'USD', 'nl')).toContain('652,3');
   });
 
+  /**
+   * Past a thousand billion the billions figure needs four digits, and
+   * "$4,273.0B" is neither speakable nor comparable at a glance with "$105.6B".
+   */
+  it('switches to trillions when billions would need four digits', () => {
+    expect(formatBillions(4_273_000_000_000, 'USD', 'en')).toContain('4.27');
+    expect(formatBillions(4_273_000_000_000, 'USD', 'en')).toMatch(/T$/);
+    expect(formatBillions(4_273_000_000_000, 'USD', 'nl')).toContain('4,27');
+    expect(formatBillions(4_273_000_000_000, 'USD', 'nl')).toMatch(/bln$/);
+  });
+
+  it('stays in billions right up to the threshold', () => {
+    expect(formatBillions(999_000_000_000, 'USD', 'en')).toMatch(/B$/);
+    expect(formatBillions(1_000_000_000_000, 'USD', 'en')).toMatch(/T$/);
+  });
+
   it('renders a dash rather than NaN for missing values', () => {
     expect(formatNumber(null, 'en')).toBe('—');
     expect(formatPercent(null, 'nl')).toBe('—');

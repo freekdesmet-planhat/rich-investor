@@ -112,7 +112,13 @@
     "daysAgo": "{count} dagen geleden",
     "stale": "De nachtelijke update draait al {age} niet. De cijfers hieronder zijn van {date}.",
     "veryStale": "De nachtelijke update draait al {age} niet. Er is iets misgegaan; de cijfers hieronder zijn van {date} en zijn geen basis om op te handelen.",
-    "currencies": "Koersen in {quote}, jaarrekening in {filing}, de beurswaarde-regel in USD"
+    "currencies": "Koersen in {quote}, jaarrekening in {filing}, de beurswaarde-regel in USD",
+    "metricSource": "Uit {sources}, per {date}",
+    "quality": {
+      "unmeasured": "Beoordeeld zonder cijfer: {conditions}. De databronnen hadden niets te meten, dus een kruis daar betekent iets anders dan een gemeten afwijzing.",
+      "approximated": "Berust op een benadering: {conditions}.",
+      "stale": "Deze evaluatie gebruikte cijfers die de bronnen al als verouderd hadden gemarkeerd."
+    }
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",

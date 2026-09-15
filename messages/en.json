@@ -112,7 +112,13 @@
     "daysAgo": "{count}d ago",
     "stale": "The nightly update has not run for {age}. The figures below are from {date}.",
     "veryStale": "The nightly update has not run for {age}. Something has stopped; the figures below are from {date} and should not be acted on.",
-    "currencies": "Prices in {quote}, statements in {filing}, the market-cap rule in USD"
+    "currencies": "Prices in {quote}, statements in {filing}, the market-cap rule in USD",
+    "metricSource": "From {sources}, as of {date}",
+    "quality": {
+      "unmeasured": "Judged without a figure: {conditions}. The data providers had nothing to measure, so a cross there is not the same as a measured failure.",
+      "approximated": "Rests on an approximation: {conditions}.",
+      "stale": "This evaluation used figures the providers had already marked stale."
+    }
   },
   "review": {
     "title": "My qualitative review",

@@ -28,6 +28,8 @@ import {
 import type { Lang } from '@/lib/i18n/config';
 import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
+import { dataQualityOf, sourcesForRatio } from '@/lib/data/dataQuality';
+import { DataQualityNotice } from '@/components/DataQualityNotice';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
@@ -191,6 +193,13 @@ export default async function StockPage({
       })
     : null;
 
+  // Derived from the checklist and the snapshot the evaluation was made from,
+  // so it describes this verdict rather than the state of the providers now.
+  const quality = dataQualityOf({
+    checklist: signal.checklist,
+    isStale: snapshot?.is_stale,
+  });
+
   const mine = reviewData.reviews.find((r) => r.user_id === user?.id);
   const others = reviewData.reviews.filter((r) => r.user_id !== user?.id).map(toRecord);
 
@@ -340,6 +349,17 @@ export default async function StockPage({
               })}
             </span>
           </h2>
+          {/* Which of the nine below rested on a figure that was not there. */}
+          <DataQualityNotice
+            quality={quality}
+            labels={{
+              unmeasured: tData.raw('quality.unmeasured') as string,
+              approximated: tData.raw('quality.approximated') as string,
+              stale: tData('quality.stale'),
+              condition: (key) => CONDITION_LABEL[key]?.[locale] ?? key,
+            }}
+          />
+
           <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-800">
             {signal.checklist.map((condition) => (
               // Condition and criterion sit side by side where there is room
@@ -541,11 +561,16 @@ export default async function StockPage({
                       : null
                   }
                   adjusted={adjusted}
+                  provenance={{
+                    sources: sourcesForRatio(key, snapshot?.statement_sources),
+                    asOf: signal.as_of,
+                  }}
                   labels={{
                     explain: tRatio('explain'),
                     target: tRatio('target'),
                     fiveYears: tRatio('fiveYears'),
                     close: tRatio('close'),
+                    source: tData.raw('metricSource') as string,
                   }}
                 />
               );

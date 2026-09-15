@@ -40,14 +40,27 @@ export function formatCurrency(
   }).format(value);
 }
 
-/** Large money in billions, which is how market caps are read. */
+/**
+ * Large money at the scale it is spoken about.
+ *
+ * Billions for most companies, because that is how a market cap is read — and
+ * trillions past a thousand of them, because "$4,273.0B" is a number nobody
+ * says out loud and nobody can compare at a glance to "$105.6B". The threshold
+ * is the point where the billions figure needs four digits.
+ */
 export function formatBillions(
   value: number | null,
   currency: string | null,
   lang: Lang,
 ): string {
   if (value == null || !Number.isFinite(value)) return '—';
+
   const billions = value / 1e9;
+  if (Math.abs(billions) >= 1_000) {
+    const suffix = lang === 'nl' ? ' bln' : 'T';
+    return `${formatCurrency(billions / 1_000, currency, lang, 2)}${suffix}`;
+  }
+
   const suffix = lang === 'nl' ? ' mld' : 'B';
   return `${formatCurrency(billions, currency, lang, 1)}${suffix}`;
 }
