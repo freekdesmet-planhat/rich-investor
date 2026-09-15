@@ -19,6 +19,7 @@ import {
   getPosition,
   getReviews,
   getSignalHistory,
+  getThresholdOverrides,
   getSignal,
   getSnapshot,
   getTickerSummary,
@@ -34,6 +35,11 @@ import { DataQualityNotice } from '@/components/DataQualityNotice';
 import { WhyBlock } from '@/components/WhyBlock';
 import { PositionBlock } from '@/components/PositionBlock';
 import { positionReturn } from '@/lib/data/position';
+import {
+  isOverridden,
+  overriddenTargetLabel,
+  RATIO_THRESHOLD,
+} from '@/lib/ratios/editableThresholds';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
@@ -125,7 +131,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -133,6 +139,7 @@ export default async function StockPage({
     getReviews(symbol),
     getPosition(symbol),
     getSignalHistory(symbol, TREND_DAYS),
+    getThresholdOverrides(),
     // Cached per language: a missing Dutch summary is a missing row, not a
     // reason to show the English one.
     getTickerSummary(symbol, locale),
@@ -535,8 +542,23 @@ export default async function StockPage({
 
               // The doc names the source in prose and the row carries it as
               // data; the card renders it once, from the data.
-              const sourceLabel = tRatio(`source.${row.target_source}`);
-              const targetLabel = stripSourceSuffix(doc?.target ?? row.target_label);
+              // "app default" stopped being true the moment the household
+              // changed the number, so the card says whose it is now. Read from
+              // the current overrides rather than the stored row: a setting
+              // changed today should not have to wait for tonight to be named
+              // correctly, even though the figure it produced will.
+              const editableKey = RATIO_THRESHOLD[key];
+              const isMine = editableKey != null && isOverridden(editableKey, thresholdOverrides);
+              const sourceLabel = isMine
+                ? tRatio('source.your_setting')
+                : tRatio(`source.${row.target_source}`);
+              // The documented target is prose and does not follow the
+              // threshold, so an overridden card builds its own rather than
+              // printing "≤ 20 (your setting)" when the setting is 15.
+              const targetLabel =
+                overriddenTargetLabel(key, thresholdOverrides, (value) =>
+                  formatNumber(value, locale),
+                ) ?? stripSourceSuffix(doc?.target ?? row.target_label);
 
               const detail = row.detail as { isApproximation?: boolean };
               const adjusted = row.is_adjusted

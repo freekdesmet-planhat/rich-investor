@@ -44,7 +44,8 @@
     "target": "Doel",
     "source": {
       "book": "uit het boek",
-      "app_default": "standaardinstelling"
+      "app_default": "standaardinstelling",
+      "your_setting": "eigen instelling"
     },
     "fiveYears": "Afgelopen 5 jaar",
     "unavailable": {
@@ -319,7 +320,32 @@
     },
     "saveSettings": "Opslaan",
     "savingSettings": "Opslaan…",
-    "savedSettings": "Opgeslagen."
+    "savedSettings": "Opgeslagen.",
+    "thresholds": {
+      "title": "Drempels die de app zelf koos",
+      "intro": "Het boek noemt voor deze vier geen grens, dus koos de app er een. Pas ze aan en de volgende evaluatie gebruikt die van jou.",
+      "bookNote": "De drempels uit het boek — het koers-winstplafond van 30, de PEG-banden, de daling van 50%, de ondergrens van 10 miljard dollar — zijn niet aanpasbaar. Dat raamwerk toepassen is waar deze app voor is.",
+      "appliesNote": "Gaat in bij de volgende evaluatie: de run van vannacht, of \"Nu analyseren\" op een aandeel. Cijfers die nu op het scherm staan zijn met de oude getallen berekend.",
+      "resetHint": "Laat een veld leeg om de standaard in het grijs te volgen.",
+      "saved": "Opgeslagen. De volgende evaluatie gebruikt deze.",
+      "error": "Elke waarde moet een getal groter dan nul zijn.",
+      "names": {
+        "evEbit": "EV/EBIT",
+        "pFcf": "Koers / vrije kasstroom",
+        "revenueGrowth": "Omzetgroei",
+        "debt": "Schuld",
+        "lynchTolerance": "Tolerantie groeibanden"
+      },
+      "fields": {
+        "green": "Goed bij of onder",
+        "orange": "Grensgeval bij of onder",
+        "netDebtEbitdaGreen": "Nettoschuld/EBITDA, goed",
+        "netDebtEbitdaOrange": "Nettoschuld/EBITDA, grensgeval",
+        "coverageGreen": "Rentedekking, goed",
+        "coverageOrange": "Rentedekking, grensgeval",
+        "band": "Band, als fractie"
+      }
+    }
   },
   "notFound": {
     "title": "Niet gevonden",

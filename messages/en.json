@@ -44,7 +44,8 @@
     "target": "Target",
     "source": {
       "book": "from the book",
-      "app_default": "app default"
+      "app_default": "app default",
+      "your_setting": "your setting"
     },
     "fiveYears": "Last 5 years",
     "unavailable": {
@@ -319,7 +320,32 @@
     },
     "saveSettings": "Save",
     "savingSettings": "Saving…",
-    "savedSettings": "Saved."
+    "savedSettings": "Saved.",
+    "thresholds": {
+      "title": "Thresholds the app chose",
+      "intro": "The book states no cutoff for these four, so the app picked one. Change them and the next evaluation uses yours.",
+      "bookNote": "The book’s own thresholds — the P/E ceiling of 30, the PEG bands, the 50% decline, the $10bn floor — are not editable. Applying that framework is what this app is for.",
+      "appliesNote": "Takes effect at the next evaluation: tonight’s run, or \"Analyse now\" on a stock. Figures already on screen were computed with the old numbers.",
+      "resetHint": "Leave a field blank to follow the app default shown in grey.",
+      "saved": "Saved. The next evaluation will use these.",
+      "error": "Every value must be a number above zero.",
+      "names": {
+        "evEbit": "EV/EBIT",
+        "pFcf": "Price / free cash flow",
+        "revenueGrowth": "Revenue growth",
+        "debt": "Debt",
+        "lynchTolerance": "Growth-band tolerance"
+      },
+      "fields": {
+        "green": "Good at or below",
+        "orange": "Borderline at or below",
+        "netDebtEbitdaGreen": "Net debt/EBITDA, good",
+        "netDebtEbitdaOrange": "Net debt/EBITDA, borderline",
+        "coverageGreen": "Interest cover, good",
+        "coverageOrange": "Interest cover, borderline",
+        "band": "Band, as a fraction"
+      }
+    }
   },
   "notFound": {
     "title": "Not found",

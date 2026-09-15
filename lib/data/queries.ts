@@ -13,6 +13,7 @@ import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
 import type { FocusSector } from '@/lib/sectors/mapping';
 import type { WhyPart } from '@/lib/signal/explain';
 import type { Position } from './position';
+import { sanitiseOverrides } from '@/lib/ratios/editableThresholds';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
 import { dedupeByCompany, PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
@@ -602,6 +603,22 @@ export async function getSettings(): Promise<MemberSettings> {
     .maybeSingle<MemberSettings>();
 
   return data ?? fallback;
+}
+
+/**
+ * The household's threshold overrides, sanitised.
+ *
+ * Household-wide: these decide the analysis, which is shared, so there is one
+ * row and no question of whose numbers produced a signal.
+ */
+export async function getThresholdOverrides(): Promise<Record<string, Record<string, number>>> {
+  const supabase = await client();
+  const { data } = await supabase
+    .from('analysis_settings')
+    .select('thresholds')
+    .maybeSingle<{ thresholds: unknown }>();
+
+  return sanitiseOverrides(data?.thresholds).overrides;
 }
 
 /** Just the symbols, for marking search results as already added. */

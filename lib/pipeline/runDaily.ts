@@ -19,6 +19,7 @@ import { checkInvariants, formatViolations, type InvariantViolation } from '@/li
 import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { evaluateSignal, type SignalStatus } from '@/lib/signal/buyWorthy';
 import { explainSignal, explainSections } from '@/lib/signal/explain';
+import { readThresholdOverrides } from './thresholdStore';
 import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
 import { refreshMacroContext } from '@/lib/macro/store';
 import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
@@ -178,8 +179,11 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
   const fx = createFxRates();
   await fx.load(pairs);
 
-  const thresholds = thresholdOverrides
-    ? mergeThresholds(thresholdOverrides)
+  // Explicit overrides win; otherwise the household's stored ones, which is
+  // what makes the setting take effect without anything else being told.
+  const stored = thresholdOverrides ?? (await readThresholdOverrides(client));
+  const thresholds = Object.keys(stored ?? {}).length > 0
+    ? mergeThresholds(stored as Record<string, unknown>)
     : DEFAULT_THRESHOLDS;
 
   const rows: PipelineRow[] = [];

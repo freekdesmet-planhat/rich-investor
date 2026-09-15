@@ -3,6 +3,9 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { createClient } from '@/lib/supabase/server';
 import { PasswordForm } from './PasswordForm';
 import { SettingsForms } from './SettingsForms';
+import { ThresholdForm } from './ThresholdForm';
+import { getThresholdOverrides } from '@/lib/data/queries';
+import { EDITABLE_KEYS, defaultFieldsFor } from '@/lib/ratios/editableThresholds';
 import { getSettings } from '@/lib/data/queries';
 import { getLocale } from 'next-intl/server';
 
@@ -16,11 +19,12 @@ export const dynamic = 'force-dynamic';
  * change the caller's own password.
  */
 export default async function AccountPage() {
-  const [tAuth, tAccount, settings, locale] = await Promise.all([
+  const [tAuth, tAccount, settings, locale, thresholds] = await Promise.all([
     getTranslations('auth'),
     getTranslations('account'),
     getSettings(),
     getLocale(),
+    getThresholdOverrides(),
   ]);
 
   const supabase = await createClient();
@@ -100,6 +104,29 @@ export default async function AccountPage() {
               not_signed_in: tAuth('signInFailed'),
               unknown: tAuth('error'),
             },
+          }}
+        />
+
+        <ThresholdForm
+          overrides={thresholds}
+          labels={{
+            title: tAccount('thresholds.title'),
+            intro: tAccount('thresholds.intro'),
+            bookNote: tAccount('thresholds.bookNote'),
+            appliesNote: tAccount('thresholds.appliesNote'),
+            resetHint: tAccount('thresholds.resetHint'),
+            save: tAccount('saveSettings'),
+            saving: tAccount('savingSettings'),
+            saved: tAccount('thresholds.saved'),
+            error: tAccount('thresholds.error'),
+            names: Object.fromEntries(
+              EDITABLE_KEYS.map((key) => [key, tAccount(`thresholds.names.${key}`)]),
+            ),
+            fields: Object.fromEntries(
+              [...new Set(EDITABLE_KEYS.flatMap((key) => Object.keys(defaultFieldsFor(key))))].map(
+                (field) => [field, tAccount(`thresholds.fields.${field}`)],
+              ),
+            ),
           }}
         />
 
