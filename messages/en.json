@@ -84,7 +84,13 @@
     }
   },
   "signal": {
-    "why": "Why",
+    "why": {
+      "passes": "What passes",
+      "missing": "What is still missing",
+      "check": "What you must check",
+      "full": "Read the full reasoning",
+      "title": "Why"
+    },
     "checklist": "Buy-worthy checklist",
     "pegBasis": {
       "trailing": "passed on realised growth",

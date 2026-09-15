@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildContext, computeAllRatios, type RatioKey, type RatioResult } from '@/lib/ratios/engine';
 import { evaluateSignal, type SignalResult } from './buyWorthy';
-import { explainSignal, explainForEmail } from './explain';
+import { explainSignal, explainForEmail, explainSections } from './explain';
 import { classifyLynch, pegCategoryFor } from './lynch';
 import { checkInvariants } from '@/lib/ratios/invariants';
 import type { SymbolBundle } from '@/lib/providers/marketData';
@@ -343,6 +343,33 @@ describe('PEG condition (trailing or forward)', () => {
 // ---------------------------------------------------------------------------
 
 describe('why-text generator (section 7)', () => {
+  /**
+   * The invariant that protects the email and the suggestion cards: the page
+   * gets the sentences grouped, but joining them in order must reproduce the
+   * prose those two surfaces have always sent, to the character.
+   */
+  it('joins its sections back into exactly the prose', () => {
+    const { signal, ratios } = run(idealBundle());
+    const input = { symbol: 'TEST', name: 'Test Co', signal, ratios };
+
+    const prose = explainSignal(input);
+    const sections = explainSections(input);
+
+    expect(sections.en.map((p) => p.text).join(' ')).toBe(prose.en);
+    expect(sections.nl.map((p) => p.text).join(' ')).toBe(prose.nl);
+  });
+
+  it('opens with a verdict and files every sentence somewhere', () => {
+    const { signal, ratios } = run(idealBundle());
+    const sections = explainSections({ symbol: 'TEST', signal, ratios });
+
+    expect(sections.en[0].section).toBe('verdict');
+    for (const part of sections.en) {
+      expect(['verdict', 'passes', 'missing', 'check']).toContain(part.section);
+      expect(part.text.trim().length).toBeGreaterThan(0);
+    }
+  });
+
   it('produces both languages, always together', () => {
     const { signal, ratios } = run(idealBundle());
     const text = explainSignal({ symbol: 'TEST', name: 'Test Co', signal, ratios });

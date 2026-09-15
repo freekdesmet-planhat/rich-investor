@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
 import type { FocusSector } from '@/lib/sectors/mapping';
+import type { WhyPart } from '@/lib/signal/explain';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
 import { dedupeByCompany, PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
@@ -36,6 +37,8 @@ export interface SignalRow {
   }>;
   why_en: string;
   why_nl: string;
+  /** Tagged sentences; null on rows written before they were stored. */
+  why_parts: { en: WhyPart[]; nl: WhyPart[] } | null;
   became_buy_worthy: boolean;
   previous_status: string | null;
 }

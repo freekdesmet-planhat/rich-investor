@@ -84,7 +84,13 @@
     }
   },
   "signal": {
-    "why": "Waarom",
+    "why": {
+      "passes": "Wat er goed staat",
+      "missing": "Wat er nog ontbreekt",
+      "check": "Wat je zelf moet beoordelen",
+      "full": "Lees de volledige onderbouwing",
+      "title": "Waarom"
+    },
     "checklist": "Checklist koopwaardigheid",
     "pegBasis": {
       "trailing": "gehaald op gerealiseerde groei",

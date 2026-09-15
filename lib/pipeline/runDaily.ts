@@ -18,7 +18,7 @@ import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/e
 import { checkInvariants, formatViolations, type InvariantViolation } from '@/lib/ratios/invariants';
 import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { evaluateSignal, type SignalStatus } from '@/lib/signal/buyWorthy';
-import { explainSignal } from '@/lib/signal/explain';
+import { explainSignal, explainSections } from '@/lib/signal/explain';
 import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
 import { refreshMacroContext } from '@/lib/macro/store';
 import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
@@ -223,12 +223,15 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
 
     const signal = evaluateSignal(ctx, ratios, lynch.category);
 
-    const explanation = explainSignal({
+    // Built once and used twice: the joined prose for the email and the
+    // suggestion cards, the tagged sentences for the page.
+    const explainInput = {
       symbol,
       name: meta?.name ?? bundle.quote?.name ?? null,
       signal,
       ratios,
-    });
+    };
+    const explanation = explainSignal(explainInput);
 
     const previous = previousStatus.get(symbol) ?? null;
     const becameBuyWorthy = signal.status === 'buy_worthy' && previous !== 'buy_worthy';
@@ -277,6 +280,9 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
       checklist: signal.conditions,
       why_en: explanation.en,
       why_nl: explanation.nl,
+      // The same sentences, still grouped. The prose above stays the source
+      // for the email; this is what lets the page lead with a verdict.
+      why_parts: explainSections(explainInput),
       ratio_snapshot: signal.ratioSnapshot,
       thresholds_used: thresholds,
       peg_basis: signal.pegBasis,

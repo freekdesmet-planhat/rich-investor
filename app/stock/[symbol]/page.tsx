@@ -30,6 +30,7 @@ import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
 import { dataQualityOf, sourcesForRatio } from '@/lib/data/dataQuality';
 import { DataQualityNotice } from '@/components/DataQualityNotice';
+import { WhyBlock } from '@/components/WhyBlock';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
@@ -290,9 +291,18 @@ export default async function StockPage({
         {/* --- the mandatory "why", directly under the status badge -------- */}
         <section className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            {tSignal('why')}
+            {tSignal('why.title')}
           </h2>
-          <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{why}</p>
+          <WhyBlock
+            parts={signal.why_parts?.[locale] ?? null}
+            prose={why}
+            labels={{
+              passes: tSignal('why.passes'),
+              missing: tSignal('why.missing'),
+              check: tSignal('why.check'),
+              fullReasoning: tSignal('why.full'),
+            }}
+          />
           {signal.peg_basis && (
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               PEG: {tSignal(`pegBasis.${signal.peg_basis}`)}
