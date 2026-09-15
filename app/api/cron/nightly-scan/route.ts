@@ -23,14 +23,18 @@ import {
   scanBudget,
   RUN_CEILING_MS,
 } from '@/lib/pipeline/scanBudget';
+import {
+  mergeScanState,
+  readScanStateFrom,
+  type ScanState,
+} from '@/lib/pipeline/scanState';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 
 /** Long enough for a full run; Netlify caps background functions well above this. */
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-/** Where the scan's learned cost per candidate is kept, beside the cursor. */
-const COST_KEY = 'scanMsPerCandidate';
+
 
 export async function POST(request: NextRequest) {
   if (!isAuthorisedCron(request.headers)) {
@@ -153,53 +157,45 @@ async function watchlistSymbols(client: SupabaseClient): Promise<string[]> {
  * The scan cursor, kept in `settings` under a reserved row so consecutive
  * nights walk through the universe instead of rescanning its first page.
  */
-const CURSOR_KEY = 'scan_cursor';
 
-interface ScanState {
-  cursor: number;
-  /** Null until a night has measured one. */
-  msPerCandidate: number | null;
-}
-
+/**
+ * Several rows, not one.
+ *
+ * The macro refresh at the top of this run has already inserted today's row
+ * with an empty `detail`, so "the newest row" is today's and holds nothing —
+ * which is how the cursor came back as zero every single night. A short window
+ * of recent days is read and the most recent value that actually exists wins;
+ * see scanState.ts.
+ */
 async function readScanState(client: SupabaseClient): Promise<ScanState> {
   const { data } = await client
     .from('macro_context')
     .select('detail')
     .order('date', { ascending: false })
-    .limit(1)
-    .maybeSingle<{ detail: Record<string, unknown> | null }>();
+    .limit(30)
+    .returns<Array<{ detail: Record<string, unknown> | null }>>();
 
-  const cursor = data?.detail?.[CURSOR_KEY];
-  const cost = data?.detail?.[COST_KEY];
-
-  return {
-    cursor: typeof cursor === 'number' ? cursor : 0,
-    msPerCandidate: typeof cost === 'number' && cost > 0 ? cost : null,
-  };
+  return readScanStateFrom(data ?? []);
 }
 
 async function saveScanState(client: SupabaseClient, state: ScanState): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
 
-  // Merged into whatever `detail` already holds rather than replacing it. The
-  // previous version wrote `{ cursor }` wholesale, which was harmless while the
-  // cursor was the only key and would have silently dropped this one.
   const { data } = await client
     .from('macro_context')
     .select('detail')
     .eq('date', today)
     .maybeSingle<{ detail: Record<string, unknown> | null }>();
 
+  // Upserted, not updated: if the macro refresh failed earlier there is no row
+  // for today, and an update would match nothing and throw the scan's progress
+  // away without a word. `date` is the primary key and every other column is
+  // nullable, so inserting the day with only its state is valid.
   await client
     .from('macro_context')
-    .update({
-      detail: {
-        ...(data?.detail ?? {}),
-        [CURSOR_KEY]: state.cursor,
-        ...(state.msPerCandidate != null ? { [COST_KEY]: state.msPerCandidate } : {}),
-      },
-    })
-    .eq('date', today);
+    .upsert({ date: today, detail: mergeScanState(data?.detail ?? null, state) }, {
+      onConflict: 'date',
+    });
 }
 
 /** GET is a health check: it reports readiness without running anything. */
