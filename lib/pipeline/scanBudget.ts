@@ -10,8 +10,15 @@
  * longer.
  *
  * A fixed batch could not express that. Thirty was a guess that was too small
- * on a fast night and too large on a slow one; what the scan should get is the
- * remainder of the run's budget, measured rather than assumed.
+ * on a fast night and too large on a slow one; what the scan should get is a
+ * batch it can actually afford, measured rather than assumed.
+ *
+ * So there are two numbers, and the smaller wins: what was *asked for*
+ * (`SCAN_BATCH_SIZE`, or `DEFAULT_SCAN_BATCH` when nothing usable is
+ * configured) and what the clock can *afford*. Purely time-derived batches came
+ * before this and were the better idea on paper, but they had no floor and no
+ * name for their own zero — a night that scanned nothing looked exactly like a
+ * night that was never asked to. Every outcome here is now named and logged.
  *
  * The budget being divided is *time*, not a provider allowance, which is worth
  * stating because it is not the obvious reading:
@@ -56,6 +63,18 @@ export const DEFAULT_MS_PER_CANDIDATE = 3_000;
 /** Never more than this, whatever the arithmetic or the environment says. */
 export const MAX_SCAN_BATCH = 200;
 
+/**
+ * The batch used when `SCAN_BATCH_SIZE` says nothing usable.
+ *
+ * There used to be no default: an unset variable fell through to the time
+ * arithmetic alone, and an unreadable one was treated as unset. Both are
+ * defensible, and both produced the same failure in practice — a night on which
+ * the scan did no work and said nothing about why. A named default means the
+ * only way to reach a batch of zero is to ask for one, or to genuinely have no
+ * time left, and both of those are now stated rather than inferred.
+ */
+export const DEFAULT_SCAN_BATCH = 60;
+
 export interface ScanBudgetInput {
   /** Milliseconds the whole run may take. */
   ceilingMs?: number;
@@ -67,29 +86,67 @@ export interface ScanBudgetInput {
   override?: string | null;
 }
 
+/**
+ * What `SCAN_BATCH_SIZE` was, as a fact rather than as a number.
+ *
+ * `null` used to mean three different things — unset, unreadable, and "the
+ * value was fine" — which is why an unreadable value could silently disable the
+ * scan. Each now has its own name, and the caller logs which one it got.
+ */
+export type OverrideKind = 'set' | 'unset' | 'invalid' | 'disabled';
+
+export interface OverrideResult {
+  /** Null when nothing usable was configured. */
+  value: number | null;
+  kind: OverrideKind;
+  raw: string | null;
+}
+
+export type ScanBudgetReason =
+  /** An explicit SCAN_BATCH_SIZE decided it. */
+  | 'override'
+  /** Nothing was configured, so DEFAULT_SCAN_BATCH did. */
+  | 'default'
+  /** Something unreadable was configured; DEFAULT_SCAN_BATCH did. */
+  | 'invalid_override'
+  /** SCAN_BATCH_SIZE=0 — the scan is switched off on purpose. */
+  | 'disabled'
+  /** The clock, not the configuration, was the binding constraint. */
+  | 'time'
+  /** The watchlist used the whole run; there is nothing left to give. */
+  | 'exhausted';
+
 export interface ScanBudget {
   limit: number;
   /** Why it came out at that number, so a short night is explicable. */
-  reason: 'override' | 'time' | 'exhausted';
+  reason: ScanBudgetReason;
   msPerCandidate: number;
   remainingMs: number;
+  /** Lines for the run log, so no batch of zero is ever unexplained. */
+  notes: string[];
+  override: OverrideResult;
 }
 
 /**
  * Parses `SCAN_BATCH_SIZE`.
  *
- * Anything that is not a non-negative whole number is treated as unset rather
- * than coerced: `Number('sixty')` is NaN, and passing NaN as a limit produced a
- * scan that quietly evaluated nothing. Zero is a real answer — "skip the scan
- * tonight" — so it is honoured rather than swallowed.
+ * Anything that is not a non-negative whole number is `invalid` rather than
+ * coerced: `Number('sixty')` is NaN, and passing NaN as a limit produced a scan
+ * that quietly evaluated nothing. Zero is a real answer — "skip the scan
+ * tonight" — so it is honoured, and named `disabled` so the run can say that it
+ * was asked to rather than leaving a zero to be puzzled over.
  */
-export function parseOverride(raw: string | null | undefined): number | null {
-  if (raw == null || raw.trim() === '') return null;
+export function parseOverride(raw: string | null | undefined): OverrideResult {
+  const value = raw ?? null;
+  if (value == null || value.trim() === '') return { value: null, kind: 'unset', raw: value };
 
-  const value = Number(raw);
-  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+    return { value: null, kind: 'invalid', raw: value };
+  }
+  if (parsed === 0) return { value: 0, kind: 'disabled', raw: value };
 
-  return Math.min(value, MAX_SCAN_BATCH);
+  return { value: Math.min(parsed, MAX_SCAN_BATCH), kind: 'set', raw: value };
 }
 
 /** How many candidates fit in what is left of the run. */
@@ -101,30 +158,61 @@ export function scanBudget(input: ScanBudgetInput): ScanBudget {
       : DEFAULT_MS_PER_CANDIDATE;
 
   const remainingMs = Math.max(0, ceilingMs - input.elapsedMs - SAFETY_MARGIN_MS);
+  const affordable = Math.min(MAX_SCAN_BATCH, Math.floor(remainingMs / msPerCandidate));
 
   const override = parseOverride(input.override);
-  if (override != null) {
-    // An explicit setting is an instruction, not a suggestion — but it still
-    // cannot book time the run does not have.
-    const affordable = Math.floor(remainingMs / msPerCandidate);
-    return {
-      limit: Math.min(override, Math.max(0, affordable)),
-      reason: 'override',
-      msPerCandidate,
-      remainingMs,
-    };
+  const notes: string[] = [];
+
+  let wanted: number;
+  let wantedReason: ScanBudgetReason;
+
+  switch (override.kind) {
+    case 'set':
+      wanted = override.value ?? DEFAULT_SCAN_BATCH;
+      wantedReason = 'override';
+      notes.push(`SCAN_BATCH_SIZE=${override.raw}: asking for ${wanted} candidates`);
+      break;
+    case 'disabled':
+      wanted = 0;
+      wantedReason = 'disabled';
+      notes.push('SCAN_BATCH_SIZE=0: the scan is switched off by configuration, not by accident');
+      break;
+    case 'invalid':
+      wanted = DEFAULT_SCAN_BATCH;
+      wantedReason = 'invalid_override';
+      notes.push(
+        `SCAN_BATCH_SIZE=${JSON.stringify(override.raw)} is not a whole number of candidates; ` +
+          `using the default of ${DEFAULT_SCAN_BATCH}`,
+      );
+      break;
+    default:
+      wanted = DEFAULT_SCAN_BATCH;
+      wantedReason = 'default';
+      notes.push(`SCAN_BATCH_SIZE is unset; using the default of ${DEFAULT_SCAN_BATCH}`);
+      break;
   }
 
-  const limit = Math.min(MAX_SCAN_BATCH, Math.floor(remainingMs / msPerCandidate));
+  // An instruction, but not one that can book time the run does not have.
+  const limit = Math.max(0, Math.min(wanted, affordable));
 
-  return {
-    limit: Math.max(0, limit),
-    // A watchlist pass that consumed the whole ceiling is not an error; it means
-    // the watchlist itself now needs the entire run, and the scan waits.
-    reason: limit <= 0 ? 'exhausted' : 'time',
-    msPerCandidate,
-    remainingMs,
-  };
+  let reason: ScanBudgetReason = wantedReason;
+  if (wanted === 0) {
+    reason = 'disabled';
+  } else if (affordable <= 0) {
+    reason = 'exhausted';
+    notes.push(
+      `no time left for the scan: ${Math.round(remainingMs / 1000)}s remain at ` +
+        `~${msPerCandidate}ms per candidate`,
+    );
+  } else if (affordable < wanted) {
+    reason = 'time';
+    notes.push(
+      `the clock allows ${affordable} of the ${wanted} candidates asked for ` +
+        `(${Math.round(remainingMs / 1000)}s at ~${msPerCandidate}ms each)`,
+    );
+  }
+
+  return { limit, reason, msPerCandidate, remainingMs, notes, override };
 }
 
 /**

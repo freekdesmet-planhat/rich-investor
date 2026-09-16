@@ -98,10 +98,11 @@
 #     GEMINI_MODEL                    Override the default model
 #     FMP_API_KEY                     Analyst estimates for the tickers FMP covers
 #     SEC_USER_AGENT                  Contact string the SEC requires for EDGAR
-#     SCAN_BATCH_SIZE                 Fixes the nightly scan batch. Unset is
-#                                     normal: the scan then takes whatever time
-#                                     the watchlist pass left, measured against
-#                                     the cost it observed on previous nights.
-#                                     Capped at 200; 0 skips the scan.
+#     SCAN_BATCH_SIZE                 Candidates the nightly scan evaluates.
+#                                     Unset or unreadable falls back to 60, and
+#                                     the run says which it got. Capped at 200
+#                                     and by the time the watchlist pass left;
+#                                     0 skips the scan, which the run also says.
+#                                     Every outcome lands in `cron_runs`.
 #     FINANCE_QUERY_BASE_URL          Point at a self-hosted finance-query
 # ---------------------------------------------------------------------------

@@ -34,55 +34,25 @@ import {
   type FocusSector,
   type SectorRule,
 } from '@/lib/sectors/mapping';
+import {
+  focusSectorFilter,
+  isPrimaryListing as isPrimaryListingRow,
+  primaryListingFilter,
+} from './scanQuery';
 
 /** How long a dismissed ticker stays out of the feed (section 3.1). */
 export const DISMISS_DAYS = 90;
 
 /**
- * Primary listing venues, mapped to the country whose companies they host.
- *
- * FinanceDatabase carries every venue a company trades on, so a large-cap
- * filter over US and Europe is dominated by cross-listings rather than
- * companies: of the first batch scanned, 096.F was a US company on Frankfurt,
- * 0A46.L a US company on the LSE, and 0G8C.IL a Norwegian company on the
- * International Order Book. Analysing those is duplicated work against a
- * thinner order book than the primary line.
- *
- * A listing counts as primary when its venue's country matches the company's,
- * which filters cross-listings without needing an issuer identifier the dataset
- * does not carry.
+ * The venue table, the primary-listing test and the query builders all live in
+ * scanQuery.ts now, because the filters they describe run in the database.
+ * Re-exported here so the rest of the app keeps its existing import.
  */
-const PRIMARY_EXCHANGES: Record<string, string> = {
-  NMS: 'United States',
-  NYQ: 'United States',
-  NGM: 'United States',
-  ASE: 'United States',
-  PCX: 'United States',
-  AMS: 'Netherlands',
-  PAR: 'France',
-  EBS: 'Switzerland',
-  GER: 'Germany',
-  FRA: 'Germany',
-  MIL: 'Italy',
-  MCE: 'Spain',
-  STO: 'Sweden',
-  CPH: 'Denmark',
-  HEL: 'Finland',
-  OSL: 'Norway',
-  BRU: 'Belgium',
-  LIS: 'Portugal',
-  VIE: 'Austria',
-  LSE: 'United Kingdom',
-  ISE: 'Ireland',
-};
-
-export function isPrimaryListing(exchange: string | null, country: string | null): boolean {
-  if (!exchange || !country) return false;
-  return PRIMARY_EXCHANGES[exchange.toUpperCase()] === country;
-}
-
-/** Venue codes worth querying at all, so the page is not spent on noise. */
-export const PRIMARY_EXCHANGE_CODES = Object.keys(PRIMARY_EXCHANGES);
+export {
+  PRIMARY_EXCHANGES,
+  PRIMARY_EXCHANGE_CODES,
+  isPrimaryListing,
+} from './scanQuery';
 
 /**
  * Preference between venues of the same country, lowest first.
@@ -241,18 +211,46 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   }
 
   // --- candidates ----------------------------------------------------------
-  const { data: universe } = await client
+  //
+  // Both filters run in the database. They used to run here, over a page that
+  // was 92% rows destined to be discarded — and since the cursor counts rows
+  // consumed, that 92% also set the pace at which the scan crawled through the
+  // universe. See scanQuery.ts for what each filter can and cannot express.
+  const focusFilter = focusSectorFilter(rules);
+  if (focusFilter == null) {
+    log('no inclusive sector rules configured: scanning without a focus filter');
+  }
+
+  // `limit * 2`, where it used to be `limit * 6`. The page is now mostly
+  // candidates, so the headroom only has to cover the exact focus check and the
+  // de-duplication of a company's remaining listings.
+  const pageEnd = cursor + limit * 2;
+
+  let query = client
     .from('universe')
     .select('symbol,name,sector,industry,exchange,country')
     .in('region', regions)
     .in('market_cap_band', marketCapBands)
-    // Narrowed in the query rather than in memory: PostgREST returns at most
-    // 1000 rows per request, and cross-listings so outnumber primary lines that
-    // a whole page could otherwise yield two candidates.
-    .in('exchange', PRIMARY_EXCHANGE_CODES)
+    // The venue/country *pairing*, not the venue alone. `exchange in (...)` was
+    // the old prefilter and is what let Frankfurt cross-listings of US
+    // companies through: FRA is a real primary venue for German companies, so
+    // only the pairing can separate the two.
+    .or(primaryListingFilter());
+
+  if (focusFilter != null) query = query.or(focusFilter);
+
+  const { data: universe, error: universeError } = await query
     .order('symbol')
-    .range(cursor, cursor + limit * 6)
+    .range(cursor, pageEnd)
     .returns<UniverseRow[]>();
+
+  // Surfaced rather than swallowed. A malformed filter comes back as a
+  // PostgREST error and an empty `data`, which is indistinguishable from
+  // "reached the end of the universe" — and that is the exact shape of silence
+  // this whole change exists to remove.
+  if (universeError) {
+    throw new Error(`universe query failed: ${universeError.message}`);
+  }
 
   const eligible: UniverseRow[] = [];
   let consumed = 0;
@@ -260,7 +258,10 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   for (const row of universe ?? []) {
     consumed++;
     if (exclude.has(row.symbol)) continue;
-    if (!isPrimaryListing(row.exchange, row.country)) continue;
+    // Both of these are now narrower re-checks of what the query already did:
+    // the primary-listing test is exact in SQL, and the focus test is the
+    // authoritative most-specific-rule-wins resolution over a SQL superset.
+    if (!isPrimaryListingRow(row.exchange, row.country)) continue;
     const focus = resolveFocusSector(rules, {
       symbol: row.symbol,
       sector: row.sector,
@@ -277,9 +278,26 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   // rather than `limit` listings of rather fewer companies.
   const candidates = dedupeByCompany(eligible).slice(0, limit);
 
-  log(`scanning ${candidates.length} candidates from cursor ${cursor}`);
+  log(
+    `scanning ${candidates.length} candidates from cursor ${cursor} ` +
+      `(${consumed} rows read, ${eligible.length} eligible)`,
+  );
+
   if (candidates.length === 0) {
-    return { evaluated: 0, suggested: 0, skipped: 0, nextCursor: cursor + consumed, candidates: [] };
+    // An empty page means the cursor has run off the end of the screened set,
+    // which is now a few hundred companies rather than thousands — so it will
+    // happen regularly rather than never. Without the wrap the cursor sticks
+    // there for good: `cursor + 0` is `cursor`, every night, forever.
+    const exhausted = (universe ?? []).length === 0 && cursor > 0;
+    if (exhausted) log(`reached the end of the screened universe at ${cursor}; starting over`);
+
+    return {
+      evaluated: 0,
+      suggested: 0,
+      skipped: 0,
+      nextCursor: exhausted ? 0 : cursor + consumed,
+      candidates: [],
+    };
   }
 
   // --- evaluate ------------------------------------------------------------

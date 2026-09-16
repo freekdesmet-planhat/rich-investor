@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Code's scratch worktrees: whole copies of this repo, node_modules
+    // and all. Linting them buried the project's own output under ~12,000
+    // problems from code that is not the project's.
+    ".claude/**",
   ]),
 ]);
 

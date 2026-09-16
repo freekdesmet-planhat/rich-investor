@@ -29,6 +29,7 @@ import {
   type ScanState,
 } from '@/lib/pipeline/scanState';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
+import { CronRunRecorder } from '@/lib/pipeline/cronRun';
 
 /** Long enough for a full run; Netlify caps background functions well above this. */
 export const maxDuration = 300;
@@ -48,8 +49,12 @@ export async function POST(request: NextRequest) {
   }
 
   const client = createClient(url, key, { auth: { persistSession: false } });
-  const log: string[] = [];
-  const started = Date.now();
+
+  // Everything the run learns about itself goes here and is written to
+  // `cron_runs` on every exit path below, including the failing ones. The log
+  // array is the recorder's, so a line pushed anywhere reaches the table.
+  const run = new CronRunRecorder('nightly-scan');
+  const started = run.startedAt.getTime();
 
   // --- 1. Watchlist: ratios, signals, macro context, and the alerts ---------
   // The watchlist is what the emails are about, so it runs first and its
@@ -61,20 +66,38 @@ export async function POST(request: NextRequest) {
     watchlist = await runDailyPipeline({
       client,
       symbols,
-      onProgress: (message) => log.push(message),
+      onProgress: (message) => run.log(message),
     });
+    run.succeeded('watchlist', Date.now() - watchlistStarted, {
+      count: watchlist.rows.length,
+      detail: {
+        buyWorthy: watchlist.rows.filter((row) => row.status === 'buy_worthy').length,
+        violations: watchlist.rows.flatMap((row) => row.violations).length,
+      },
+    });
+    run.record({ watchlistEvaluated: watchlist.rows.length });
   } catch (error) {
+    run.failed('watchlist', Date.now() - watchlistStarted, error);
+    const saved = await run.save(client);
     return NextResponse.json(
-      { ok: false, stage: 'watchlist', error: (error as Error).message, log },
+      {
+        ok: false,
+        stage: 'watchlist',
+        error: (error as Error).message,
+        telemetry: saved,
+        log: run.logLines,
+      },
       { status: 500 },
     );
   }
 
   // --- 2. Universe scan -----------------------------------------------------
-  // A batch, not a sweep: there are ~6,800 large-cap candidates and each needs
-  // a fundamentals round-trip, so the cursor advances a little each night and
-  // the feed fills in over time. Estimates are skipped inside the scan for the
-  // same reason — FMP allows roughly 250 requests a day.
+  // A batch, not a sweep: each candidate needs a fundamentals round-trip, so
+  // the cursor advances a little each night and the feed fills in over time.
+  // The screened set is a few hundred companies rather than the thousands it
+  // used to walk, because both filters now run in the query — see scanQuery.ts.
+  // Estimates stay switched off in here: FMP allows roughly 250 requests a day,
+  // and the watchlist pass has already spent its share of them.
   const watchlistMs = Date.now() - watchlistStarted;
 
   let scan = null;
@@ -88,19 +111,30 @@ export async function POST(request: NextRequest) {
     msPerCandidate: state.msPerCandidate,
     override: process.env.SCAN_BATCH_SIZE,
   });
-  log.push(
+  run.log(
     `scan budget: ${budget.limit} candidates (${Math.round(budget.remainingMs / 1000)}s left ` +
       `at ~${budget.msPerCandidate}ms each, ${budget.reason})`,
   );
+  // Every path to a number, including the paths to zero, says how it got there.
+  for (const note of budget.notes) run.log(`scan budget: ${note}`);
 
+  const budgetDetail = {
+    limit: budget.limit,
+    reason: budget.reason,
+    msPerCandidate: budget.msPerCandidate,
+    remainingMs: budget.remainingMs,
+    scanBatchSize: budget.override.kind,
+    cursor: state.cursor,
+  };
+
+  const scanStarted = Date.now();
   if (budget.limit > 0) {
     try {
-      const scanStarted = Date.now();
       scan = await runScan({
         client,
         limit: budget.limit,
         cursor: state.cursor,
-        onProgress: (message) => log.push(message),
+        onProgress: (message) => run.log(message),
       });
 
       // What it actually cost, carried into tomorrow so the estimate converges
@@ -112,14 +146,36 @@ export async function POST(request: NextRequest) {
           observedMsPerCandidate(Date.now() - scanStarted, attempted, state.msPerCandidate) ??
           state.msPerCandidate,
       });
+
+      run.succeeded('scan', Date.now() - scanStarted, {
+        count: scan.evaluated,
+        detail: { ...budgetDetail, suggested: scan.suggested, nextCursor: scan.nextCursor },
+      });
+      run.record({
+        scanEvaluated: scan.evaluated,
+        scanSuggested: scan.suggested,
+        scanCursorBefore: state.cursor,
+        scanCursorAfter: scan.nextCursor,
+      });
     } catch (error) {
-      // A scan failure must not discard a completed watchlist run.
-      log.push(`scan failed (continuing): ${(error as Error).message}`);
+      // A scan failure must not discard a completed watchlist run — but it must
+      // not vanish either, which is what it did for three nights.
+      run.failed('scan', Date.now() - scanStarted, error, budgetDetail);
+      run.record({ scanCursorBefore: state.cursor, scanCursorAfter: state.cursor });
     }
+  } else {
+    run.skipped('scan', budget.reason, budgetDetail);
+    run.record({ scanCursorBefore: state.cursor, scanCursorAfter: state.cursor });
   }
+
+  // Written before the response is built, so the record survives a client that
+  // hangs up — which pg_net, firing and forgetting, effectively always does.
+  const telemetry = await run.save(client);
 
   return NextResponse.json({
     ok: true,
+    status: run.status,
+    telemetry,
     durationSeconds: Math.round((Date.now() - started) / 1000),
     watchlist: {
       evaluated: watchlist.rows.length,
@@ -138,7 +194,7 @@ export async function POST(request: NextRequest) {
     scan: scan
       ? { evaluated: scan.evaluated, suggested: scan.suggested, nextCursor: scan.nextCursor }
       : null,
-    log,
+    log: run.logLines,
   });
 }
 

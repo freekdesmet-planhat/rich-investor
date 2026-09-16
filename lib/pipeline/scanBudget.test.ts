@@ -1,15 +1,17 @@
 /**
  * Dividing the nightly run between the watchlist and the universe scan.
  *
- * The watchlist pass is obligatory and runs first; the scan gets the remainder.
- * The cases worth pinning are the ones where the arithmetic would otherwise do
- * something quietly wrong: a night with nothing left booking a batch anyway, a
- * mistyped environment value becoming NaN, and a single slow night collapsing
- * every night after it.
+ * The watchlist pass is obligatory and runs first; the scan takes the smaller
+ * of what it was asked for and what the clock can still afford. The cases worth
+ * pinning are the ones where the arithmetic would otherwise do something
+ * quietly wrong: a night with nothing left booking a batch anyway, a mistyped
+ * environment value disabling the scan by accident, and a single slow night
+ * collapsing every night after it.
  */
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_MS_PER_CANDIDATE,
+  DEFAULT_SCAN_BATCH,
   MAX_SCAN_BATCH,
   observedMsPerCandidate,
   parseOverride,
@@ -19,12 +21,21 @@ import {
 } from './scanBudget';
 
 describe('scanBudget', () => {
-  it('gives the scan what the watchlist left, in whole candidates', () => {
-    // 300s ceiling, 60s watchlist, 30s margin -> 210s at 3s each.
+  it('scans the default batch when the night can afford it', () => {
+    // 300s ceiling, 60s watchlist, 30s margin -> 210s at 3s each is 70 affordable.
     const budget = scanBudget({ elapsedMs: 60_000 });
 
     expect(budget.remainingMs).toBe(RUN_CEILING_MS - 60_000 - SAFETY_MARGIN_MS);
+    expect(budget.limit).toBe(DEFAULT_SCAN_BATCH);
+    expect(budget.reason).toBe('default');
+  });
+
+  /** The clock still wins when it is the smaller of the two numbers. */
+  it('falls back to what the clock allows when that is less', () => {
+    const budget = scanBudget({ elapsedMs: 200_000 });
+
     expect(budget.limit).toBe(Math.floor(budget.remainingMs / DEFAULT_MS_PER_CANDIDATE));
+    expect(budget.limit).toBeLessThan(DEFAULT_SCAN_BATCH);
     expect(budget.reason).toBe('time');
   });
 
@@ -34,6 +45,24 @@ describe('scanBudget', () => {
 
     expect(slow.limit).toBeLessThan(quick.limit);
     expect(slow.limit).toBeGreaterThan(0);
+  });
+
+  /**
+   * The whole point of the table this feeds: a batch of zero must never be a
+   * number nobody can account for.
+   */
+  it('always explains itself, whatever the batch came out at', () => {
+    for (const input of [
+      { elapsedMs: 60_000 },
+      { elapsedMs: 60_000, override: '5' },
+      { elapsedMs: 60_000, override: 'sixty' },
+      { elapsedMs: 60_000, override: '0' },
+      { elapsedMs: RUN_CEILING_MS },
+    ]) {
+      const budget = scanBudget(input);
+      expect(budget.notes.length).toBeGreaterThan(0);
+      for (const note of budget.notes) expect(note.trim().length).toBeGreaterThan(0);
+    }
   });
 
   /** A watchlist that needs the whole run is not an error; the scan waits. */
@@ -52,8 +81,10 @@ describe('scanBudget', () => {
   });
 
   it('uses a measured cost in place of the guess', () => {
-    const guessed = scanBudget({ elapsedMs: 60_000 });
-    const measured = scanBudget({ elapsedMs: 60_000, msPerCandidate: 1_000 });
+    // A long watchlist, so the clock is what binds and the cost per candidate
+    // is what decides how many fit into what is left.
+    const guessed = scanBudget({ elapsedMs: 200_000 });
+    const measured = scanBudget({ elapsedMs: 200_000, msPerCandidate: 1_000 });
 
     expect(measured.msPerCandidate).toBe(1_000);
     expect(measured.limit).toBeGreaterThan(guessed.limit);
@@ -68,7 +99,7 @@ describe('scanBudget', () => {
   });
 
   it('never exceeds the ceiling on a very fast night', () => {
-    const budget = scanBudget({ elapsedMs: 0, msPerCandidate: 1 });
+    const budget = scanBudget({ elapsedMs: 0, msPerCandidate: 1, override: '999999' });
     expect(budget.limit).toBe(MAX_SCAN_BATCH);
   });
 
@@ -85,32 +116,60 @@ describe('scanBudget', () => {
       expect(budget.limit).toBe(0);
     });
 
-    it('can switch the scan off', () => {
-      expect(scanBudget({ elapsedMs: 0, override: '0' }).limit).toBe(0);
+    it('can switch the scan off, and says that it was asked to', () => {
+      const budget = scanBudget({ elapsedMs: 0, override: '0' });
+
+      expect(budget.limit).toBe(0);
+      expect(budget.reason).toBe('disabled');
+      expect(budget.notes.join(' ')).toContain('switched off by configuration');
+    });
+
+    /**
+     * The failure this whole change is about: `SCAN_BATCH_SIZE=sixty` used to
+     * parse as unset, fall through, and leave the scan doing nothing with
+     * nothing said about it.
+     */
+    it('falls back to the default rather than to nothing when it is unreadable', () => {
+      const budget = scanBudget({ elapsedMs: 60_000, override: 'sixty' });
+
+      expect(budget.limit).toBe(DEFAULT_SCAN_BATCH);
+      expect(budget.reason).toBe('invalid_override');
+      expect(budget.notes.join(' ')).toContain('not a whole number');
+    });
+
+    it('falls back to the default when nothing is configured', () => {
+      const budget = scanBudget({ elapsedMs: 60_000, override: null });
+
+      expect(budget.limit).toBe(DEFAULT_SCAN_BATCH);
+      expect(budget.reason).toBe('default');
+      expect(budget.notes.join(' ')).toContain('unset');
     });
   });
 });
 
 describe('parseOverride', () => {
   it('reads a whole number', () => {
-    expect(parseOverride('45')).toBe(45);
-    expect(parseOverride(' 12 ')).toBe(12);
-    expect(parseOverride('0')).toBe(0);
+    expect(parseOverride('45')).toMatchObject({ value: 45, kind: 'set' });
+    expect(parseOverride(' 12 ')).toMatchObject({ value: 12, kind: 'set' });
   });
 
-  it('treats an unreadable value as unset rather than as zero', () => {
-    for (const raw of ['sixty', '', '  ', 'NaN', '12abc', null, undefined]) {
-      expect(parseOverride(raw)).toBeNull();
+  /** Zero is an instruction, not an absence, and is named as one. */
+  it('separates a deliberate zero from an absent value', () => {
+    expect(parseOverride('0')).toMatchObject({ value: 0, kind: 'disabled' });
+    expect(parseOverride(null)).toMatchObject({ value: null, kind: 'unset' });
+  });
+
+  it('tells an unreadable value apart from an unset one', () => {
+    for (const raw of ['sixty', 'NaN', '12abc', '-10', '12.5']) {
+      expect(parseOverride(raw)).toMatchObject({ value: null, kind: 'invalid' });
+    }
+    for (const raw of ['', '  ', null, undefined]) {
+      expect(parseOverride(raw)).toMatchObject({ value: null, kind: 'unset' });
     }
   });
 
-  it('refuses a negative or fractional batch', () => {
-    expect(parseOverride('-10')).toBeNull();
-    expect(parseOverride('12.5')).toBeNull();
-  });
-
   it('caps a value that would run away', () => {
-    expect(parseOverride('999999')).toBe(MAX_SCAN_BATCH);
+    expect(parseOverride('999999')).toMatchObject({ value: MAX_SCAN_BATCH, kind: 'set' });
   });
 });
 
