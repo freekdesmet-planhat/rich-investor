@@ -52,6 +52,7 @@
       "missing_data": "No data available",
       "not_applicable": "Not applicable to this company",
       "negative_base": "Not meaningful: the figure it divides by is negative",
+      "negative_growth": "Earnings are not growing, so a PEG would say nothing",
       "series_break": "Trend suppressed: the company changed what it reports",
       "no_fx_rate": "No exchange rate available to reconcile the currencies",
       "no_dividend": "Pays no dividend"

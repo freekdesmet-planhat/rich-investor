@@ -52,6 +52,7 @@
       "missing_data": "Geen gegevens beschikbaar",
       "not_applicable": "Niet van toepassing op dit bedrijf",
       "negative_base": "Niet zinvol: het getal waardoor gedeeld wordt is negatief",
+      "negative_growth": "De winst groeit niet, dus een PEG zegt niets",
       "series_break": "Trend onderdrukt: het bedrijf rapporteert iets anders dan voorheen",
       "no_fx_rate": "Geen wisselkoers beschikbaar om de valuta's op elkaar af te stemmen",
       "no_dividend": "Keert geen dividend uit"

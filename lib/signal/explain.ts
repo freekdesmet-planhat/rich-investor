@@ -77,6 +77,38 @@ export interface ExplainInput {
 }
 
 /**
+ * Why a trailing PEG is absent, in the clause form the sentences below expect.
+ *
+ * The reason keys are the engine's `unavailableReason`; the wording stays here
+ * rather than in messages/, because these are whole sentences that only read
+ * correctly inside the PEG paragraph.
+ */
+function noTrailingPeg(reason: string | null, lang: Lang): string {
+  switch (reason) {
+    case 'negative_growth':
+      return lang === 'nl'
+        ? 'de gerapporteerde winst per aandeel is over de periode niet gegroeid, en een PEG op krimpende winst zegt niets.'
+        : 'reported earnings per share have not grown over the window, and a PEG built on shrinking earnings says nothing.';
+    case 'series_break':
+      return lang === 'nl'
+        ? 'de winstreeks vertoont een breuk — het bedrijf rapporteert niet meer hetzelfde — waardoor er te weinig vergelijkbare jaren overblijven.'
+        : 'the earnings series breaks — the company changed what it reports — leaving too few comparable years to measure growth over.';
+    case 'negative_base':
+      return lang === 'nl'
+        ? 'het bedrijf is verlieslatend, dus er is geen koers-winstverhouding om een PEG op te bouwen.'
+        : 'the company is loss-making, so there is no P/E to build a PEG on.';
+    case 'no_fx_rate':
+      return lang === 'nl'
+        ? 'er was geen wisselkoers om de koers en de winstcijfers in dezelfde valuta te zetten.'
+        : 'no exchange rate was available to state the price and the earnings in the same currency.';
+    default:
+      return lang === 'nl'
+        ? 'er is geen bruikbare winsthistorie beschikbaar.'
+        : 'no usable earnings history is available.';
+  }
+}
+
+/**
  * Builds the PEG sentence, which carries the most nuance in the whole
  * explanation.
  *
@@ -94,9 +126,39 @@ function pegSentences(condition: ConditionResult, lang: Lang): WhyPart[] {
     forwardGrowth?: number | null;
     epsCagr?: number | null;
     outlookDeteriorating?: boolean;
+    trailingUnavailableReason?: string | null;
   };
   const threshold = d.threshold ?? 1;
   const out: WhyPart[] = [];
+
+  // Sentences below assume a trailing figure exists. When it does not, saying
+  // "the PEG ratio is unknown" names the symptom; these name the cause.
+  if (d.trailingPeg == null) {
+    const why = noTrailingPeg(d.trailingUnavailableReason ?? null, lang);
+
+    if (d.basis === 'forward') {
+      out.push({ section: 'passes', text:
+        lang === 'nl'
+          ? `Dit komt volledig door de verwachte PEG (${num(d.forwardPeg, lang)}, op basis van een consensusverwachting van ${pct(d.forwardGrowth, lang, 0)} winstgroei dit jaar). Er is geen gerealiseerde PEG: ${why}`
+          : `This passes entirely on forward PEG (${num(d.forwardPeg, lang)}, based on consensus of ${pct(d.forwardGrowth, lang, 0)} EPS growth this year). There is no trailing PEG: ${why}` });
+      out.push({ section: 'check', text:
+        lang === 'nl'
+          ? `Hier staat geen enkel gerealiseerd cijfer tegenover de verwachting, dus loop het blok "Mijn kwalitatieve beoordeling" hieronder langs voordat je dit als een bevestigd instapmoment behandelt.`
+          : `Nothing realised backs the expectation here, so work through the "My qualitative review" block below before treating this as a confirmed entry.` });
+    } else if (d.forwardPeg != null) {
+      out.push({ section: 'missing', text:
+        lang === 'nl'
+          ? `De verwachte PEG (${num(d.forwardPeg, lang)}) ligt boven de grens van ${num(threshold, lang, 1)}, en er is geen gerealiseerde PEG om daar tegenover te zetten: ${why}`
+          : `The forward PEG (${num(d.forwardPeg, lang)}) is above the ${num(threshold, lang, 1)} ceiling, and there is no trailing PEG to set against it: ${why}` });
+    } else {
+      out.push({ section: 'missing', text:
+        lang === 'nl'
+          ? `Er is geen PEG-ratio, op geen van beide grondslagen: ${why}`
+          : `There is no PEG ratio on either basis: ${why}` });
+    }
+
+    return out;
+  }
 
   if (d.basis === 'both') {
     out.push({ section: 'passes', text:

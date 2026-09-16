@@ -61,9 +61,13 @@ function pegCondition(peg: RatioResult): { condition: ConditionResult; basis: Pe
     forwardGrowth?: number | null;
     epsCagr?: number | null;
     estimatesSource?: string | null;
+    threshold?: number;
   };
+  // A grey PEG carries no `thresholds`, so the band it was judged against comes
+  // off the detail instead. Without this, every stock with no trailing figure
+  // was silently held to 1 rather than to its own growth category.
   const thresholds = peg.thresholds as { threshold?: number };
-  const threshold = thresholds.threshold ?? 1;
+  const threshold = thresholds.threshold ?? detail.threshold ?? 1;
 
   const trailing = peg.value;
   const forward = detail.forwardPeg ?? null;
@@ -98,6 +102,9 @@ function pegCondition(peg: RatioResult): { condition: ConditionResult; basis: Pe
         epsCagr: detail.epsCagr ?? null,
         forwardGrowth: detail.forwardGrowth ?? null,
         estimatesSource: detail.estimatesSource ?? null,
+        // Why there is no trailing figure, so the explanation can say it rather
+        // than printing "the PEG ratio is unknown".
+        trailingUnavailableReason: trailing == null ? peg.unavailableReason : null,
         // Flags the opposite direction: trailing looks fine but the outlook
         // has deteriorated.
         outlookDeteriorating: trailingPasses && forward != null && forward > threshold,

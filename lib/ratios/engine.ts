@@ -77,7 +77,10 @@ export interface RatioResult {
   /** Last 5 fiscal years, oldest first. */
   history: SeriesPoint[];
   notApplicable: boolean;
-  /** 'missing_data' | 'not_applicable' | 'negative_base' | 'series_break' | 'no_fx_rate' */
+  /**
+   * 'missing_data' | 'not_applicable' | 'negative_base' | 'negative_growth'
+   * | 'series_break' | 'no_fx_rate'
+   */
   unavailableReason: string | null;
   detail: Record<string, unknown>;
 }
@@ -377,27 +380,6 @@ export function computePeg(
   const threshold = t.value[category];
   const target = { label: `≤ ${threshold}`, source: t.source };
 
-  if (pe.value == null) return gray('peg', target, pe.unavailableReason ?? 'missing_data');
-
-  // Growth must be measured on a consistent basis; a definitional break makes
-  // the CAGR meaningless (see detectSeriesBreak).
-  const epsBreak = detectSeriesBreak(d.epsSeries);
-  const usableEps = epsBreak.hasBreak ? afterLastBreak(d.epsSeries) : d.epsSeries;
-  const growth = trendGrowth(usableEps);
-
-  if (growth.value == null || growth.value <= 0) {
-    return gray(
-      'peg',
-      target,
-      epsBreak.hasBreak ? 'series_break' : 'missing_data',
-      { epsBreak, years: growth.years },
-      d.epsSeries,
-    );
-  }
-
-  const value = pe.value / (growth.value * 100);
-  const orangeLimit = threshold * t.value.orangeMultiplier;
-
   // Forward variant (5.2), when a source supplied estimates.
   //
   // Consensus EPS is quoted in the *trading* currency, while trailing EPS comes
@@ -415,7 +397,57 @@ export function computePeg(
       ? nextYearEpsInFilingCurrency / d.dilutedEps.value - 1
       : (estimates?.nextYearEpsGrowth ?? null);
   const forwardPeg =
-    forwardGrowth != null && forwardGrowth > 0 ? pe.value / (forwardGrowth * 100) : null;
+    pe.value != null && forwardGrowth != null && forwardGrowth > 0
+      ? pe.value / (forwardGrowth * 100)
+      : null;
+
+  // Computed above the exits, and carried on the grey results too. Shrinking or
+  // interrupted reported earnings are exactly the case the forward figure
+  // exists for — chapter 9's quality company in a temporary dip — and returning
+  // early without it left condition 5 blind to the only stocks it was written
+  // for. The threshold rides along because a grey result has no `thresholds`,
+  // and the condition still has to know which band it was judged against.
+  const forwardDetail = {
+    forwardGrowth,
+    forwardPeg,
+    nextYearEps: estimates?.nextYearEps ?? null,
+    nextYearEpsInFilingCurrency,
+    estimatesSource: ctx.bundle.estimatesSource,
+    threshold,
+    category,
+  };
+
+  if (pe.value == null) {
+    return gray('peg', target, pe.unavailableReason ?? 'missing_data', forwardDetail);
+  }
+
+  // Growth must be measured on a consistent basis; a definitional break makes
+  // the CAGR meaningless (see detectSeriesBreak).
+  const epsBreak = detectSeriesBreak(d.epsSeries);
+  const usableEps = epsBreak.hasBreak ? afterLastBreak(d.epsSeries) : d.epsSeries;
+  const growth = trendGrowth(usableEps);
+
+  if (growth.value == null || growth.value <= 0) {
+    // Flat or falling earnings are not absent data. Reporting them as
+    // 'missing_data' put "No data available" on cards whose every input was
+    // present — the reason the number is withheld is that a PEG out of
+    // negative growth is meaningless, and that is worth saying.
+    const reason = epsBreak.hasBreak
+      ? 'series_break'
+      : growth.value == null
+        ? 'missing_data'
+        : 'negative_growth';
+    return gray(
+      'peg',
+      target,
+      reason,
+      { ...forwardDetail, epsBreak, years: growth.years, epsCagr: growth.value },
+      d.epsSeries,
+    );
+  }
+
+  const value = pe.value / (growth.value * 100);
+  const orangeLimit = threshold * t.value.orangeMultiplier;
 
   return {
     key: 'peg',
@@ -435,12 +467,7 @@ export function computePeg(
       cagrYears: growth.years,
       growthMethod: growth.method,
       endpointCagr: growth.endpointCagr,
-      category,
-      forwardGrowth,
-      forwardPeg,
-      nextYearEps: estimates?.nextYearEps ?? null,
-      nextYearEpsInFilingCurrency,
-      estimatesSource: ctx.bundle.estimatesSource,
+      ...forwardDetail,
       seriesBreak: epsBreak.hasBreak ? epsBreak : null,
     },
   };

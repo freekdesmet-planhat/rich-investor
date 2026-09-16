@@ -217,6 +217,78 @@ describe('PEG (5.2)', () => {
     expect(computePeg(ctx, d, 'low_growth', pe).thresholds).toMatchObject({ threshold: 0.5 });
   });
 
+  const estimates = (nextYearEps: number): SymbolBundle['estimates'] => ({
+    symbol: 'TEST',
+    nextYearEps,
+    nextYearEpsGrowth: null,
+    nextYearRevenueGrowth: null,
+    analystCount: 12,
+    targetPrice: null,
+    series: [],
+  });
+
+  // Every input is present; the earnings just fell. Reporting that as
+  // 'missing_data' told the reader the app had no figures, which was untrue.
+  const shrinkingEps = statement('income', 'annual', [
+    ['2021-12-31', { dilutedEps: 5 }],
+    ['2022-12-31', { dilutedEps: 4.6 }],
+    ['2023-12-31', { dilutedEps: 4.1 }],
+    ['2024-12-31', { dilutedEps: 3.4 }],
+    ['2025-12-31', { dilutedEps: 3 }],
+  ]);
+
+  it('says shrinking earnings rather than missing data when growth is negative', () => {
+    const ctx = buildContext(bundle({ price: 60, income: shrinkingEps }));
+    const d = derive(ctx);
+    const pe = computePe(ctx, d);
+    const result = computePeg(ctx, d, 'high_growth', pe);
+
+    expect(pe.value).not.toBeNull();
+    expect(result.value).toBeNull();
+    expect(result.unavailableReason).toBe('negative_growth');
+    expect(result.detail.epsCagr).toBeLessThan(0);
+  });
+
+  it('still computes the forward PEG when trailing growth is negative', () => {
+    const ctx = buildContext(
+      bundle({ price: 60, income: shrinkingEps, estimates: estimates(4.5) }),
+    );
+    const d = derive(ctx);
+    const result = computePeg(ctx, d, 'high_growth', computePe(ctx, d));
+
+    // Trailing EPS 3.0 -> consensus 4.5 is +50%, against a P/E of 20.
+    expect(result.detail.forwardGrowth).toBeCloseTo(0.5, 6);
+    expect(result.detail.forwardPeg).toBeCloseTo(0.4, 6);
+    // The band still has to travel, because a grey result carries no thresholds.
+    expect(result.detail.threshold).toBe(1);
+  });
+
+  it('still computes the forward PEG across a reporting break', () => {
+    // The break lands on the last year, so only one comparable point survives
+    // it and no trailing growth can be measured at all.
+    const broken = statement('income', 'annual', [
+      ['2023-12-31', { dilutedEps: 30 }],
+      ['2024-12-31', { dilutedEps: 40 }],
+      ['2025-12-31', { dilutedEps: 6 }],
+    ]);
+    const ctx = buildContext(bundle({ price: 150, income: broken, estimates: estimates(9) }));
+    const d = derive(ctx);
+    const result = computePeg(ctx, d, 'high_growth', computePe(ctx, d));
+
+    expect(result.unavailableReason).toBe('series_break');
+    expect(result.detail.forwardPeg).not.toBeNull();
+  });
+
+  it('carries no forward figure when the company is loss-making', () => {
+    const loss = statement('income', 'annual', [['2025-12-31', { dilutedEps: -1 }]]);
+    const ctx = buildContext(bundle({ price: 60, income: loss, estimates: estimates(2) }));
+    const d = derive(ctx);
+    const result = computePeg(ctx, d, 'high_growth', computePe(ctx, d));
+
+    expect(result.unavailableReason).toBe('negative_base');
+    expect(result.detail.forwardPeg).toBeNull();
+  });
+
   /**
    * Adyen restated revenue from gross to net in 2023 (EUR 8.94bn -> 1.86bn).
    * A CAGR across that step reads about -33%/yr against real growth near +20%.

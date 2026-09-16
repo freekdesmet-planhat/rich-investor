@@ -331,6 +331,110 @@ describe('PEG condition (trailing or forward)', () => {
     expect(signal.reliesOnForwardPeg).toBe(false);
   });
 
+  /**
+   * The case the trailing-or-forward rule was written for: reported earnings
+   * are falling, so there is no trailing PEG at all. The condition used to be
+   * unable to see these at all, because the engine returned before it computed
+   * the forward figure.
+   */
+  it('passes on the forward PEG when there is no trailing PEG at all', () => {
+    const base = idealBundle();
+    const declining = [5.7, 5.2, 4.6, 4.0, 3.5];
+    const bundle: SymbolBundle = {
+      ...base,
+      statements: {
+        ...base.statements,
+        income: {
+          ...base.statements.income,
+          annual: statement(
+            'income',
+            ['2021-12-31', '2022-12-31', '2023-12-31', '2024-12-31', '2025-12-31'].map((y, i) => [
+              y,
+              {
+                dilutedEps: declining[i],
+                netIncome: declining[i] * 1_000_000_000,
+                revenue: declining[i] * 3_000_000_000,
+                grossProfit: declining[i] * 2_200_000_000,
+                ebit: declining[i] * 1_300_000_000,
+                ebitda: declining[i] * 1_500_000_000,
+              },
+            ]),
+          ),
+        },
+      },
+      estimates: {
+        symbol: 'TEST',
+        nextYearEps: 5.25,
+        nextYearEpsGrowth: null,
+        nextYearRevenueGrowth: null,
+        analystCount: 30,
+        targetPrice: null,
+        series: [],
+      },
+      estimatesSource: 'yahoo-finance2',
+    };
+
+    const { signal, ratios } = run(bundle);
+    const peg = signal.conditions.find((c) => c.key === 'peg')!;
+
+    expect(ratios.peg.value).toBeNull();
+    expect(ratios.peg.unavailableReason).toBe('negative_growth');
+    expect(peg.detail.trailingPeg).toBeNull();
+    expect(peg.detail.forwardPeg).not.toBeNull();
+    expect(peg.passed).toBe(true);
+    expect(signal.pegBasis).toBe('forward');
+
+    // And the explanation names the cause rather than printing "unknown".
+    const text = explainSignal({ symbol: 'TEST', signal, ratios });
+    expect(text.en).toContain('There is no trailing PEG');
+    expect(text.en).not.toContain('trailing PEG (unknown)');
+    expect(text.nl).toContain('Er is geen gerealiseerde PEG');
+  });
+
+  /**
+   * What a suggestion says about a company whose earnings are falling.
+   *
+   * The scan runs with `skipEstimates`, so there is no forward figure to fall
+   * back on and the PEG is simply absent — which the feed used to render as
+   * "No data available", i.e. as though the app had failed to fetch something.
+   * Every figure was there; the earnings had shrunk, and that is a finding, not
+   * a gap.
+   */
+  it('tells a suggestion why a shrinking company has no PEG, with no estimates to lean on', () => {
+    const base = idealBundle();
+    const declining = [5.7, 5.2, 4.6, 4.0, 3.5];
+    const bundle: SymbolBundle = {
+      ...base,
+      statements: {
+        ...base.statements,
+        income: {
+          ...base.statements.income,
+          annual: statement(
+            'income',
+            ['2021-12-31', '2022-12-31', '2023-12-31', '2024-12-31', '2025-12-31'].map((y, i) => [
+              y,
+              { dilutedEps: declining[i], netIncome: declining[i] * 1_000_000_000, revenue: declining[i] * 3_000_000_000 },
+            ]),
+          ),
+        },
+      },
+      // As the scan fetches them: skipEstimates leaves this null.
+      estimates: null,
+      estimatesSource: null,
+    };
+
+    const { signal, ratios } = run(bundle);
+    const text = explainSignal({ symbol: 'TEST', name: 'Test Co', signal, ratios });
+
+    expect(ratios.peg.unavailableReason).toBe('negative_growth');
+    expect(text.en).toContain('There is no PEG ratio on either basis');
+    expect(text.en).toContain('have not grown over the window');
+    expect(text.nl).toContain('niet gegroeid');
+    // Not the generic gap wording, in either language.
+    expect(text.en).not.toContain('unknown');
+    expect(text.nl).not.toContain('onbekend');
+  });
+
   it('records basis "trailing" when there are no estimates at all', () => {
     const { signal } = run(idealBundle());
     expect(['trailing', 'both']).toContain(signal.pegBasis);
