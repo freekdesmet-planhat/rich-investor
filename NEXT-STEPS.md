@@ -1,11 +1,13 @@
 # Rich Investor — Next steps for Claude Code
 
-**Status: on hold.** The nightly cron pipeline has been dying silently every
-night since 09-18 (scan never starts, suggestions frozen since 09-13).
-Instrumentation to catch the failure point is built (commit 3ae3ac3) but not
-deployed. Do not start item 1 below until the nightly run has completed
-cleanly at least once with the new telemetry in place. See the log at the
-bottom for details.
+**Status: on hold, pending one unattended night.** The nightly cron pipeline
+was dying silently every night from 09-18 (scan never started, suggestions
+frozen since 09-13). Cause found and fixed on 09-20: a ~60s function
+execution ceiling on this Netlify plan, against a job that needed ~62s. Both
+halves now run in their own request and both have completed cleanly when
+triggered by hand. Do not start item 1 until the 02:00 and 02:15 schedules
+have fired **unattended** and both `cron_runs` rows read clean. See the log
+at the bottom, including one known risk left deliberately unresolved.
 
 Context: this is v1 of a personal stock-analysis tool built on Supabase, Netlify,
 and GitHub. It applies a fixed checklist from the book "Rijke Belegger, Arme
@@ -105,3 +107,30 @@ available, rather than moving straight to the next item.
   lifecycle) is built, tested, and committed as 3ae3ac3, but not deployed.
   Feature work stays on hold until a confirming run proves the fix and
   names the actual failure point.
+- 2026-09-20: Failure point found and fixed. Probed the deployment directly
+  rather than trusting the `504 Inactivity Timeout` wording, which is
+  misleading: there are two separate ceilings and neither is a limit on
+  silence. The connection is cut at ~26s (what the caller sees, and why the
+  504 arrived while the job was still working); the process is killed at
+  ~60s (what decides how much work fits, and invisible from the caller's
+  side — found by heartbeating into Postgres, last beat 58s). Streaming
+  output does **not** get past either: a streamed response holds at HTTP 200
+  while its body is truncated at ~30s, so it makes failure look like
+  success. `RUN_CEILING_MS` is now the measured 60s instead of the declared
+  300s, and the universe scan moved to its own request and its own pg_cron
+  schedule at 02:15. The arithmetic behind the whole incident: watchlist
+  33.5s + scan 28.7s = 62.2s, against a 60s ceiling. First run after the
+  split evaluated 21 candidates and filed 3 suggestions (APP buy_worthy,
+  APH and BR almost) — the first since 09-13. Abandoned runs are now swept
+  to a `timed_out` status after 10 minutes so `cron_runs` stays readable.
+- 2026-09-20: **Known risk, deliberately not fixed.** The watchlist pass runs
+  33–47s against the same ~60s ceiling. It fits today, but the margin is
+  thin: one slow provider night, or a dozen more tickers on the watchlist,
+  puts it in the same failure the scan just came out of — and unlike the
+  scan, when the watchlist dies the daily digest dies with it. Two plausible
+  answers, neither of them urgent and neither worth bolting onto the fix
+  above: batch the watchlist across requests the way the scan now is, or
+  check whether a Netlify plan upgrade lifts the 60s ceiling (the route
+  already declares `maxDuration = 300`, so it would need no code change).
+  This wants its own decision, with the cost of the upgrade known, rather
+  than a rushed change riding on an unrelated incident.
