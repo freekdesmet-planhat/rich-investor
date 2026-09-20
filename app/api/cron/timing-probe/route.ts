@@ -23,7 +23,9 @@
  * DELETE THIS once the limit is known. It has no purpose afterwards.
  */
 import { NextResponse, type NextRequest } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
+import { CronRunRecorder } from '@/lib/pipeline/cronRun';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -40,10 +42,44 @@ export async function POST(request: NextRequest) {
   const seconds = clamp(Number(params.get('seconds') ?? 30), 1, 280);
   const intervalSeconds = clamp(Number(params.get('interval') ?? 5), 1, 60);
   const stream = params.get('stream') === '1' || params.get('stream') === 'true';
+  const toDatabase = params.get('db') === '1' || params.get('db') === 'true';
 
   const started = Date.now();
   const elapsed = () => Math.round((Date.now() - started) / 1000);
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // --- heartbeat into the database ------------------------------------------
+  //
+  // The measurement that actually matters. The silent and streaming runs above
+  // both report through the HTTP response, and the response is exactly what
+  // Netlify takes away first: the nightly job's own watchlist wrote to the
+  // database at 37.8s, long after the connection for that request had been
+  // answered with a 504. So the response can only ever measure the connection.
+  //
+  // Writing a beat to Postgres every few seconds measures the other thing —
+  // how long the process is allowed to keep executing — because the evidence
+  // survives independently of whoever is still listening. The last beat
+  // written is the last moment the function was alive.
+  if (toDatabase) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return NextResponse.json({ error: 'supabase not configured' }, { status: 500 });
+
+    const client = createClient(url, key, { auth: { persistSession: false } });
+    const run = new CronRunRecorder('timing-probe');
+    await run.begin(client);
+
+    for (let at = intervalSeconds; at <= seconds; at += intervalSeconds) {
+      await wait(intervalSeconds * 1000);
+      run.log(`alive at ${elapsed()}s`);
+      await run.checkpoint(client);
+    }
+
+    run.succeeded('probe', Date.now() - started, { count: seconds });
+    await run.finish(client);
+
+    return NextResponse.json({ mode: 'db', requestedSeconds: seconds, actualSeconds: elapsed() });
+  }
 
   // --- silent: one response, sent only at the very end ----------------------
   if (!stream) {
