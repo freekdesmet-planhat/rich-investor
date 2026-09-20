@@ -50,6 +50,17 @@ export async function POST(request: NextRequest) {
 
   const client = createClient(url, key, { auth: { persistSession: false } });
 
+  /**
+   * `?notify=false` runs the pipeline without sending anything.
+   *
+   * For running the job by hand — to reproduce a failure, or to check a fix —
+   * without the household receiving a second digest for a day they have
+   * already had one for. The scheduled call never passes it, so the nightly
+   * run is unaffected; only a person with the cron secret can ask for a quiet
+   * run, which is the same bar as triggering one at all.
+   */
+  const skipNotifications = request.nextUrl.searchParams.get('notify') === 'false';
+
   // Everything the run learns about itself goes here and is written to
   // `cron_runs` on every exit path below, including the failing ones. The log
   // array is the recorder's, so a line pushed anywhere reaches the table.
@@ -73,6 +84,7 @@ export async function POST(request: NextRequest) {
     watchlist = await runDailyPipeline({
       client,
       symbols,
+      skipNotifications,
       onProgress: (message) => run.log(message),
     });
     run.succeeded('watchlist', Date.now() - watchlistStarted, {
@@ -80,6 +92,9 @@ export async function POST(request: NextRequest) {
       detail: {
         buyWorthy: watchlist.rows.filter((row) => row.status === 'buy_worthy').length,
         violations: watchlist.rows.flatMap((row) => row.violations).length,
+        // Recorded, so a hand-run night is never read later as one where the
+        // digest silently failed to go out.
+        skipNotifications,
       },
     });
     run.record({ watchlistEvaluated: watchlist.rows.length });
@@ -187,6 +202,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     status: run.status,
+    skipNotifications,
     telemetry,
     durationSeconds: Math.round((Date.now() - started) / 1000),
     watchlist: {
