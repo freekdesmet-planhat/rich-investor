@@ -125,7 +125,124 @@ describe('CronRunRecorder', () => {
     );
   });
 
-  describe('save', () => {
+  describe('an in-flight record', () => {
+    it('describes a run with no end as running, with no duration', () => {
+      const run = new CronRunRecorder('nightly-scan', at('2026-09-21T02:00:00Z'));
+      run.succeeded('watchlist', 47_000, { count: 32 });
+
+      const row = run.toRow(null);
+
+      expect(row.status).toBe('running');
+      expect(row.finished_at).toBeNull();
+      expect(row.duration_ms).toBeNull();
+      // The work already banked is still described, which is the whole point:
+      // the row names the stage that had not finished yet.
+      expect(row.stages.watchlist).toMatchObject({ ok: true, count: 32 });
+      expect(row.stages.scan).toBeUndefined();
+    });
+
+    /** Derived status is for a run that ended; `running` is never derived. */
+    it('reports a real status again once it ends', () => {
+      const run = new CronRunRecorder('nightly-scan', at('2026-09-21T02:00:00Z'));
+      run.succeeded('watchlist', 1, { count: 32 });
+      run.succeeded('scan', 1, { count: 60 });
+
+      expect(run.toRow(null).status).toBe('running');
+      expect(run.toRow(at('2026-09-21T02:01:00Z')).status).toBe('ok');
+    });
+  });
+
+  describe('begin, checkpoint and finish', () => {
+    function fakeTable() {
+      const insert = vi.fn(() => ({
+        select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { id: 'row-1' }, error: null }) })),
+      }));
+      const eq = vi.fn().mockResolvedValue({ error: null });
+      // Typed parameter so the recorded call can be read back below; the
+      // value is inspected through `mock.calls`, not used in the stub.
+      const update = vi.fn((row: Record<string, unknown>) => ({ eq, row }));
+      return { client: { from: vi.fn(() => ({ insert, update })) } as never, insert, update, eq };
+    }
+
+    it('opens the row before any work and keeps its id', async () => {
+      const t = fakeTable();
+      const run = new CronRunRecorder('nightly-scan', at('2026-09-21T02:00:00Z'));
+
+      await expect(run.begin(t.client)).resolves.toEqual({ started: true });
+      expect(t.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'running', finished_at: null, duration_ms: null }),
+      );
+    });
+
+    it('updates the open row rather than inserting a second one', async () => {
+      const t = fakeTable();
+      const run = new CronRunRecorder('nightly-scan', at('2026-09-21T02:00:00Z'));
+      await run.begin(t.client);
+
+      run.succeeded('watchlist', 47_000, { count: 32 });
+      await run.checkpoint(t.client);
+      run.succeeded('scan', 40_000, { count: 60 });
+      await run.finish(t.client, at('2026-09-21T02:01:30Z'));
+
+      expect(t.insert).toHaveBeenCalledTimes(1);
+      expect(t.update).toHaveBeenCalledTimes(2);
+      expect(t.eq).toHaveBeenLastCalledWith('id', 'row-1');
+      expect(t.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: 'ok', duration_ms: 90_000 }),
+      );
+    });
+
+    /**
+     * The checkpoint is what localises a kill: whatever it last wrote is what
+     * survives, because nothing of ours runs when the process is taken away.
+     */
+    it('leaves the watchlist banked and the scan unfinished at the checkpoint', async () => {
+      const t = fakeTable();
+      const run = new CronRunRecorder('nightly-scan', at('2026-09-21T02:00:00Z'));
+      await run.begin(t.client);
+      run.succeeded('watchlist', 47_000, { count: 32 });
+      await run.checkpoint(t.client);
+      // ...and here the process dies. No finish, no further write.
+
+      const written = t.update.mock.calls[0][0] as unknown as {
+        status: string;
+        stages: Record<string, unknown>;
+      };
+      expect(written.status).toBe('running');
+      expect(written.stages.watchlist).toMatchObject({ ok: true });
+      expect(written.stages.scan).toBeUndefined();
+    });
+
+    it('still records the run when the row could never be opened', async () => {
+      const insert = vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({ data: null, error: { message: 'unreachable' } }),
+        })),
+      }));
+      const finalInsert = vi.fn().mockResolvedValue({ error: null });
+      let call = 0;
+      const client = {
+        from: vi.fn(() => (call++ === 0 ? { insert } : { insert: finalInsert })),
+      } as never;
+
+      const run = new CronRunRecorder();
+      await expect(run.begin(client)).resolves.toEqual({ started: false, error: 'unreachable' });
+
+      run.succeeded('watchlist', 1, { count: 32 });
+      await expect(run.finish(client)).resolves.toEqual({ saved: true });
+      expect(finalInsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('never throws from begin or checkpoint', async () => {
+      const client = { from: vi.fn(() => { throw new Error('connection reset'); }) } as never;
+      const run = new CronRunRecorder();
+
+      await expect(run.begin(client)).resolves.toEqual({ started: false, error: 'connection reset' });
+      await expect(run.checkpoint(client)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('finish', () => {
     const clientWith = (insert: ReturnType<typeof vi.fn>) =>
       ({ from: vi.fn(() => ({ insert })) }) as never;
 
@@ -134,7 +251,7 @@ describe('CronRunRecorder', () => {
       const run = new CronRunRecorder();
       run.succeeded('watchlist', 1, { count: 1 });
 
-      await expect(run.save(clientWith(insert))).resolves.toEqual({ saved: true });
+      await expect(run.finish(clientWith(insert))).resolves.toEqual({ saved: true });
       expect(insert).toHaveBeenCalledTimes(1);
     });
 
@@ -146,11 +263,11 @@ describe('CronRunRecorder', () => {
       const rejecting = vi.fn().mockRejectedValue(new Error('no such table'));
       const erroring = vi.fn().mockResolvedValue({ error: { message: 'permission denied' } });
 
-      await expect(new CronRunRecorder().save(clientWith(rejecting))).resolves.toEqual({
+      await expect(new CronRunRecorder().finish(clientWith(rejecting))).resolves.toEqual({
         saved: false,
         error: 'no such table',
       });
-      await expect(new CronRunRecorder().save(clientWith(erroring))).resolves.toEqual({
+      await expect(new CronRunRecorder().finish(clientWith(erroring))).resolves.toEqual({
         saved: false,
         error: 'permission denied',
       });

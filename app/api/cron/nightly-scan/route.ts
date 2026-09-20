@@ -56,6 +56,13 @@ export async function POST(request: NextRequest) {
   const run = new CronRunRecorder('nightly-scan');
   const started = run.startedAt.getTime();
 
+  // Opened before any work, so a run that is killed rather than returned still
+  // leaves a row. Three nights of this job dying between the watchlist and the
+  // scan produced no record at all, because the record was written on the way
+  // out and nothing of ours ran on the way out.
+  const opened = await run.begin(client);
+  if (!opened.started) run.log(`cron_runs could not be opened: ${opened.error}`);
+
   // --- 1. Watchlist: ratios, signals, macro context, and the alerts ---------
   // The watchlist is what the emails are about, so it runs first and its
   // failure is the one worth reporting as a failure.
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
     run.record({ watchlistEvaluated: watchlist.rows.length });
   } catch (error) {
     run.failed('watchlist', Date.now() - watchlistStarted, error);
-    const saved = await run.save(client);
+    const saved = await run.finish(client);
     return NextResponse.json(
       {
         ok: false,
@@ -90,6 +97,11 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+
+  // The watchlist is banked before the scan is attempted. If the run dies from
+  // here on, the row says so: watchlist complete, scan in flight, and the
+  // timestamp of this write is the last moment the process was known alive.
+  await run.checkpoint(client);
 
   // --- 2. Universe scan -----------------------------------------------------
   // A batch, not a sweep: each candidate needs a fundamentals round-trip, so
@@ -170,7 +182,7 @@ export async function POST(request: NextRequest) {
 
   // Written before the response is built, so the record survives a client that
   // hangs up — which pg_net, firing and forgetting, effectively always does.
-  const telemetry = await run.save(client);
+  const telemetry = await run.finish(client);
 
   return NextResponse.json({
     ok: true,

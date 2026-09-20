@@ -21,7 +21,14 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type CronRunStatus = 'ok' | 'partial' | 'failed';
+/**
+ * `running` is the one that matters most.
+ *
+ * A row left at `running` is a run that never came back — the only trace a
+ * process killed by the platform is able to leave, because by definition no
+ * code of ours executed after it died.
+ */
+export type CronRunStatus = 'running' | 'ok' | 'partial' | 'failed';
 
 /** Why a stage produced no work, when it produced none on purpose. */
 export type SkipReason = string;
@@ -42,8 +49,9 @@ export interface StageRecord {
 export interface CronRunRow {
   job: string;
   started_at: string;
-  finished_at: string;
-  duration_ms: number;
+  /** Null while in flight, and for a run that was killed before finishing. */
+  finished_at: string | null;
+  duration_ms: number | null;
   status: CronRunStatus;
   stages: Record<string, StageRecord>;
   watchlist_evaluated: number | null;
@@ -99,6 +107,9 @@ export interface CronRunSummary {
 export class CronRunRecorder {
   readonly job: string;
   readonly startedAt: Date;
+
+  /** The row's id once `begin` has opened it. Null when it never got in. */
+  private id: string | null = null;
 
   private readonly stages: Record<string, StageRecord> = {};
   private readonly lines: string[] = [];
@@ -158,16 +169,21 @@ export class CronRunRecorder {
     return this.stages;
   }
 
-  /** The row to insert. Pure, so the shape is testable without a database. */
-  toRow(finishedAt: Date = new Date()): CronRunRow {
+  /**
+   * The row as it stands. Pure, so the shape is testable without a database.
+   *
+   * Passing no `finishedAt` describes a run still in flight: no end, no
+   * duration, and the status the caller asked for rather than a derived one.
+   */
+  toRow(finishedAt: Date | null = new Date()): CronRunRow {
     const firstFailure = Object.entries(this.stages).find(([, s]) => !s.ok);
 
     return {
       job: this.job,
       started_at: this.startedAt.toISOString(),
-      finished_at: finishedAt.toISOString(),
-      duration_ms: Math.max(0, finishedAt.getTime() - this.startedAt.getTime()),
-      status: this.status,
+      finished_at: finishedAt?.toISOString() ?? null,
+      duration_ms: finishedAt ? Math.max(0, finishedAt.getTime() - this.startedAt.getTime()) : null,
+      status: finishedAt ? this.status : 'running',
       stages: this.stages,
       watchlist_evaluated: this.summary.watchlistEvaluated ?? null,
       scan_evaluated: this.summary.scanEvaluated ?? null,
@@ -182,16 +198,74 @@ export class CronRunRecorder {
   }
 
   /**
-   * Writes the row. Never throws.
+   * Opens the record, before any work starts.
+   *
+   * The row goes in at `running` and is updated from here on. A run that is
+   * killed — by a function timeout, by the platform reclaiming the process,
+   * by anything that does not give JavaScript a chance to run — leaves that
+   * row exactly as the last checkpoint left it, and the stage still marked in
+   * flight is the stage it died in. That is the only way to learn where,
+   * because no code of ours gets to execute on the way out.
+   *
+   * Never throws: telemetry that can stop the run before it starts is worse
+   * than no telemetry. A failed open simply means `finish` falls back to an
+   * insert, and the run is recorded the old way.
+   */
+  async begin(client: SupabaseClient): Promise<{ started: boolean; error?: string }> {
+    try {
+      const { data, error } = await client
+        .from('cron_runs')
+        .insert(this.toRow(null))
+        .select('id')
+        .single();
+
+      if (error) return { started: false, error: error.message };
+      this.id = (data as { id: string }).id;
+      return { started: true };
+    } catch (error) {
+      return { started: false, error: (error as Error).message };
+    }
+  }
+
+  /**
+   * Writes progress without ending the run.
+   *
+   * Called between stages, so the row on disk always reflects the last thing
+   * known to have completed. The cost is one update per stage; what it buys is
+   * the difference between "the run died somewhere" and "the run died in the
+   * scan, 47 seconds in, with the watchlist already safe".
+   */
+  async checkpoint(client: SupabaseClient): Promise<void> {
+    if (this.id == null) return;
+    try {
+      await client.from('cron_runs').update(this.toRow(null)).eq('id', this.id);
+    } catch {
+      // Progress is a convenience; losing it must not cost us the run.
+    }
+  }
+
+  /**
+   * Closes the record. Never throws.
    *
    * A run that completed its work and then could not describe itself has still
    * completed its work, and turning that into a 500 would throw away a good
    * night over a bookkeeping failure. The write is reported in the response
    * instead, so a broken telemetry table is visible without being fatal.
+   *
+   * Falls back to an insert when `begin` never got a row in, so a run is
+   * recorded even if the table was unreachable at the start.
    */
-  async save(client: SupabaseClient, finishedAt: Date = new Date()): Promise<{ saved: boolean; error?: string }> {
+  async finish(
+    client: SupabaseClient,
+    finishedAt: Date = new Date(),
+  ): Promise<{ saved: boolean; error?: string }> {
+    const row = this.toRow(finishedAt);
     try {
-      const { error } = await client.from('cron_runs').insert(this.toRow(finishedAt));
+      const { error } =
+        this.id != null
+          ? await client.from('cron_runs').update(row).eq('id', this.id)
+          : await client.from('cron_runs').insert(row);
+
       if (error) return { saved: false, error: error.message };
       return { saved: true };
     } catch (error) {
