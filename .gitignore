@@ -56,3 +56,6 @@ supabase/.temp
 
 # The template documents required config and is safe to commit.
 !.env.example
+
+# Claude Code scratch worktrees: whole copies of this repo, never ours to track.
+.claude/
