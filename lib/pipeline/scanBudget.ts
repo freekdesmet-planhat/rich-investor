@@ -39,8 +39,33 @@
  * and give the scan what remains.
  */
 
-/** The nightly route's own ceiling, which is what the run is dividing up. */
-export const RUN_CEILING_MS = 300_000;
+/**
+ * How long a request may actually run here, measured rather than declared.
+ *
+ * This was 300_000, to match the `maxDuration = 300` the route exports. That
+ * number is a request, not a guarantee, and on this plan it is not granted.
+ * Probed directly against the deployment:
+ *
+ *   silent request, 25s          200
+ *   silent request, 30s          504 Inactivity Timeout
+ *   silent request, 40s and up   500 "the edge function timed out"
+ *   streamed, 40s / 90s / 200s   200, body truncated around 30s either way
+ *   heartbeat into Postgres      last beat at 58s, then nothing, ever
+ *
+ * So there are two ceilings and they are not the same one. The connection is
+ * taken away at roughly 26s — which is what the caller sees, and why the
+ * nightly job's 504 arrived while the job was still working. The process is
+ * killed at roughly 60s, which is the one that decides how much work can be
+ * done, and is invisible from the caller's side entirely.
+ *
+ * Streaming does not move either of them. It keeps the status line at 200 and
+ * lets the body dribble out past 26s, but the function still stops at the same
+ * place; all it changes is that failure starts looking like success.
+ *
+ * 60s, then, with the margin below taken out of it. Anything that needs longer
+ * has to be split across requests rather than asked for politely.
+ */
+export const RUN_CEILING_MS = 60_000;
 
 /**
  * Held back from the scan's share.
@@ -48,8 +73,13 @@ export const RUN_CEILING_MS = 300_000;
  * The run still has to save the cursor and write its response after the scan
  * returns, and a scan that used the last second would lose both — including the
  * cursor, which is what stops tomorrow re-walking the same candidates.
+ *
+ * Ten seconds of sixty, where it used to be thirty of three hundred. The work
+ * it protects has not changed — a cursor write and a telemetry update — but it
+ * is now a sixth of the budget rather than a tenth, and taking the old figure
+ * into the real ceiling would have left the scan half of what it has.
  */
-export const SAFETY_MARGIN_MS = 30_000;
+export const SAFETY_MARGIN_MS = 10_000;
 
 /**
  * What one candidate costs before anything has been measured.

@@ -22,17 +22,23 @@ import {
 
 describe('scanBudget', () => {
   it('scans the default batch when the night can afford it', () => {
-    // 300s ceiling, 60s watchlist, 30s margin -> 210s at 3s each is 70 affordable.
-    const budget = scanBudget({ elapsedMs: 60_000 });
+    // 60s ceiling, 5s spent, 10s margin -> 45s, and at the measured 500ms a
+    // candidate that is ninety of them, so the default batch is the binding
+    // number rather than the clock.
+    const budget = scanBudget({ elapsedMs: 5_000, msPerCandidate: 500 });
 
-    expect(budget.remainingMs).toBe(RUN_CEILING_MS - 60_000 - SAFETY_MARGIN_MS);
+    expect(budget.remainingMs).toBe(RUN_CEILING_MS - 5_000 - SAFETY_MARGIN_MS);
     expect(budget.limit).toBe(DEFAULT_SCAN_BATCH);
     expect(budget.reason).toBe('default');
   });
 
-  /** The clock still wins when it is the smaller of the two numbers. */
+  /**
+   * The clock wins whenever it is the smaller number, which against a 60s
+   * ceiling and a pessimistic 3s per candidate is very nearly always. The
+   * measured cost from a real night is what lifts it.
+   */
   it('falls back to what the clock allows when that is less', () => {
-    const budget = scanBudget({ elapsedMs: 200_000 });
+    const budget = scanBudget({ elapsedMs: 30_000 });
 
     expect(budget.limit).toBe(Math.floor(budget.remainingMs / DEFAULT_MS_PER_CANDIDATE));
     expect(budget.limit).toBeLessThan(DEFAULT_SCAN_BATCH);
@@ -40,8 +46,8 @@ describe('scanBudget', () => {
   });
 
   it('shrinks the batch when the watchlist ran long', () => {
-    const quick = scanBudget({ elapsedMs: 30_000 });
-    const slow = scanBudget({ elapsedMs: 200_000 });
+    const quick = scanBudget({ elapsedMs: 5_000 });
+    const slow = scanBudget({ elapsedMs: 35_000 });
 
     expect(slow.limit).toBeLessThan(quick.limit);
     expect(slow.limit).toBeGreaterThan(0);
@@ -53,10 +59,10 @@ describe('scanBudget', () => {
    */
   it('always explains itself, whatever the batch came out at', () => {
     for (const input of [
-      { elapsedMs: 60_000 },
-      { elapsedMs: 60_000, override: '5' },
-      { elapsedMs: 60_000, override: 'sixty' },
-      { elapsedMs: 60_000, override: '0' },
+      { elapsedMs: 5_000 },
+      { elapsedMs: 5_000, override: '5' },
+      { elapsedMs: 5_000, override: 'sixty' },
+      { elapsedMs: 5_000, override: '0' },
       { elapsedMs: RUN_CEILING_MS },
     ]) {
       const budget = scanBudget(input);
@@ -83,8 +89,8 @@ describe('scanBudget', () => {
   it('uses a measured cost in place of the guess', () => {
     // A long watchlist, so the clock is what binds and the cost per candidate
     // is what decides how many fit into what is left.
-    const guessed = scanBudget({ elapsedMs: 200_000 });
-    const measured = scanBudget({ elapsedMs: 200_000, msPerCandidate: 1_000 });
+    const guessed = scanBudget({ elapsedMs: 30_000 });
+    const measured = scanBudget({ elapsedMs: 30_000, msPerCandidate: 1_000 });
 
     expect(measured.msPerCandidate).toBe(1_000);
     expect(measured.limit).toBeGreaterThan(guessed.limit);
@@ -92,7 +98,7 @@ describe('scanBudget', () => {
 
   it('ignores a nonsensical measurement', () => {
     for (const bad of [0, -5, null]) {
-      expect(scanBudget({ elapsedMs: 60_000, msPerCandidate: bad }).msPerCandidate).toBe(
+      expect(scanBudget({ elapsedMs: 5_000, msPerCandidate: bad }).msPerCandidate).toBe(
         DEFAULT_MS_PER_CANDIDATE,
       );
     }
@@ -105,14 +111,14 @@ describe('scanBudget', () => {
 
   describe('an explicit SCAN_BATCH_SIZE', () => {
     it('wins over the arithmetic', () => {
-      const budget = scanBudget({ elapsedMs: 60_000, override: '5' });
+      const budget = scanBudget({ elapsedMs: 30_000, override: '5' });
       expect(budget.limit).toBe(5);
       expect(budget.reason).toBe('override');
     });
 
     /** An instruction, but not one that can book time the run does not have. */
     it('still cannot outrun the clock', () => {
-      const budget = scanBudget({ elapsedMs: 280_000, override: '200' });
+      const budget = scanBudget({ elapsedMs: 55_000, override: '200' });
       expect(budget.limit).toBe(0);
     });
 
@@ -130,7 +136,7 @@ describe('scanBudget', () => {
      * nothing said about it.
      */
     it('falls back to the default rather than to nothing when it is unreadable', () => {
-      const budget = scanBudget({ elapsedMs: 60_000, override: 'sixty' });
+      const budget = scanBudget({ elapsedMs: 5_000, msPerCandidate: 500, override: 'sixty' });
 
       expect(budget.limit).toBe(DEFAULT_SCAN_BATCH);
       expect(budget.reason).toBe('invalid_override');
@@ -138,7 +144,7 @@ describe('scanBudget', () => {
     });
 
     it('falls back to the default when nothing is configured', () => {
-      const budget = scanBudget({ elapsedMs: 60_000, override: null });
+      const budget = scanBudget({ elapsedMs: 5_000, msPerCandidate: 500, override: null });
 
       expect(budget.limit).toBe(DEFAULT_SCAN_BATCH);
       expect(budget.reason).toBe('default');
