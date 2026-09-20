@@ -74,6 +74,13 @@ export async function POST(request: NextRequest) {
   const opened = await run.begin(client);
   if (!opened.started) run.log(`cron_runs could not be opened: ${opened.error}`);
 
+  // Yesterday's corpse, if there is one. A killed run cannot mark itself, so
+  // the next run does it — otherwise the table fills with rows that claim to
+  // still be going and stops being usable as evidence.
+  const reaped = await CronRunRecorder.reapStale(client);
+  if (reaped.reaped > 0) run.log(`marked ${reaped.reaped} abandoned run(s) as timed out`);
+  if (reaped.error) run.log(`could not sweep abandoned runs: ${reaped.error}`);
+
   // --- 1. Watchlist: ratios, signals, macro context, and the alerts ---------
   // The watchlist is what the emails are about, so it runs first and its
   // failure is the one worth reporting as a failure.

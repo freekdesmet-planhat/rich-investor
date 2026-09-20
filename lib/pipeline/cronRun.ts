@@ -28,7 +28,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * process killed by the platform is able to leave, because by definition no
  * code of ours executed after it died.
  */
-export type CronRunStatus = 'running' | 'ok' | 'partial' | 'failed';
+export type CronRunStatus = 'running' | 'ok' | 'partial' | 'failed' | 'timed_out';
+
+/**
+ * How long a run may sit at `running` before it is presumed dead.
+ *
+ * Generous on purpose. The nightly job's own ceiling is five minutes, so
+ * anything still open after ten is not slow, it is gone — and the cost of
+ * waiting a little longer to say so is nothing, while the cost of reaping a
+ * run that was merely slow is a row that lies about a run that succeeded.
+ */
+export const STALE_RUN_MINUTES = 10;
 
 /** Why a stage produced no work, when it produced none on purpose. */
 export type SkipReason = string;
@@ -195,6 +205,40 @@ export class CronRunRecorder {
       error_stack: firstFailure?.[1].stack ?? null,
       log: this.lines,
     };
+  }
+
+  /**
+   * Closes out runs that never came back.
+   *
+   * Swept at the start of each run rather than on a schedule of its own: a
+   * stale row only matters when someone is reading this table, and the run
+   * that is about to write to it is the best-placed thing to tidy up before
+   * it does. Nothing here can fail the run — a sweep that errors is skipped
+   * and the stale rows simply wait for tomorrow.
+   *
+   * Note what is *not* set: `duration_ms`. A reaped run's end time is unknown,
+   * and the moment it was noticed is not a substitute for it.
+   */
+  static async reapStale(
+    client: SupabaseClient,
+    olderThanMinutes = STALE_RUN_MINUTES,
+    now: Date = new Date(),
+  ): Promise<{ reaped: number; error?: string }> {
+    const cutoff = new Date(now.getTime() - olderThanMinutes * 60_000).toISOString();
+
+    try {
+      const { data, error } = await client
+        .from('cron_runs')
+        .update({ status: 'timed_out', finished_at: now.toISOString(), duration_ms: null })
+        .eq('status', 'running')
+        .lt('started_at', cutoff)
+        .select('id');
+
+      if (error) return { reaped: 0, error: error.message };
+      return { reaped: (data ?? []).length };
+    } catch (error) {
+      return { reaped: 0, error: (error as Error).message };
+    }
   }
 
   /**

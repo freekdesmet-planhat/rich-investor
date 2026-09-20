@@ -8,7 +8,7 @@
  * whether the row can still tell them apart.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { CronRunRecorder, deriveStatus, type StageRecord } from './cronRun';
+import { CronRunRecorder, deriveStatus, STALE_RUN_MINUTES, type StageRecord } from './cronRun';
 
 const stage = (over: Partial<StageRecord> = {}): StageRecord => ({ ok: true, durationMs: 1, ...over });
 
@@ -239,6 +239,58 @@ describe('CronRunRecorder', () => {
 
       await expect(run.begin(client)).resolves.toEqual({ started: false, error: 'connection reset' });
       await expect(run.checkpoint(client)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('reapStale', () => {
+    function reaper(result: { data?: unknown[]; error?: { message: string } }) {
+      const select = vi.fn().mockResolvedValue({ data: result.data ?? null, error: result.error ?? null });
+      const lt = vi.fn(() => ({ select }));
+      const eq = vi.fn(() => ({ lt }));
+      const update = vi.fn((row: Record<string, unknown>) => ({ eq, row }));
+      return { client: { from: vi.fn(() => ({ update })) } as never, update, eq, lt, select };
+    }
+
+    it('marks a run abandoned past the ceiling, without inventing a duration', async () => {
+      const r = reaper({ data: [{ id: 'a' }, { id: 'b' }] });
+      const now = new Date('2026-09-21T03:00:00Z');
+
+      await expect(CronRunRecorder.reapStale(r.client, STALE_RUN_MINUTES, now)).resolves.toEqual({
+        reaped: 2,
+      });
+
+      expect(r.update).toHaveBeenCalledWith({
+        status: 'timed_out',
+        finished_at: now.toISOString(),
+        // The end is genuinely unknown; the moment of noticing is not it.
+        duration_ms: null,
+      });
+      expect(r.eq).toHaveBeenCalledWith('status', 'running');
+      expect(r.lt).toHaveBeenCalledWith('started_at', '2026-09-21T02:50:00.000Z');
+    });
+
+    it('leaves a run that is merely slow alone', async () => {
+      const r = reaper({ data: [] });
+      const now = new Date('2026-09-21T02:05:00Z');
+
+      await expect(CronRunRecorder.reapStale(r.client, 10, now)).resolves.toEqual({ reaped: 0 });
+      // The cutoff is behind the start of any run begun in the last ten minutes.
+      expect(r.lt).toHaveBeenCalledWith('started_at', '2026-09-21T01:55:00.000Z');
+    });
+
+    /** Tidying up must never be able to stop the run that is tidying. */
+    it('never throws', async () => {
+      const failing = { from: vi.fn(() => { throw new Error('connection reset'); }) } as never;
+      await expect(CronRunRecorder.reapStale(failing)).resolves.toEqual({
+        reaped: 0,
+        error: 'connection reset',
+      });
+
+      const erroring = reaper({ error: { message: 'permission denied' } });
+      await expect(CronRunRecorder.reapStale(erroring.client)).resolves.toEqual({
+        reaped: 0,
+        error: 'permission denied',
+      });
     });
   });
 
