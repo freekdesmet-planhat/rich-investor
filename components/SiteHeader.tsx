@@ -1,21 +1,32 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { MobileNav } from './nav/MobileNav';
+import { NavLinks, type NavLink } from './nav/NavLinks';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/login/actions';
 
 /**
- * The header, at two sizes.
+ * The header.
  *
- * Everything on the right — three or four nav links, two language buttons and
- * sign out — was marked `shrink-0`, so the block could not give way and the
- * header needed more width than a phone has before it could lay out at all.
- * Under `sm` those controls move into a disclosure behind a menu button, and
- * the bar itself carries only the title and that button.
+ * Three things were wrong with it, and only one of them was cosmetic.
  *
- * The disclosure is a native `<details>`, so it opens and closes with no client
- * JavaScript and works in a server component — the rest of this header is
- * server-rendered and there is no reason for a menu to change that.
+ * It had no active state: five identically styled links on every page, so the
+ * bar could be used to leave a page but never to work out which one you were
+ * on. Navigation that cannot orient you is doing half its job.
+ *
+ * It mixed navigation with account actions. Sign out sat in the same row, at
+ * the same weight, as Watchlist and Search — one of those moves you around
+ * the app and the other ends your session, and they looked the same.
+ *
+ * And it carried the tagline inside a sticky bar, which cost two lines of
+ * vertical space on every page and every scroll position. The credit it
+ * carried matters and has moved to the footer, which is already on every page
+ * and is where a credit belongs; a proper methodology page comes with item 4.
+ *
+ * Now: brand, then navigation, then a separated account cluster. Under `md`
+ * the navigation collapses into a menu that actually behaves like one — see
+ * MobileNav.
  */
 export async function SiteHeader() {
   const [t, tAuth, tNav] = await Promise.all([
@@ -28,7 +39,7 @@ export async function SiteHeader() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const links = [
+  const links: NavLink[] = [
     { href: '/', label: tNav('watchlist') },
     { href: '/search', label: tNav('search') },
     { href: '/suggestions', label: tNav('suggestions') },
@@ -36,89 +47,46 @@ export async function SiteHeader() {
     ...(user ? [{ href: '/account', label: tNav('account') }] : []),
   ];
 
-  const linkClass =
-    'rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800';
+  const signOutButton = user?.email ? (
+    <form action={signOut}>
+      <button
+        type="submit"
+        title={tAuth('signedInAs', { email: user.email })}
+        className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-subtle transition hover:bg-surface-hover hover:text-ink"
+      >
+        {tAuth('signOut')}
+      </button>
+    </form>
+  ) : null;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-      <div className="mx-auto max-w-5xl px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          {/* min-w-0 lets the title truncate instead of forcing the bar wider. */}
-          <Link href="/" className="min-w-0">
-            <span className="block truncate text-base font-semibold">{t('name')}</span>
-            <span className="hidden truncate text-xs text-slate-500 sm:block dark:text-slate-400">
-              {t('tagline')}
-            </span>
-          </Link>
+    <header className="sticky top-0 z-10 border-b border-line bg-canvas/85 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
+        {/* min-w-0 lets the name truncate instead of forcing the bar wider. */}
+        <Link
+          href="/"
+          className="min-w-0 shrink-0 truncate text-base font-semibold tracking-tight text-ink"
+        >
+          {t('name')}
+        </Link>
 
-          {/* --- phone: one button, everything behind it ------------------- */}
-          <details className="group relative shrink-0 sm:hidden">
-            <summary
-              className="flex cursor-pointer list-none items-center rounded px-2 py-1 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              aria-label={tNav('menu')}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <path d="M3 5.5h14M3 10h14M3 14.5h14" />
-              </svg>
-            </summary>
+        {/* The separator does the work the old layout asked whitespace to do:
+            everything left of it moves you around, everything right of it is
+            about your session. */}
+        <div className="hidden min-w-0 flex-1 md:block">
+          <NavLinks links={links} />
+        </div>
 
-            <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              <nav className="flex flex-col text-sm">
-                {links.map((link) => (
-                  <Link key={link.href} href={link.href} className={linkClass}>
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
+        <div className="ml-auto hidden shrink-0 items-center gap-1 border-l border-line pl-3 md:flex">
+          <LanguageSwitcher />
+          {signOutButton}
+        </div>
 
-              <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-                <LanguageSwitcher />
-                {user?.email && (
-                  <form action={signOut}>
-                    <button
-                      type="submit"
-                      title={tAuth('signedInAs', { email: user.email })}
-                      className="rounded px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                    >
-                      {tAuth('signOut')}
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-          </details>
-
-          {/* --- sm and up: the same controls, laid out inline ------------- */}
-          <div className="hidden items-center gap-2 sm:flex">
-            <nav className="flex items-center gap-1 text-xs">
-              {links.map((link) => (
-                <Link key={link.href} href={link.href} className={linkClass}>
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+        <div className="ml-auto md:hidden">
+          <MobileNav links={links} label={tNav('menu')}>
             <LanguageSwitcher />
-            {user?.email && (
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  title={tAuth('signedInAs', { email: user.email })}
-                  className="rounded px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                >
-                  {tAuth('signOut')}
-                </button>
-              </form>
-            )}
-          </div>
+            {signOutButton}
+          </MobileNav>
         </div>
       </div>
     </header>

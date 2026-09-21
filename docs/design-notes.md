@@ -166,6 +166,31 @@ genuinely needs something new.
 | `<Stat>` | A label above a figure. `tone` for verdict-coloured values |
 | `<Chip>` | Small inline metadata. `tone` only where it carries a verdict |
 
+## Navigation
+
+One bar, 56px, sticky, on a translucent canvas. Left to right: brand,
+primary navigation, a divider, then the account cluster (language, sign
+out). The divider is doing real work — everything left of it moves you
+around the app, everything right of it is about your session. The old header
+put sign out in the same row at the same weight as Watchlist and Search.
+
+- **Active state is required.** `<NavLinks>` owns it, via `usePathname`.
+  A tab gets `aria-current="page"` as well as the highlight, because the
+  highlight is colour and weight and neither reaches a screen reader.
+- **`/` matches only itself.** A prefix match would light the watchlist on
+  every page — a wrong answer read as a right one. `/stock/ASML` deliberately
+  highlights nothing: you did not get there from the bar.
+- **Under `md` the bar collapses** into `<MobileNav>`: still a `<details>`, so
+  it works with no JavaScript, but enhanced to close on navigation, on
+  Escape, and on an outside click.
+- **No tagline in the bar.** It cost two lines on every page at every scroll
+  position; the credit it carried lives in the footer until item 4's
+  methodology page exists.
+
+Sub-navigation within a page (the "Full research" tabs in item 6) uses the
+same active-pill treatment, so a tab strip means the same thing wherever it
+appears.
+
 ## Tables and figures
 
 - Numeric columns right-aligned, labels left-aligned.

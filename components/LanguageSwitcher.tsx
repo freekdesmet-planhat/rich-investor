@@ -30,7 +30,7 @@ export async function LanguageSwitcher({ className = '' }: { className?: string 
         // pressing it switches, not that it is a label.
         aria-label={t('switchTo', { language: t(next) })}
         title={t('switchTo', { language: t(next) })}
-        className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-subtle transition hover:bg-surface-hover hover:text-ink"
       >
         <span aria-hidden="true">{FLAG[next]}</span>
         <span className="uppercase">{next}</span>

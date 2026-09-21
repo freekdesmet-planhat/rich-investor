@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <body className="flex min-h-full flex-col bg-canvas text-ink">
         {/* Outside the provider and above every page, so it is listening
             before anything that might fail has rendered. */}
         <ClientErrorReporter />
@@ -47,9 +47,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider>
           <div className="flex-1">{children}</div>
 
-          {/* Required on every page, in the active language (section 2). */}
-          <footer className="border-t border-slate-200 px-4 py-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            {t('disclaimer')}
+          {/* Required on every page, in the active language (section 2).
+              The tagline moved here out of the sticky header, where it cost
+              two lines of vertical space on every page: the credit it carries
+              is worth keeping and a footer is where a credit belongs. Item 4
+              replaces it with a proper methodology page. */}
+          <footer className="mt-12 border-t border-line px-4 py-6 text-center text-xs text-ink-subtle">
+            <p>{t('disclaimer')}</p>
+            <p className="mt-1 text-ink-faint">{t('tagline')}</p>
           </footer>
         </NextIntlClientProvider>
       </body>
