@@ -252,6 +252,32 @@ direction and on any data-source gap in items 7 or 8.
   (the route already declares `maxDuration = 300`, so that would need no
   code change). Its own decision, not a rushed change riding on something
   else.
+- 2026-09-21: Fixed a 404 on every suggestion's stock page. The universe
+  scan computed each candidate's ratios and signal in memory but persisted
+  only a `suggestions` row (and the fetched `daily_snapshots`); it never
+  wrote the `ratios` or `signal_history` tables. The stock page resolves a
+  symbol through `getSignal()`, which reads `signal_history`, so every name
+  the suggestions feed linked to came back "Not found" — all four live
+  suggestions at the time (APH, APP, BR, DECK), not one. The scan now writes
+  `ratios` and `signal_history` for the names it files, reusing the exact row
+  shapes `runDailyPipeline` uses. Verified on real data with writes
+  intercepted: a 40-candidate batch suggested 4 names and all 4 got both
+  tables. The four pre-fix suggestions were backfilled through
+  `runDailyPipeline` and now resolve on production (they read as `watching`
+  rather than the `buy_worthy`/`almost` on their cards — a genuine intraday
+  drift from being re-evaluated hours after they were filed, not a fault;
+  it does not arise in the nightly flow, where the signal is written in the
+  same pass that files the suggestion).
+- 2026-09-21: **Known debt, flagged not fixed.** The fix above leaves the
+  `ratios` and `signal_history` row-building duplicated between `scan.ts` and
+  `runDailyPipeline` — the same rows constructed in two places. This is worth
+  unifying into a single shared builder later, when there is no fix under
+  time pressure riding on it, and it is called out here specifically because
+  this exact duplication is what caused the 404 bug: both paths built the
+  rows, only one of them saved them, and nothing tied the two together so the
+  gap was invisible. A shared builder would also give the scan's persistence
+  a unit-test seam it does not currently have (the live intercepted-write
+  check was the only practical verification this time).
 - 2026-09-20: Scope substantially expanded after a proper spec discussion.
   This is no longer just a personal-tool enhancement list, it's headed
   toward a paid subscription launch in about a month (large-cap framework

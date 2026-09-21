@@ -23,10 +23,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createFxRates } from '@/lib/providers/fx';
 import { createMarketDataService } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
-import { buildContext, computeAllRatios } from '@/lib/ratios/engine';
+import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/engine';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { evaluateSignal } from '@/lib/signal/buyWorthy';
-import { explainSignal } from '@/lib/signal/explain';
+import { explainSignal, explainSections } from '@/lib/signal/explain';
 import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
 import {
   DEFAULT_SECTOR_RULES,
@@ -323,6 +323,10 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   await fx.load(pairs);
 
   const rows: Record<string, unknown>[] = [];
+  // A suggested candidate's stock page reads signal_history and ratios, so the
+  // scan persists both for the names it raises — see the note by the upserts.
+  const ratioRows: Record<string, unknown>[] = [];
+  const signalRows: Record<string, unknown>[] = [];
   const summary: ScanResult['candidates'] = [];
   let evaluated = 0;
 
@@ -358,12 +362,13 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     // simply not raised — the feed is for things worth a decision.
     if (signal.status !== 'buy_worthy' && signal.status !== 'almost') continue;
 
-    const why = explainSignal({
+    const explainInput = {
       symbol: candidate.symbol,
       name: candidate.name,
       signal,
       ratios,
-    });
+    };
+    const why = explainSignal(explainInput);
 
     rows.push({
       user_id: null,
@@ -377,11 +382,76 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
       ratio_snapshot: signal.ratioSnapshot,
       suggested_at: today,
     });
+
+    // Persist the evaluation the scan just computed, for the suggested names
+    // only. The stock page the feed links to resolves a symbol through
+    // signal_history and ratios; without these it 404s, however good the
+    // suggestion card looks. The rows match runDailyPipeline's shape exactly —
+    // that they were built in two places, and only one of them saved them, is
+    // what left every suggestion unreachable.
+    for (const result of Object.values(ratios) as RatioResult[]) {
+      const detail = result.detail as { isAdjusted?: boolean; rawValue?: number | null };
+      ratioRows.push({
+        symbol: candidate.symbol,
+        as_of: today,
+        ratio_key: result.key,
+        value: result.value,
+        unit: result.unit,
+        color: result.color,
+        target_label: result.targetLabel,
+        target_source: result.targetSource,
+        thresholds: result.thresholds,
+        currency: result.currency,
+        history: result.history,
+        not_applicable: result.notApplicable,
+        unavailable_reason: result.unavailableReason,
+        detail: result.detail,
+        is_adjusted: detail.isAdjusted ?? false,
+        raw_value: detail.rawValue ?? null,
+      });
+    }
+
+    signalRows.push({
+      symbol: candidate.symbol,
+      as_of: today,
+      status: signal.status,
+      lynch_category: lynch.category,
+      focus_sector: focus.focusSector,
+      conditions_met: signal.conditionsMet,
+      conditions_total: 9,
+      conditions_applicable: signal.conditionsApplicable,
+      checklist: signal.conditions,
+      why_en: why.en,
+      why_nl: why.nl,
+      why_parts: explainSections(explainInput),
+      ratio_snapshot: signal.ratioSnapshot,
+      thresholds_used: DEFAULT_THRESHOLDS,
+      peg_basis: signal.pegBasis,
+      // A scanned candidate has no watchlist history to compare against, so the
+      // "changed since yesterday" fields stay at their base values — they are
+      // the nightly watchlist path's to set once the name is actually watched.
+      became_buy_worthy: false,
+      previous_status: null,
+    });
   }
 
   if (rows.length > 0) {
     const { error } = await client.from('suggestions').upsert(rows, { onConflict: 'symbol' });
     if (error) throw new Error(`suggestions upsert failed: ${error.message}`);
+  }
+
+  if (ratioRows.length > 0) {
+    const { error } = await client
+      .from('ratios')
+      .upsert(ratioRows, { onConflict: 'symbol,as_of,ratio_key' });
+    if (error) throw new Error(`ratios upsert failed: ${error.message}`);
+  }
+
+  if (signalRows.length > 0) {
+    const { error } = await client
+      .from('signal_history')
+      .upsert(signalRows, { onConflict: 'symbol,as_of' });
+    if (error) throw new Error(`signal_history upsert failed: ${error.message}`);
   }
 
   log(`evaluated ${evaluated}, suggested ${rows.length}`);
