@@ -549,5 +549,16 @@
     "marketClosed": "market closed",
     "notQuoted": "not quoted",
     "note": "Informational — it does not affect the verdict."
+  },
+  "valuationHistory": {
+    "title": "Valuation against its own history",
+    "intro": "Where today's price-to-earnings sits against the range this company has actually traded at over five years.",
+    "current": "Now",
+    "median": "Median",
+    "low": "5y low",
+    "high": "5y high",
+    "percentileCheap": "cheaper than {percentile}% of the last five years",
+    "percentileRich": "more expensive than {percentile}% of the last five years",
+    "footnote": "Trailing P/E on annual reported earnings, stepped when each year was filed rather than when it ended. Loss-making years are left out."
   }
 }

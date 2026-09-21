@@ -549,5 +549,16 @@
     "marketClosed": "markt gesloten",
     "notQuoted": "niet genoteerd",
     "note": "Informatief — dit beïnvloedt het oordeel niet."
+  },
+  "valuationHistory": {
+    "title": "Waardering tegenover de eigen historie",
+    "intro": "Waar de koers-winstverhouding van vandaag staat ten opzichte van de bandbreedte waarin dit bedrijf de afgelopen vijf jaar werkelijk handelde.",
+    "current": "Nu",
+    "median": "Mediaan",
+    "low": "5j laag",
+    "high": "5j hoog",
+    "percentileCheap": "goedkoper dan {percentile}% van de afgelopen vijf jaar",
+    "percentileRich": "duurder dan {percentile}% van de afgelopen vijf jaar",
+    "footnote": "Koers-winstverhouding op gerapporteerde jaarwinst, met een stap op het moment van publicatie in plaats van boekjaareinde. Verliesjaren blijven buiten beschouwing."
   }
 }

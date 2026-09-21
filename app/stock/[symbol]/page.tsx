@@ -46,6 +46,8 @@ import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/li
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { upcomingEarnings } from '@/lib/data/earnings';
 import { LiquidityNote } from '@/components/LiquidityNote';
+import { ValuationRangeChart } from '@/components/ValuationRangeChart';
+import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
 import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
@@ -134,7 +136,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -157,6 +159,7 @@ export default async function StockPage({
     getTranslations('position'),
     getTranslations('earnings'),
     getTranslations('liquidity'),
+    getTranslations('valuationHistory'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -224,6 +227,16 @@ export default async function StockPage({
   const name = snapshot?.quote?.name ?? symbol;
   const lynch = docs.get(`lynch:${signal.lynch_category}`);
   const earnings = upcomingEarnings(snapshot?.quote?.nextEarningsDate);
+
+  // The same annual EPS series the PEG card draws its sparkline from, so the
+  // history here and the growth figures there cannot drift apart.
+  const valuation = summariseValuation(
+    peHistory(
+      (snapshot?.price_history ?? []).map((p) => ({ date: p.date, close: p.close })),
+      (byKey.get('peg')?.history ?? []) as Array<{ period: string; value: number }>,
+    ),
+    byKey.get('pe')?.value ?? null,
+  );
   // Resolved here so the client block carries no translation bundle of its own.
   const liquidityLabels = {
     heading: tLiquidity('heading'),
@@ -395,6 +408,33 @@ export default async function StockPage({
                 chart: tChart('label'),
               }}
             />
+          </Section>
+        )}
+
+        {/* --- the company's own valuation range ---------------------------- */}
+        {/* Straight after the price chart, because the two answer halves of
+            one question: that one says how far the price has fallen, this one
+            says whether that made the company cheap. */}
+        {valuation && (
+          <Section>
+            <SectionHeading>{tValuation('title')}</SectionHeading>
+            <p className="-mt-1 mb-2 max-w-prose text-sm text-ink-subtle">
+              {tValuation('intro')}
+            </p>
+            <Card>
+              <ValuationRangeChart
+                range={valuation}
+                labels={{
+                  current: tValuation('current'),
+                  median: tValuation('median'),
+                  low: tValuation('low'),
+                  high: tValuation('high'),
+                  percentileCheap: tValuation.raw('percentileCheap') as string,
+                  percentileRich: tValuation.raw('percentileRich') as string,
+                  footnote: tValuation('footnote'),
+                }}
+              />
+            </Card>
           </Section>
         )}
 
