@@ -13,6 +13,7 @@ import { CONDITION_LABEL } from '@/lib/signal/explain';
 import type { DigestEntry } from '@/lib/pipeline/digest';
 import type { SignalStatus } from '@/lib/signal/buyWorthy';
 import type { Lang } from '@/lib/i18n/config';
+import { reportingSoon } from '@/lib/data/earnings';
 
 /** Brand-neutral, and legible on the white background every client forces. */
 const COLOR = {
@@ -53,6 +54,15 @@ const COPY = {
     nl: (met: number, total: number) => `${met} van ${total} voorwaarden voldaan`,
   },
   missing: { en: 'Missing', nl: 'Ontbreekt' },
+  reporting: {
+    heading: { en: 'Reporting soon', nl: 'Binnenkort cijfers' },
+    today: { en: 'today', nl: 'vandaag' },
+    tomorrow: { en: 'tomorrow', nl: 'morgen' },
+    inDays: {
+      en: (d: number) => `in ${d} days`,
+      nl: (d: number) => `over ${d} dagen`,
+    },
+  },
   open: { en: 'Open analysis', nl: 'Analyse openen' },
   disclaimer: {
     en: 'This is a personal analysis tool, not investment advice.',
@@ -185,6 +195,51 @@ function section(title: string, entries: DigestEntry[], lang: Lang, baseUrl: str
     ${entries.map((e) => row(e, lang, baseUrl, { showMissing })).join('')}`;
 }
 
+/**
+ * The watchlist names about to report.
+ *
+ * Deliberately a compact line each rather than the full row treatment: most
+ * of these names already appear above in one of the other sections, and a
+ * second full entry for the same company would read as two separate pieces of
+ * news. This section answers one question — what is about to be answered for
+ * me — so it carries a ticker and a date and nothing else.
+ */
+function reportingSection(entries: DigestEntry[], lang: Lang, baseUrl: string): string {
+  const soon = reportingSoon(
+    entries.map((e) => ({ ...e, nextEarningsDate: e.nextEarningsDate })),
+  );
+  if (soon.length === 0) return '';
+
+  const when = (days: number) =>
+    days === 0
+      ? COPY.reporting.today[lang]
+      : days === 1
+        ? COPY.reporting.tomorrow[lang]
+        : COPY.reporting.inDays[lang](days);
+
+  return `
+    <tr>
+      <td style="padding-top:22px;">
+        <div style="font-family:${FONT};font-size:13px;font-weight:700;text-transform:uppercase;
+                    letter-spacing:0.04em;color:${COLOR.faint};">${escapeHtml(COPY.reporting.heading[lang])}</div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-top:8px;font-family:${FONT};font-size:14px;color:${COLOR.ink};">
+        ${soon
+          .map(
+            (e) =>
+              `<div style="padding:3px 0;">
+                 <a href="${baseUrl}/stock/${encodeURIComponent(e.symbol)}"
+                    style="color:${COLOR.ink};text-decoration:none;font-weight:600;">${escapeHtml(e.symbol)}</a>
+                 <span style="color:${COLOR.faint};">&nbsp;${escapeHtml(e.earnings.date)} · ${escapeHtml(when(e.earnings.daysAway))}</span>
+               </div>`,
+          )
+          .join('')}
+      </td>
+    </tr>`;
+}
+
 export interface DigestHtmlInput {
   entries: DigestEntry[];
   asOf: string;
@@ -240,6 +295,7 @@ export function renderDigestHtml({ entries, asOf, lang, baseUrl, subject }: Dige
             ${section(COPY.heading.flipped[lang], flipped, lang, origin)}
             ${section(COPY.heading.changed[lang], changed, lang, origin)}
             ${section(COPY.heading.oneAway[lang], oneAway, lang, origin, true)}
+            ${reportingSection(entries, lang, origin)}
 
             <tr>
               <td style="padding-top:22px;font-family:${FONT};font-size:12px;color:${COLOR.faint};">

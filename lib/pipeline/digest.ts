@@ -32,6 +32,15 @@ export interface DigestEntry {
   /** Keys of the applicable conditions that did not pass. */
   missing: string[];
   /**
+   * When this company next reports, when that is known and still ahead.
+   *
+   * Optional, and absent for roughly a sixth of the watchlist: the quote
+   * provider does not carry a date for every listing and does not always roll
+   * it forward after a company reports. `upcomingEarnings` filters the stale
+   * ones out, so anything present here is genuinely in the future.
+   */
+  nextEarningsDate?: string | null;
+  /**
    * Valuation and quality figures, for the highlights in the HTML mail.
    *
    * Optional because the digest must still work from the nightly pipeline,

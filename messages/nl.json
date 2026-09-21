@@ -517,5 +517,13 @@
       }
     },
     "methodLink": "De volledige methode, voorwaarde voor voorwaarde"
+  },
+  "earnings": {
+    "chip": "Cijfers op {date}",
+    "today": "Cijfers vandaag",
+    "tomorrow": "Cijfers morgen",
+    "inDays": "Cijfers over {days} dagen",
+    "digestTitle": "Binnenkort cijfers",
+    "digestIntro": "Deze namen op je volglijst rapporteren binnen {days} dagen — meestal het moment waarop “tijdelijk of structureel” werkelijk beantwoord wordt."
   }
 }

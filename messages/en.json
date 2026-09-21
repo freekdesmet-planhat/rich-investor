@@ -517,5 +517,13 @@
       }
     },
     "methodLink": "The full method, condition by condition"
+  },
+  "earnings": {
+    "chip": "Reports {date}",
+    "today": "Reports today",
+    "tomorrow": "Reports tomorrow",
+    "inDays": "Reports in {days} days",
+    "digestTitle": "Reporting soon",
+    "digestIntro": "These names on your watchlist report within the next {days} days — usually when “temporary or structural” actually gets answered."
   }
 }

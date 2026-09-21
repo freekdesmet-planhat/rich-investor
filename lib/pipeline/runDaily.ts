@@ -56,6 +56,8 @@ export interface PipelineRow {
   conditionsApplicable: number;
   /** Applicable conditions that did not pass, by key. */
   missing: string[];
+  /** When this company next reports, straight from the quote. */
+  nextEarningsDate: string | null;
   pegBasis: string;
   focusSector: FocusSector;
   lynchCategory: string;
@@ -303,6 +305,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
       conditionsMet: signal.conditionsMet,
       conditionsApplicable: signal.conditionsApplicable,
       missing: signal.missing,
+      nextEarningsDate: bundle.quote?.nextEarningsDate ?? null,
       pegBasis: signal.pegBasis,
       focusSector: resolved.focusSector,
       lynchCategory: lynch.category,
@@ -360,6 +363,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
       conditionsMet: row.conditionsMet,
       conditionsApplicable: row.conditionsApplicable,
       missing: row.missing,
+      nextEarningsDate: row.nextEarningsDate ?? null,
     }));
     digest = await sendDailyDigest(client, entries, asOf, { onProgress: log });
   }

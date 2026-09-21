@@ -44,7 +44,8 @@ import {
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
-import { formatBillions, formatCurrency, formatNumber, formatPercent } from '@/lib/i18n/format';
+import { upcomingEarnings } from '@/lib/data/earnings';
+import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
 
@@ -132,7 +133,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -153,6 +154,7 @@ export default async function StockPage({
     getTranslations('chart'),
     getTranslations('nav'),
     getTranslations('position'),
+    getTranslations('earnings'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -219,6 +221,7 @@ export default async function StockPage({
 
   const name = snapshot?.quote?.name ?? symbol;
   const lynch = docs.get(`lynch:${signal.lynch_category}`);
+  const earnings = upcomingEarnings(snapshot?.quote?.nextEarningsDate);
   const why = locale === 'nl' ? signal.why_nl : signal.why_en;
 
   return (
@@ -261,6 +264,19 @@ export default async function StockPage({
                 label={tWatchlist('pegForward')}
                 title={tWatchlist('pegForwardHelp')}
               />
+              {/* When the next answer arrives. Shown only when the stored date
+                  is actually ahead of us — see upcomingEarnings. */}
+              {earnings && (
+                <Chip tone={earnings.soon ? 'accent' : 'neutral'} title={earnings.date}>
+                  {earnings.daysAway === 0
+                    ? tEarnings('today')
+                    : earnings.daysAway === 1
+                      ? tEarnings('tomorrow')
+                      : earnings.soon
+                        ? tEarnings('inDays', { days: earnings.daysAway })
+                        : tEarnings('chip', { date: formatDate(earnings.date, locale) })}
+                </Chip>
+              )}
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
