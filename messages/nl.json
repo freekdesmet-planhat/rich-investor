@@ -525,5 +525,18 @@
     "inDays": "Cijfers over {days} dagen",
     "digestTitle": "Binnenkort cijfers",
     "digestIntro": "Deze namen op je volglijst rapporteren binnen {days} dagen — meestal het moment waarop “tijdelijk of structureel” werkelijk beantwoord wordt."
+  },
+  "insider": {
+    "heading": "Insidertransacties",
+    "window": "afgelopen {days} dagen",
+    "loading": "SEC-documenten ophalen…",
+    "none": "Geen gemelde insidertransacties in deze periode.",
+    "unavailable": "Geen documenten beschikbaar voor dit bedrijf.",
+    "bought": "{count} aankoop(en) op de markt, {shares} aandelen",
+    "noPurchases": "Geen aankopen op de markt.",
+    "sold": "{count} verkoop(en), {shares} aandelen",
+    "net": "Netto:",
+    "by": "Door:",
+    "source": "Uit SEC Form 4. Toekenningen, optie-uitoefeningen en ingehouden belastingaandelen tellen niet mee — alleen transacties op de markt."
   }
 }

@@ -525,5 +525,18 @@
     "inDays": "Reports in {days} days",
     "digestTitle": "Reporting soon",
     "digestIntro": "These names on your watchlist report within the next {days} days — usually when “temporary or structural” actually gets answered."
+  },
+  "insider": {
+    "heading": "Insider activity",
+    "window": "last {days} days",
+    "loading": "Checking SEC filings…",
+    "none": "No reported insider trades in this window.",
+    "unavailable": "No filings available for this company.",
+    "bought": "{count} open-market purchase(s), {shares} shares",
+    "noPurchases": "No open-market purchases.",
+    "sold": "{count} sale(s), {shares} shares",
+    "net": "Net:",
+    "by": "By:",
+    "source": "From SEC Form 4. Grants, option exercises and tax withholding are excluded — only open-market trades count here."
   }
 }

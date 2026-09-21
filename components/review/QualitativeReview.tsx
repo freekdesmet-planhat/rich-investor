@@ -3,6 +3,7 @@ import { CATALYST_KEYS, SELL_SIGNAL_KEYS } from '@/lib/review/keys';
 import { summariseHistory, type HistoryEntry } from '@/lib/review/history';
 import type { Translation } from '@/lib/data/queries';
 import { HistoryLog } from './HistoryLog';
+import { InsiderActivity } from './InsiderActivity';
 import { ReviewForm } from './ReviewForm';
 import { SaveButton } from './SaveButton';
 import { SectionHeading } from '../ui/Surface';
@@ -55,6 +56,22 @@ export async function QualitativeReview({
   docs: Map<string, Translation>;
 }) {
   const t = await getTranslations('review');
+  const tInsider = await getTranslations('insider');
+  // Server component, so the labels are resolved here and handed to the
+  // client block rather than it loading a second translation bundle.
+  const insiderLabels = {
+    heading: tInsider('heading'),
+    window: tInsider.raw('window') as string,
+    loading: tInsider('loading'),
+    none: tInsider('none'),
+    unavailable: tInsider('unavailable'),
+    bought: tInsider.raw('bought') as string,
+    noPurchases: tInsider('noPurchases'),
+    sold: tInsider.raw('sold') as string,
+    net: tInsider('net'),
+    by: tInsider('by'),
+    source: tInsider('source'),
+  };
   const locale = await getLocale();
 
   return (
@@ -106,14 +123,20 @@ export async function QualitativeReview({
           </div>
         </fieldset>
 
-        <CheckboxGroup
-          legend={t('catalysts')}
-          name="catalysts"
-          keys={[...CATALYST_KEYS]}
-          namespace="catalyst"
-          checked={mine?.catalysts ?? []}
-          docs={docs}
-        />
+        <div>
+          <CheckboxGroup
+            legend={t('catalysts')}
+            name="catalysts"
+            keys={[...CATALYST_KEYS]}
+            namespace="catalyst"
+            checked={mine?.catalysts ?? []}
+            docs={docs}
+          />
+          {/* Directly under the catalysts, because one of them — "management
+              is buying its own shares" — is a question the filings answer.
+              Until now it asked the reader to go and check elsewhere. */}
+          <InsiderActivity symbol={symbol} locale={locale} labels={insiderLabels} />
+        </div>
 
         <CheckboxGroup
           legend={t('sellSignals')}
