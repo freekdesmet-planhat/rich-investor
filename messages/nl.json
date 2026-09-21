@@ -14,7 +14,8 @@
     "menu": "Menu",
     "backToWatchlist": "Terug naar volglijst",
     "compare": "Vergelijken",
-    "methodology": "Methodiek"
+    "methodology": "Methodiek",
+    "howItWorks": "Hoe het werkt"
   },
   "language": {
     "label": "Taal",
@@ -489,5 +490,32 @@
     "honestBody": "De app meet wat meetbaar is en zegt het wanneer dat niet lukt. Een voorwaarde zonder gegevens is grijs en niet gezakt, een cijfer dat niet te herleiden was vermeldt waarom, en het kwalitatieve oordeel — of een daling tijdelijk of structureel is — blijft aan jou, omdat geen enkele screening die vraag kan beantwoorden. Dit is een analyse-instrument, geen beleggingsadvies.",
     "creditTitle": "Verantwoording",
     "creditBody": "Het raamwerk dat deze app toepast is ontleend aan “Rijke Belegger, Arme Belegger”. De uitvoering, de dataverwerking en alle teksten in de app zijn van onszelf; de onderliggende beleggingsmethode is die van het boek."
+  },
+  "onboarding": {
+    "navLabel": "Hoe het werkt",
+    "skip": "Overslaan",
+    "back": "Terug",
+    "next": "Volgende",
+    "done": "Aan de slag",
+    "stepOf": "Stap {current} van {total}",
+    "steps": {
+      "what": {
+        "title": "Het is een checklist, geen glazen bol",
+        "body": "Rijke Belegger doet één ding: elk bedrijf op je volglijst wordt elke nacht langs dezelfde negen voorwaarden gelegd. Of het bedrijf winstgevend is, of het groeit, of het niet te veel schuld draagt, en of de koers werkelijk ver genoeg gedaald is om interessant te zijn.\n\nEr wordt niets gescoord of gewogen. Een voorwaarde geldt wel of niet, en wat je krijgt is een telling. Dat is bewust saai — het nut van een checklist is dat hij dezelfde vragen stelt aan een bedrijf dat je al jaren mooi vindt als aan een bedrijf dat je vanochtend tegenkwam."
+      },
+      "verdicts": {
+        "title": "Drie antwoorden, en wat ze werkelijk betekenen",
+        "body": "**Koopwaardig** betekent dat alle negen voorwaarden gelden. Het is geen koopopdracht. Het betekent dat het bedrijf elke meetbare horde heeft genomen, en dat wat overblijft alleen jij kunt doen.\n\n**Bijna zover** betekent dat er één of twee voorwaarden ontbreken. Dat zijn meestal de interessante gevallen — het loont te weten wélke voorwaarde ontbreekt, want een bedrijf dat alleen op de koersvoorwaarde struikelt is iets heel anders dan een bedrijf dat op de schuldvoorwaarde struikelt.\n\n**Volgen** betekent dat het verder achterloopt. De meeste bedrijven staan hier het grootste deel van de tijd, en dat is normaal en geen falen."
+      },
+      "priceAndGrowth": {
+        "title": "Waarom koers en groei samen beoordeeld worden",
+        "body": "Twee van de negen voorwaarden doen het meeste werk, en ze zijn alleen als paar zinnig.\n\nDe eerste vraagt of de koers ver onder de eigen vijfjaarstop staat. Een flinke daling schept de kans — maar zegt op zichzelf niets, want de meest voorkomende reden dat een koers hard daalt, is dat het bedrijf werkelijk slechter is geworden.\n\nDe tweede, de PEG-ratio, vraagt of je een redelijke prijs betaalt voor de groei die je daadwerkelijk krijgt. Een goedkoop aandeel in een bedrijf dat niet groeit is niet goedkoop, het ziet er alleen zo uit.\n\nEen daling zegt dat er *misschien* iets te halen valt. De groeitoets zegt of het een goed bedrijf is dat goedkoop werd, of gewoon een slecht bedrijf. Geen van beide vragen is veel waard zonder de andere."
+      },
+      "yours": {
+        "title": "De laatste stap is aan jou",
+        "body": "De app meet wat meetbaar is en houdt daar op. Hij zegt je niet of het probleem van een bedrijf een slecht kwartaal is of het begin van het einde, want geen enkele screening kan die vraag beantwoorden.\n\nDaarom heeft elk aandeel een kwalitatieve beoordeling: een korte set vragen over of de tegenslag tijdelijk of structureel lijkt, wat het kan keren, en wat jou zou doen verkopen. Beantwoord ze in je eigen woorden. Dat is het oordeel dat de cijfers moeten voeden, niet vervangen.\n\nDit is een analyse-instrument, geen beleggingsadvies."
+      }
+    },
+    "methodLink": "De volledige methode, voorwaarde voor voorwaarde"
   }
 }

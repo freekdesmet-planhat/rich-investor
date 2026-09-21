@@ -14,7 +14,8 @@
     "menu": "Menu",
     "backToWatchlist": "Back to watchlist",
     "compare": "Compare",
-    "methodology": "Methodology"
+    "methodology": "Methodology",
+    "howItWorks": "How it works"
   },
   "language": {
     "label": "Language",
@@ -489,5 +490,32 @@
     "honestBody": "The app measures what can be measured and says so when it cannot. A condition with missing data is shown grey rather than failed, a figure that could not be reconciled says why, and the qualitative judgement — whether a decline is temporary or structural — is left to you, because no screen can answer it. It is an analysis tool, not investment advice.",
     "creditTitle": "Credit",
     "creditBody": "The framework this app applies is drawn from “Rijke Belegger, Arme Belegger”. The implementation, the data handling and the wording throughout the app are our own; the underlying investment method is the book's."
+  },
+  "onboarding": {
+    "navLabel": "How it works",
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "done": "Start using it",
+    "stepOf": "Step {current} of {total}",
+    "steps": {
+      "what": {
+        "title": "It is a checklist, not a crystal ball",
+        "body": "Rich Investor does one thing: it takes every company on your watchlist and checks it against the same nine conditions, every night. Things like whether the company is profitable, whether it is growing, whether it is carrying too much debt, and whether the price has actually fallen far enough to be interesting.\n\nNothing is scored or weighted. A condition either holds or it does not, and what you get is a count. That is deliberately boring — the point of a checklist is that it asks the same questions of a company you have loved for years as it does of one you found this morning."
+      },
+      "verdicts": {
+        "title": "Three answers, and what they actually mean",
+        "body": "**Buy-worthy** means all nine conditions hold. It is not an instruction to buy. It means the company has cleared every measurable bar, and the part that is left is the part only you can do.\n\n**Almost there** means it is one or two conditions short. These are usually the interesting ones — worth knowing which condition is missing, because a company missing only the price condition is a different proposition from one missing the debt condition.\n\n**Watching** means it is further back than that. Most companies sit here most of the time, and that is normal rather than a failure."
+      },
+      "priceAndGrowth": {
+        "title": "Why the price and the growth are judged together",
+        "body": "Two of the nine conditions do the most work, and they only make sense as a pair.\n\nThe first asks whether the price has fallen a long way from its own five-year high. A big fall is what creates the opportunity — but on its own it tells you nothing, because the most common reason a share price falls a long way is that the company genuinely got worse.\n\nThe second, the PEG ratio, asks whether you are paying a sensible price for the growth you are actually getting. A cheap share in a company that is not growing is not cheap, it is just cheap-looking.\n\nA fall tells you something *might* be on offer. The growth test tells you whether it is a good company that got cheap, or simply a bad one. Neither question is worth much without the other."
+      },
+      "yours": {
+        "title": "The last step is yours",
+        "body": "The app measures what can be measured and stops there. It will not tell you whether a company's problem is a bad quarter or the beginning of the end, because no screen can answer that.\n\nSo every stock has a qualitative review: a short set of questions about whether the trouble looks temporary or structural, what might turn it around, and what would make you sell. Answer them in your own words. That is the judgement the numbers are there to inform, not replace.\n\nThis is an analysis tool, not investment advice."
+      }
+    },
+    "methodLink": "The full method, condition by condition"
   }
 }

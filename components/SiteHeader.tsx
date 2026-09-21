@@ -44,7 +44,7 @@ export async function SiteHeader() {
     { href: '/search', label: tNav('search') },
     { href: '/suggestions', label: tNav('suggestions') },
     { href: '/compare', label: tNav('compare') },
-    { href: '/methodology', label: tNav('methodology') },
+    { href: '/how-it-works', label: tNav('howItWorks') },
     ...(user ? [{ href: '/account', label: tNav('account') }] : []),
   ];
 

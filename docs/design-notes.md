@@ -191,6 +191,12 @@ Sub-navigation within a page (the "Full research" tabs in item 6) uses the
 same active-pill treatment, so a tab strip means the same thing wherever it
 appears.
 
+The bar holds six items and should not grow past that. When item 5 added the
+primer, **Methodology came out of the nav** rather than making it seven: the
+primer links to it from its last step, which is the order someone actually
+wants them in — plain language first, reference second. A seventh tab would
+have cost more than the direct link was worth.
+
 ## Tables and figures
 
 - Numeric columns right-aligned, labels left-aligned.

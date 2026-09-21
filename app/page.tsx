@@ -15,6 +15,7 @@ import {
   getTranslations as getDocTranslations,
   getTrends,
   getWatchlist,
+  hasSeenPrimer,
   type WatchlistEntry,
 } from '@/lib/data/queries';
 import { movers, within, type Trend } from '@/lib/data/trend';
@@ -36,6 +37,7 @@ import {
 import type { FocusSector } from '@/lib/sectors/mapping';
 import type { Lang } from '@/lib/i18n/config';
 import { SectionHeading } from '@/components/ui/Surface';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +79,12 @@ export default async function WatchlistPage({
     sector?: string;
   }>;
 }) {
+  // A first sign-in lands here, so this is where the primer is offered. A
+  // redirect rather than a modal over the page: a dialog would be covering
+  // the one screen a new member is trying to make sense of, and it would be
+  // the only part of the app you cannot link to or come back to.
+  if (!(await hasSeenPrimer())) redirect('/how-it-works');
+
   const params = await searchParams;
   const locale = (await getLocale()) as Lang;
   const view: ViewOptions = {

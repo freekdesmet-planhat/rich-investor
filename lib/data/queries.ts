@@ -566,6 +566,31 @@ export async function getHeldSymbols(): Promise<Set<string>> {
   return new Set((data ?? []).map((row) => row.symbol));
 }
 
+/**
+ * Whether this member has been shown the primer.
+ *
+ * Its own tiny query rather than a field on `getSettings`, because the
+ * watchlist asks this on every load and has no use for the rest of the row —
+ * and because "no settings row yet" has to mean *not* onboarded, which is
+ * the opposite of how `getSettings` treats an absent row for every other
+ * field, where absent means "the default applies".
+ */
+export async function hasSeenPrimer(): Promise<boolean> {
+  const supabase = await client();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return true;
+
+  const { data } = await supabase
+    .from('settings')
+    .select('onboarded_at')
+    .eq('user_id', user.id)
+    .maybeSingle<{ onboarded_at: string | null }>();
+
+  return data?.onboarded_at != null;
+}
+
 export interface MemberSettings {
   language: string | null;
   notify_email: string | null;
