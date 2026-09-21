@@ -48,6 +48,7 @@ import { upcomingEarnings } from '@/lib/data/earnings';
 import { LiquidityNote } from '@/components/LiquidityNote';
 import { ValuationRangeChart } from '@/components/ValuationRangeChart';
 import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
+import { declineContext } from '@/lib/data/declineHistory';
 import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
@@ -136,7 +137,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -160,6 +161,7 @@ export default async function StockPage({
     getTranslations('earnings'),
     getTranslations('liquidity'),
     getTranslations('valuationHistory'),
+    getTranslations('declineHistory'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -230,6 +232,7 @@ export default async function StockPage({
 
   // The same annual EPS series the PEG card draws its sparkline from, so the
   // history here and the growth figures there cannot drift apart.
+  const decline = declineContext(byKey.get('drawdown_5y')?.value ?? null);
   const valuation = summariseValuation(
     peHistory(
       (snapshot?.price_history ?? []).map((p) => ({ date: p.date, close: p.close })),
@@ -435,6 +438,35 @@ export default async function StockPage({
                 }}
               />
             </Card>
+
+            {decline && (
+              // Market history, kept visually separate from the company's own
+              // figures above so the two cannot be read as one claim. The
+              // caveat is not small print: index odds and single-stock odds
+              // differ by an order of magnitude, and conflating them is the
+              // mistake this whole block could otherwise encourage.
+              <Card tone="sunken" className="mt-3">
+                <SectionHeading>{tDecline('heading')}</SectionHeading>
+                <p className="text-sm leading-relaxed text-ink-muted">
+                  {/* The deep band needs three sentences, not one with a
+                      number substituted: "0 of those were deeper than this"
+                      is technically right and reads like a bug. */}
+                  {tDecline
+                    .raw(
+                      decline.severity === 'deep'
+                        ? `deep${decline.deeperInHistory}`
+                        : decline.severity,
+                    )
+                    .replace('{total}', String(decline.totalDeclines))
+                    .replace('{since}', String(1870))}{' '}
+                  {tDecline
+                    .raw('recovery')
+                    .replace('{months}', String(decline.fastestRecoveryMonths))
+                    .replace('{years}', String(decline.slowestRecoveryYears))}
+                </p>
+                <p className="mt-2 text-xs text-ink-faint">{tDecline('caveat')}</p>
+              </Card>
+            )}
           </Section>
         )}
 
