@@ -577,5 +577,21 @@
     "cashConversion": "Free cash flow per share was {fcfPerShare} against reported earnings of {eps} — about {percent}% of the profit turned into cash an owner could take out. The cash-flow condition compares operating cash flow to net income, which is before capital spending; this is after it.",
     "stockComp": "Stock-based compensation ran at {percent}% of revenue. It is a real cost that never leaves as cash, so it flatters operating cash flow — and therefore the cash-flow condition itself.",
     "dilution": "The diluted share count rose {total}% over {years} years, about {percent}% a year. Every per-share figure on this page divides by it, so earnings can grow while earnings per share do not."
+  },
+  "peers": {
+    "heading": "Against the others you follow",
+    "intro": "Median of the {count} other {sector} names on your watchlist. Not a sector median — a watchlist is a selection, and it is selected on roughly these metrics.",
+    "yours": "This one",
+    "median": "Watchlist median",
+    "difference": "Difference",
+    "above": "{percent}% above",
+    "below": "{percent}% below",
+    "level": "in line",
+    "metric": {
+      "pe": "Price/earnings",
+      "roe": "Return on equity",
+      "gross_margin": "Gross margin",
+      "net_margin": "Net margin"
+    }
   }
 }

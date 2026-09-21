@@ -607,6 +607,50 @@ export async function hasSeenPrimer(): Promise<boolean> {
   return data?.onboarded_at != null;
 }
 
+/**
+ * Ratio rows for the other watchlist names in a focus sector.
+ *
+ * Two hops because the sector lives on `signal_history` and the figures on
+ * `ratios`, and there is no view joining them. Both are small — thirty-two
+ * symbols — so this is two indexed reads rather than anything clever.
+ *
+ * Excludes the company itself: including its own figures would drag the
+ * median towards the thing being measured.
+ */
+export async function getSectorPeerRatios(
+  focusSector: string,
+  asOf: string,
+  excludeSymbol: string,
+  ratioKeys: readonly string[],
+): Promise<Array<{ symbol: string; ratioKey: string; value: number | null }>> {
+  const supabase = await client();
+
+  const { data: peers } = await supabase
+    .from('signal_history')
+    .select('symbol')
+    .eq('as_of', asOf)
+    .eq('focus_sector', focusSector)
+    .neq('symbol', excludeSymbol)
+    .returns<Array<{ symbol: string }>>();
+
+  const symbols = (peers ?? []).map((p) => p.symbol);
+  if (symbols.length === 0) return [];
+
+  const { data } = await supabase
+    .from('ratios')
+    .select('symbol,ratio_key,value')
+    .eq('as_of', asOf)
+    .in('symbol', symbols)
+    .in('ratio_key', [...ratioKeys])
+    .returns<Array<{ symbol: string; ratio_key: string; value: number | null }>>();
+
+  return (data ?? []).map((row) => ({
+    symbol: row.symbol,
+    ratioKey: row.ratio_key,
+    value: row.value,
+  }));
+}
+
 export interface MemberSettings {
   language: string | null;
   notify_email: string | null;

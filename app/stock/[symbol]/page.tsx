@@ -16,16 +16,17 @@ import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { Card, Chip, Section, SectionHeading, Stat } from '@/components/ui/Surface';
 import { createClient } from '@/lib/supabase/server';
 import {
-  getRatios,
   getPosition,
+  getRatios,
   getReviews,
-  getSignalHistory,
-  getThresholdOverrides,
+  getSectorPeerRatios,
   getSignal,
+  getSignalHistory,
   getSnapshot,
+  getThresholdOverrides,
   getTickerSummary,
-  getWatchlistSymbols,
   getTranslations as getDocTranslations,
+  getWatchlistSymbols,
   type RatioRow,
 } from '@/lib/data/queries';
 import type { Lang } from '@/lib/i18n/config';
@@ -50,6 +51,8 @@ import { ValuationRangeChart } from '@/components/ValuationRangeChart';
 import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
 import { declineContext } from '@/lib/data/declineHistory';
 import { earningsQualityNotes } from '@/lib/ratios/earningsQuality';
+import { comparePeers, PEER_METRICS } from '@/lib/data/peerComparison';
+import { PeerComparison } from '@/components/PeerComparison';
 import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
@@ -138,7 +141,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline, tQuality] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline, tQuality, tPeers, peerRows] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -164,6 +167,8 @@ export default async function StockPage({
     getTranslations('valuationHistory'),
     getTranslations('declineHistory'),
     getTranslations('earningsQuality'),
+    getTranslations('peers'),
+    getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -256,6 +261,11 @@ export default async function StockPage({
     stockBasedCompensation: metricAt(snapshot?.cash_annual, i, 'stockBasedCompensation'),
   }));
   const qualityNotes = earningsQualityNotes(qualityYears);
+
+  const peers = comparePeers(
+    new Map(PEER_METRICS.map((key) => [key, byKey.get(key)?.value ?? null])),
+    peerRows,
+  );
   const valuation = summariseValuation(
     peHistory(
       (snapshot?.price_history ?? []).map((p) => ({ date: p.date, close: p.close })),
@@ -776,6 +786,44 @@ export default async function StockPage({
                   </li>
                 ))}
               </ul>
+            </Card>
+          </Section>
+        )}
+
+        {/* --- how it compares with the others you follow -------------------- */}
+        {peers && (
+          <Section>
+            <SectionHeading>{tPeers('heading')}</SectionHeading>
+            <p className="-mt-1 mb-2 max-w-prose text-sm text-ink-subtle">
+              {tPeers
+                .raw('intro')
+                .replace('{count}', String(peers.peerCount))
+                .replace('{sector}', tSector(signal.focus_sector).toLowerCase())}
+            </p>
+            <Card>
+              <PeerComparison
+                summary={peers}
+                labels={{
+                  yours: tPeers('yours'),
+                  median: tPeers('median'),
+                  difference: tPeers('difference'),
+                  above: tPeers.raw('above') as string,
+                  below: tPeers.raw('below') as string,
+                  level: tPeers('level'),
+                  metric: {
+                    pe: tPeers('metric.pe'),
+                    roe: tPeers('metric.roe'),
+                    gross_margin: tPeers('metric.gross_margin'),
+                    net_margin: tPeers('metric.net_margin'),
+                  },
+                }}
+                // Margins and returns are fractions; the multiple is not.
+                format={(metric, value) =>
+                  metric === 'pe'
+                    ? formatNumber(value, locale)
+                    : formatPercent(value, locale)
+                }
+              />
             </Card>
           </Section>
         )}
