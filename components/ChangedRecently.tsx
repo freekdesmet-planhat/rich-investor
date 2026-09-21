@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Trend } from '@/lib/data/trend';
+import { SectionHeading } from './ui/Surface';
 
 export interface ChangedLabels {
   title: string;
@@ -34,9 +35,9 @@ export function ChangedRecently({
   if (movers.length === 0) return null;
 
   return (
-    <section className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
-      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+    <section className="border-line mb-4 rounded-xl border bg-surface-sunken p-3">
+      <SectionHeading>{labels.title}</SectionHeading>
+      <p className="text-ink-subtle mt-0.5 text-xs">
         {labels.intro.replace('{days}', String(days))}
       </p>
 
@@ -62,7 +63,7 @@ export function ChangedRecently({
               >
                 {trend.symbol}
               </Link>
-              <span className="ml-2 text-slate-600 dark:text-slate-300">
+              <span className="text-ink-muted ml-2">
                 {/* Both facts when both happened: a name can gain two conditions
                     and cross into a new status on the same day, and either one
                     alone would understate it. */}

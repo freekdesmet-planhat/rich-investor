@@ -13,6 +13,7 @@ import {
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { formatConditionValue } from '@/lib/signal/conditionFormat';
 import type { Lang } from '@/lib/i18n/locale';
+import { SectionHeading } from '@/components/ui/Surface';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,15 +53,13 @@ export default async function ComparePage({
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <h1 className="mb-1 text-xl font-semibold">{t('title')}</h1>
-        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">{t('intro')}</p>
+        <p className="text-ink-subtle mb-4 text-sm">{t('intro')}</p>
 
         {/* Picking is a list of links rather than a form: each one toggles its
             own ticker in the URL, so the choice is shareable, survives a
             reload, and needs no JavaScript. */}
         <section className="mb-6">
-          <h2 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t('pick', { max: MAX_COMPARED })}
-          </h2>
+          <SectionHeading>{t('pick', { max: MAX_COMPARED })}</SectionHeading>
           <ul className="flex flex-wrap gap-2">
             {watchlist.map((entry) => {
               const selected = chosen.includes(entry.symbol);
@@ -74,7 +73,7 @@ export default async function ComparePage({
                     // a link that silently ignores the click.
                     <span
                       title={t('full', { max: MAX_COMPARED })}
-                      className="inline-block cursor-not-allowed rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-300 dark:border-slate-800 dark:text-slate-600"
+                      className="border-line inline-block cursor-not-allowed rounded-full border px-3 py-1.5 text-xs text-ink-faint"
                     >
                       {entry.symbol}
                     </span>
@@ -84,8 +83,8 @@ export default async function ComparePage({
                       aria-pressed={selected}
                       className={`inline-block rounded-full border px-3 py-1.5 text-xs transition ${
                         selected
-                          ? 'border-slate-900 bg-slate-900 font-medium text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
-                          : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800'
+                          ? 'border-accent bg-accent font-medium text-accent-ink'
+                          : 'border-line-strong text-ink-muted hover:bg-surface-hover'
                       }`}
                     >
                       {entry.symbol}
@@ -98,12 +97,12 @@ export default async function ComparePage({
         </section>
 
         {entries.length < 2 ? (
-          <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="border-line-strong text-ink-subtle rounded-lg border border-dashed p-6 text-center text-sm">
             {t('chooseTwo')}
           </p>
         ) : (
           <>
-            <p className="mb-2 text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-ink-muted mb-2 text-sm">
               {differing === 0 ? t('identical') : t('differing', { count: differing })}
             </p>
 
@@ -113,22 +112,22 @@ export default async function ComparePage({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[32rem] border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-2 pr-3 text-left font-normal text-slate-500 dark:text-slate-400">
+                  <tr className="border-line border-b">
+                    <th className="text-ink-subtle py-2 pr-3 text-left font-normal">
                       {t('condition')}
                     </th>
                     {entries.map((entry) => (
                       <th key={entry.symbol} className="px-3 py-2 text-left align-bottom">
                         <Link
                           href={`/stock/${encodeURIComponent(entry.symbol)}`}
-                          className="font-medium underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900 dark:decoration-slate-600"
+                          className="font-medium underline decoration-line-strong underline-offset-4 hover:decoration-ink"
                         >
                           {entry.symbol}
                         </Link>
                         <span className="mt-1 block">
                           {entry.signal && <StatusBadge status={entry.signal.status} />}
                         </span>
-                        <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">
+                        <span className="text-ink-subtle mt-1 block text-xs font-normal">
                           {entry.signal
                             ? tStatus('conditionsMet', {
                                 met: entry.signal.conditions_met,
@@ -146,7 +145,7 @@ export default async function ComparePage({
                       key={row.key}
                       // The rows they disagree on are the reason to be here, so
                       // they are the ones that stand out; the rest is context.
-                      className={`border-b border-slate-100 dark:border-slate-800/60 ${
+                      className={`border-b border-line ${
                         row.differs ? 'bg-amber-50/60 dark:bg-amber-950/20' : ''
                       }`}
                     >
@@ -154,8 +153,8 @@ export default async function ComparePage({
                         scope="row"
                         className={`py-2 pr-3 text-left font-normal ${
                           row.differs
-                            ? 'text-slate-900 dark:text-slate-100'
-                            : 'text-slate-500 dark:text-slate-400'
+                            ? 'text-ink'
+                            : 'text-ink-subtle'
                         }`}
                       >
                         {CONDITION_LABEL[row.key]?.[locale] ?? row.key}
@@ -163,9 +162,9 @@ export default async function ComparePage({
                       {row.cells.map((cell) => (
                         <td key={cell.symbol} className="px-3 py-2">
                           {cell.condition == null ? (
-                            <span className="text-slate-300 dark:text-slate-600">—</span>
+                            <span className="text-ink-faint">—</span>
                           ) : !cell.condition.applicable ? (
-                            <span className="text-slate-400 dark:text-slate-500">
+                            <span className="text-ink-faint">
                               {t('notApplicable')}
                             </span>
                           ) : (
@@ -182,7 +181,7 @@ export default async function ComparePage({
                                   twelve-digit integer and a 61% decline as
                                   -0,61, because it formatted all nine
                                   conditions as if they were plain numbers. */}
-                              <span className="tabular-nums text-slate-600 dark:text-slate-300">
+                              <span className="text-ink-muted tabular-nums">
                                 {formatConditionValue(cell.condition.key, cell.condition.value, locale)}
                               </span>
                             </span>

@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Rijke Belegger",
-    "tagline": "Persoonlijke aandelenanalyse, op basis van Rijke Belegger, Arme Belegger",
+    "tagline": "Een gedisciplineerde checklist voor langetermijnbeleggers.",
     "disclaimer": "Dit is een persoonlijke analysetool, geen beleggingsadvies."
   },
   "nav": {
@@ -13,7 +13,8 @@
     "search": "Zoeken",
     "menu": "Menu",
     "backToWatchlist": "Terug naar volglijst",
-    "compare": "Vergelijken"
+    "compare": "Vergelijken",
+    "methodology": "Methodiek"
   },
   "language": {
     "label": "Taal",
@@ -37,13 +38,13 @@
     "luxury_consumer": "Luxegoederen en consumentengoederen",
     "entertainment_media": "Entertainment en interactieve media",
     "financial_services_non_bank": "Financiële dienstverlening, niet-bancair",
-    "outside_focus": "Buiten de focussectoren van het boek"
+    "outside_focus": "Buiten de vier focussectoren"
   },
   "ratio": {
     "explain": "Wat betekent dit?",
     "target": "Doel",
     "source": {
-      "book": "uit het boek",
+      "book": "kernmethodiek",
       "app_default": "standaardinstelling",
       "your_setting": "eigen instelling"
     },
@@ -141,7 +142,7 @@
     "checklistReminder": "{met} van {total} kwantitatieve voorwaarden behaald. De beoordeling hieronder is de laatste stap vóór een koopbeslissing.",
     "assessment": {
       "label": "Is het probleem tijdelijk of structureel?",
-      "help": "De volgende vraag van het boek zelf: een terugval van één of enkele kwartalen, waarbij het groeiverhaal overeind blijft, is iets anders dan structureel verslechterende resultaten.",
+      "help": "De volgende vraag die de methode stelt: een terugval van één of enkele kwartalen, waarbij het groeiverhaal overeind blijft, is iets anders dan structureel verslechterende resultaten.",
       "temporary": "Tijdelijk probleem",
       "structural": "Structureel probleem",
       "not_assessed": "Nog niet beoordeeld"
@@ -230,7 +231,7 @@
   },
   "macro": {
     "title": "Marktcontext",
-    "subtitle": "De temperatuurmeter van het boek: geen timinginstrument, maar een indicatie van hoeveel moeite het kost om een koopwaardig aandeel te vinden.",
+    "subtitle": "Een temperatuurmeter, geen timinginstrument: een indicatie van hoeveel moeite het kost om een koopwaardig aandeel te vinden.",
     "asOf": "Peildatum {date}",
     "unavailable": "Niet beschikbaar",
     "buffett": {
@@ -239,13 +240,13 @@
     },
     "yieldSpread": {
       "name": "Rentecurve (10j − 2j)",
-      "help": "Het verschil tussen de 10-jaars en 2-jaars staatsrente. Negatief betekent een omgekeerde curve. Het boek kijkt naar de richting, niet naar het niveau: sinds de jaren zestig leverde de S&P 500 gemiddeld 14,5% per jaar op in periodes van dalende rente, tegenover 0,8% bij stijgende rente.",
+      "help": "Het verschil tussen de 10-jaars en 2-jaars staatsrente. Negatief betekent een omgekeerde curve. Het signaal gaat naar de richting, niet naar het niveau: sinds de jaren zestig leverde de S&P 500 gemiddeld 14,5% per jaar op in periodes van dalende rente, tegenover 0,8% bij stijgende rente.",
       "inverted": "Omgekeerd",
       "normal": "Normaal"
     },
     "concentration": {
       "name": "Concentratie in de index",
-      "help": "Het rendement over één jaar van de naar beurswaarde gewogen S&P 500 min dat van de gelijkgewogen variant. Een groot positief verschil betekent dat de index door zijn grootste leden wordt gedragen. Het boek noemt dat in 2024 slechts 28% van de aandelen de index versloeg, een dieptepunt.",
+      "help": "Het rendement over één jaar van de naar beurswaarde gewogen S&P 500 min dat van de gelijkgewogen variant. Een groot positief verschil betekent dat de index door zijn grootste leden wordt gedragen. Er wordt genoemd dat in 2024 slechts 28% van de aandelen de index versloeg, een dieptepunt.",
       "narrow": "Smalle basis",
       "broad": "Brede basis"
     },
@@ -324,8 +325,8 @@
     "savedSettings": "Opgeslagen.",
     "thresholds": {
       "title": "Drempels die de app zelf koos",
-      "intro": "Het boek noemt voor deze vier geen grens, dus koos de app er een. Pas ze aan en de volgende evaluatie gebruikt die van jou.",
-      "bookNote": "De drempels uit het boek — het koers-winstplafond van 30, de PEG-banden, de daling van 50%, de ondergrens van 10 miljard dollar — zijn niet aanpasbaar. Dat raamwerk toepassen is waar deze app voor is.",
+      "intro": "De methode noemt voor deze vier geen grens, dus koos de app er een. Pas ze aan en de volgende evaluatie gebruikt die van jou.",
+      "bookNote": "De kerndrempels — het koers-winstplafond van 30, de PEG-banden, de daling van 50%, de ondergrens van 10 miljard dollar — zijn niet aanpasbaar. Dat raamwerk toepassen is waar deze app voor is.",
       "appliesNote": "Gaat in bij de volgende evaluatie: de run van vannacht, of \"Nu analyseren\" op een aandeel. Cijfers die nu op het scherm staan zijn met de oude getallen berekend.",
       "resetHint": "Laat een veld leeg om de standaard in het grijs te volgen.",
       "saved": "Opgeslagen. De volgende evaluatie gebruikt deze.",
@@ -474,5 +475,19 @@
       "notSignedIn": "Je bent uitgelogd.",
       "unknown": "Dat is niet opgeslagen."
     }
+  },
+  "methodology": {
+    "title": "Methodiek",
+    "intro": "Hoe Rich Investor bepaalt of een aandeel koopwaardig is, er bijna is, of nog op de volglijst hoort — en wat de app bewust niet pretendeert te weten.",
+    "conditionsTitle": "De negen voorwaarden",
+    "conditionsIntro": "Elk aandeel op je volglijst wordt elke nacht langs dezelfde negen voorwaarden gelegd. Er wordt niets gewogen, gescoord of gemiddeld: een voorwaarde geldt wel of niet, en het oordeel is een telling. Voldoet een aandeel aan alle negen, dan is het koopwaardig; mist het er één of twee, dan is het er bijna; verder terug blijft het volgen.",
+    "fixedTitle": "Waarom de drempels niet bewegen",
+    "fixedBody": "De kerndrempels — het koers-winstplafond van 30, de PEG-banden, de daling van 50% ten opzichte van de vijfjaarstop, de ondergrens van 10 miljard dollar — liggen vast en zijn niet aanpasbaar. Dat is precies het nut van een raamwerk: een regel die je versoepelt zodra een aandeel dat je mooi vindt eraan zakt, is geen regel. Een handvol secundaire drempels die de app zelf koos, kun je onder Account aanpassen; elk cijfer dat daaraan getoetst is, vermeldt dat op de kaart.",
+    "revisitTitle": "Vast is niet voor altijd",
+    "revisitBody": "Vast betekent dat de drempels niet buigen voor één aandeel, niet dat ze eeuwig waar zijn. Ze worden periodiek opnieuw getoetst aan actuele marktgegevens, en verschuift het bewijs, dan verschuiven ze mee — zichtbaar, en met de onderbouwing erbij. Een getal dat nooit opnieuw is bekeken, is een gewoonte en geen methode.",
+    "honestTitle": "Wat de app niet weet",
+    "honestBody": "De app meet wat meetbaar is en zegt het wanneer dat niet lukt. Een voorwaarde zonder gegevens is grijs en niet gezakt, een cijfer dat niet te herleiden was vermeldt waarom, en het kwalitatieve oordeel — of een daling tijdelijk of structureel is — blijft aan jou, omdat geen enkele screening die vraag kan beantwoorden. Dit is een analyse-instrument, geen beleggingsadvies.",
+    "creditTitle": "Verantwoording",
+    "creditBody": "Het raamwerk dat deze app toepast is ontleend aan “Rijke Belegger, Arme Belegger”. De uitvoering, de dataverwerking en alle teksten in de app zijn van onszelf; de onderliggende beleggingsmethode is die van het boek."
   }
 }

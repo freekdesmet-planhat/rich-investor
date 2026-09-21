@@ -59,8 +59,8 @@ export function WatchlistControls({
   const chip = (active: boolean) =>
     `rounded-full border px-3 py-1 text-xs transition ${
       active
-        ? 'border-slate-900 bg-slate-900 font-medium text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
-        : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800'
+        ? 'border-accent bg-accent font-medium text-accent-ink'
+        : 'border-line-strong text-ink-muted hover:bg-surface-hover'
     }`;
 
   const isFiltered =
@@ -94,7 +94,7 @@ export function WatchlistControls({
           them. Crossing the two is the point — "buy-worthy and I have not
           looked at it yet" is the set worth a Saturday morning. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-slate-500 dark:text-slate-400">{labels.reviewBy}:</span>
+        <span className="text-ink-subtle text-xs">{labels.reviewBy}:</span>
         {REVIEW_FILTERS.map((review) => (
           <Link
             key={review}
@@ -113,7 +113,7 @@ export function WatchlistControls({
           same count are not the same proposition. Bands nobody holds still show,
           at zero, so the row does not reshuffle between visits. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-slate-500 dark:text-slate-400">{labels.growthBy}:</span>
+        <span className="text-ink-subtle text-xs">{labels.growthBy}:</span>
         {GROWTH_FILTERS.map((growth) => (
           <Link
             key={growth}
@@ -132,7 +132,7 @@ export function WatchlistControls({
           whatever happens to be on the watchlist. */}
       {sectors.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400">{labels.sectorBy}:</span>
+          <span className="text-ink-subtle text-xs">{labels.sectorBy}:</span>
           <span className="flex flex-wrap items-center gap-2">
             <Link
               href={viewHref(view, { sector: 'any' })}
@@ -158,7 +158,7 @@ export function WatchlistControls({
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">{labels.sortBy}:</span>
+          <span className="text-ink-subtle">{labels.sortBy}:</span>
           {SORT_KEYS.map((sort) => (
             <Link
               key={sort}
@@ -166,8 +166,8 @@ export function WatchlistControls({
               aria-current={view.sort === sort ? 'true' : undefined}
               className={
                 view.sort === sort
-                  ? 'font-medium text-slate-900 underline underline-offset-4 dark:text-slate-100'
-                  : 'text-slate-500 underline-offset-4 hover:underline dark:text-slate-400'
+                  ? 'font-medium text-ink underline underline-offset-4'
+                  : 'text-ink-subtle underline-offset-4 hover:text-ink hover:underline'
               }
             >
               {labels.sort[sort]}
@@ -189,11 +189,11 @@ export function WatchlistControls({
             defaultValue={view.query}
             placeholder={labels.filterPlaceholder}
             aria-label={labels.filterPlaceholder}
-            className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900"
+            className="bg-surface border-line-strong min-w-0 flex-1 rounded-md border px-3 py-1.5 text-sm"
           />
           <button
             type="submit"
-            className="shrink-0 rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="border-line-strong text-ink-muted hover:bg-surface-hover shrink-0 rounded-md border px-3 py-1.5 text-xs transition"
           >
             {labels.filterApply}
           </button>
@@ -202,7 +202,7 @@ export function WatchlistControls({
         {isFiltered && (
           <Link
             href="/"
-            className="shrink-0 text-xs text-slate-500 underline underline-offset-2 dark:text-slate-400"
+            className="text-ink-subtle shrink-0 text-xs underline underline-offset-2"
           >
             {labels.clear}
           </Link>

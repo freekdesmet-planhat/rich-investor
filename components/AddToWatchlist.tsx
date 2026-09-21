@@ -20,7 +20,7 @@ function Button({ labels }: { labels: AddLabels }) {
     <button
       type="submit"
       disabled={pending}
-      className="shrink-0 rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+      className="border-line-strong text-ink-muted hover:bg-surface-hover shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-60"
     >
       {pending ? labels.adding : labels.add}
     </button>

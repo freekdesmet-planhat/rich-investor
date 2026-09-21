@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Lang } from '@/lib/i18n/config';
 import { formatNumber } from '@/lib/i18n/format';
 import { MacroCard } from './MacroCard';
+import { SectionHeading } from './ui/Surface';
 
 interface MacroRow {
   date: string;
@@ -105,12 +106,12 @@ export async function MarketContextDashboard() {
   return (
     <section className="mb-8">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('title')}</h2>
-        <p className="text-xs text-slate-400 dark:text-slate-500">
+        <SectionHeading>{t('title')}</SectionHeading>
+        <p className="text-ink-faint text-xs">
           {t('asOf', { date: data.date })}
         </p>
       </div>
-      <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
+      <p className="text-ink-subtle mb-3 text-xs">{t('subtitle')}</p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((card) => (
@@ -129,7 +130,7 @@ export async function MarketContextDashboard() {
       {data.errors && data.errors.length > 0 && (
         <ul className="mt-2 space-y-0.5">
           {data.errors.map((error, i) => (
-            <li key={i} className="text-xs text-slate-400 dark:text-slate-500">
+            <li key={i} className="text-ink-faint text-xs">
               {error}
             </li>
           ))}

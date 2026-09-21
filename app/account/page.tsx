@@ -8,6 +8,7 @@ import { getThresholdOverrides } from '@/lib/data/queries';
 import { EDITABLE_KEYS, defaultFieldsFor } from '@/lib/ratios/editableThresholds';
 import { getSettings } from '@/lib/data/queries';
 import { getLocale } from 'next-intl/server';
+import { SectionHeading } from '@/components/ui/Surface';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,16 +40,14 @@ export default async function AccountPage() {
       <main className="mx-auto max-w-lg px-4 py-6">
         <h1 className="text-xl font-semibold">{tAccount('title')}</h1>
         {user?.email && (
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-ink-subtle mt-1 text-sm">
             {tAuth('signedInAs', { email: user.email })}
           </p>
         )}
 
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {tAccount('passwordTitle')}
-          </h2>
-          <p className="mb-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <SectionHeading>{tAccount('passwordTitle')}</SectionHeading>
+          <p className="text-ink-subtle mb-3 mt-1 text-xs">
             {tAccount('passwordIntro')}
           </p>
 
@@ -132,16 +131,14 @@ export default async function AccountPage() {
 
         {/* --- your data, back out again ------------------------------------ */}
         <section className="mt-8">
-          <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {tAccount('export.title')}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <SectionHeading>{tAccount('export.title')}</SectionHeading>
+          <p className="text-ink-subtle mt-1 text-sm">
             {tAccount('export.intro')}
           </p>
           <a
             href="/api/export"
             download
-            className="mt-3 inline-block rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="border-line-strong text-ink-muted hover:bg-surface-hover mt-3 inline-block rounded-md border px-3 py-1.5 text-sm transition"
           >
             {tAccount('export.download')}
           </a>

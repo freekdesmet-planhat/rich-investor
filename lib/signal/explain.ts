@@ -172,8 +172,8 @@ function pegSentences(condition: ConditionResult, lang: Lang): WhyPart[] {
         : `This passes on forward PEG (${num(d.forwardPeg, lang)}, based on consensus of ${pct(d.forwardGrowth, lang, 0)} EPS growth this year) rather than trailing PEG (${num(d.trailingPeg, lang)}) — the growth hasn't shown up in reported results yet.` });
     out.push({ section: 'check', text:
       lang === 'nl'
-        ? `Loop het blok "Mijn kwalitatieve beoordeling" hieronder langs voordat je dit als een bevestigd instapmoment behandelt: heeft het management de langetermijndoelen herbevestigd, en gaat het om een tijdelijk vraag- of aanbodprobleem dat het boek zou herkennen?`
-        : `Work through the "My qualitative review" block below before treating this as a confirmed entry: has management reaffirmed its long-term targets, and is this a temporary demand- or supply-side issue of the kind the book recognises?` });
+        ? `Loop het blok "Mijn kwalitatieve beoordeling" hieronder langs voordat je dit als een bevestigd instapmoment behandelt: heeft het management de langetermijndoelen herbevestigd, en gaat het om een tijdelijk vraag- of aanbodprobleem in plaats van een structureel probleem?`
+        : `Work through the "My qualitative review" block below before treating this as a confirmed entry: has management reaffirmed its long-term targets, and is this a temporary demand- or supply-side issue rather than a structural one?` });
   } else if (d.basis === 'trailing') {
     out.push({ section: 'passes', text:
       lang === 'nl'
@@ -234,7 +234,7 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
         : `It is a large company (market cap ${billions(marketCap.value, lang)})${rank ? `, ranked #${rank.rank} in ${rank.industry}` : ''}.` });
   }
 
-  // --- the drawdown, the book's core signal --------------------------------
+  // --- the drawdown, the core signal --------------------------------
   if (drawdown.value != null) {
     const decline = -drawdown.value;
     const base =
@@ -251,8 +251,8 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
 
     const conviction = by('drawdown')?.passed
       ? lang === 'nl'
-        ? `, en het boek ziet dalingen van 50% of meer bij kwaliteitsbedrijven als zeldzame instapmomenten met hoge overtuiging.`
-        : `, and the book flags declines of 50%+ in quality names as rare, high-conviction entry points.`
+        ? `, en dalingen van 50% of meer bij kwaliteitsbedrijven gelden als zeldzame instapmomenten met hoge overtuiging.`
+        : `, and declines of 50%+ in quality names are rare, high-conviction entry points.`
       : '.';
 
     parts.push({
@@ -326,8 +326,8 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
         const required = (condition.detail as { green?: number }).green ?? 0.5;
         parts.push({ section: 'missing', text:
           lang === 'nl'
-            ? `De koers staat ${pct(-condition.value, lang)} onder de top, nog niet de ${pct(required, lang)} die het boek vraagt.`
-            : `The decline is ${pct(-condition.value, lang)}, short of the ${pct(required, lang)} the book asks for.` });
+            ? `De koers staat ${pct(-condition.value, lang)} onder de top, nog niet de ${pct(required, lang)} die vereist is.`
+            : `The decline is ${pct(-condition.value, lang)}, short of the ${pct(required, lang)} requiredr.` });
       }
       if (key === 'pe') {
         parts.push({ section: 'missing', text:
@@ -342,8 +342,8 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
   if (signal.status === 'buy_worthy') {
     parts.push({ section: 'check', text:
       lang === 'nl'
-        ? `Eén ding moet je zelf beoordelen: het boek vraagt als volgende stap of het probleem tijdelijk of structureel is — zie het blok "Mijn kwalitatieve beoordeling" hieronder.`
-        : `One thing to check yourself: the book's own next step is judging whether the problem is temporary or structural — see the qualitative review section below.` });
+        ? `Eén ding moet je zelf beoordelen: de volgende stap is de vraag of het probleem tijdelijk of structureel is — zie het blok "Mijn kwalitatieve beoordeling" hieronder.`
+        : `One thing to check yourself: the next step is judging whether the problem is temporary or structural — see the qualitative review section below.` });
   }
 
   return parts;

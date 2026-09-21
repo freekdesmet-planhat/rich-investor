@@ -237,8 +237,24 @@ feel instant. Optimistic updates beat spinners; a spinner that appears for
 - **The nine conditions and their thresholds.** Untouched, as the ground
   rules require.
 - **Copy.** The `(from the book)` references are a separate pass (item 4).
-- **Every other page.** Shared components used by the stock page — the status
-  badge, ratio cards, colour dots — now read from the tokens, so the
-  watchlist, compare and suggestions pages pick up the new verdict colours
-  for free. Their layout and spacing are untouched and still on the old
-  ad-hoc rhythm. That is the item 3 rollout.
+- **The information hierarchy** on the stock page. Verdict, chart, thesis,
+  review, in that order.
+
+## Rollout status
+
+Items 3 and 4 are done: every page — watchlist, search, suggestions, compare,
+account, methodology — reads from these tokens, and no component outside a
+comment references a raw Tailwind grey any more. Section headings, cards and
+buttons are the shared primitives everywhere.
+
+Two things about the copy, from item 4:
+
+- `(from the book)` is gone from all twenty-two thresholds, the ratio
+  explanations, the market-context subtitle and the account settings. The
+  source label on a card now reads **core methodology**, which keeps the
+  distinction that matters — this threshold is fixed, that one is an app
+  default, that one is yours — without the attribution on every line.
+- The single credit lives on **/methodology**, which also lists the nine
+  conditions (read from the same translations the checklist uses, so it
+  cannot drift) and explains why the thresholds are fixed and why fixed is
+  not the same as permanent.

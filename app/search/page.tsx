@@ -35,7 +35,7 @@ export default async function SearchPage({
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <h1 className="text-xl font-semibold">{t('title')}</h1>
-        <p className="mt-1 max-w-prose text-sm text-slate-500 dark:text-slate-400">{t('intro')}</p>
+        <p className="text-ink-subtle mt-1 max-w-prose text-sm">{t('intro')}</p>
 
         <form method="GET" action="/search" className="mt-4 flex flex-wrap gap-2">
           <input
@@ -45,53 +45,53 @@ export default async function SearchPage({
             placeholder={t('placeholder')}
             aria-label={t('placeholder')}
             autoFocus
-            className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+            className="bg-surface border-line-strong min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
           />
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+            className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-ink transition hover:bg-accent-hover"
           >
             {t('submit')}
           </button>
         </form>
 
         {query.length > 0 && query.length < 2 && (
-          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{t('minLength')}</p>
+          <p className="text-ink-subtle mt-4 text-sm">{t('minLength')}</p>
         )}
 
         {query.length >= 2 && results.length === 0 && (
-          <p className="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="border-line-strong text-ink-subtle mt-6 rounded-lg border border-dashed p-6 text-center text-sm">
             {t('noResults', { query })}
           </p>
         )}
 
         {results.length > 0 && (
-          <ul className="mt-6 divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+          <ul className="border-line mt-6 divide-line divide-y overflow-hidden rounded-xl border">
             {results.map((row) => (
               <li
                 key={row.symbol}
-                className="flex flex-wrap items-center justify-between gap-3 bg-white px-3 py-3 dark:bg-slate-900"
+                className="bg-surface flex flex-wrap items-center justify-between gap-3 px-3 py-3"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
                     {row.symbol}
-                    <span className="ml-2 font-normal text-slate-500 dark:text-slate-400">
+                    <span className="text-ink-subtle ml-2 font-normal">
                       {row.name ?? ''}
                     </span>
                   </p>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-ink-subtle mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
                     <span>
                       {[row.exchange, row.country].filter(Boolean).join(' · ') || '—'}
                     </span>
                     {row.analysed ? (
                       <Link
                         href={`/stock/${encodeURIComponent(row.symbol)}`}
-                        className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-200"
+                        className="underline underline-offset-2 hover:text-ink"
                       >
                         {t('open')}
                       </Link>
                     ) : (
-                      <span className="text-slate-400 dark:text-slate-500">{t('notAnalysed')}</span>
+                      <span className="text-ink-faint">{t('notAnalysed')}</span>
                     )}
                   </p>
                 </div>
@@ -119,7 +119,7 @@ export default async function SearchPage({
           </ul>
         )}
 
-        <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
+        <p className="text-ink-faint mt-8 text-xs">
           <Link href="/" className="underline underline-offset-2">
             {tNav('watchlist')}
           </Link>

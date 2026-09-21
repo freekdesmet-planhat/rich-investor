@@ -20,30 +20,30 @@ export default function WatchlistLoading() {
         {Array.from({ length: 4 }, (_, i) => (
           <div
             key={i}
-            className="h-20 animate-pulse rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800"
+            className="bg-surface-sunken border-line h-20 animate-pulse rounded-lg border"
           />
         ))}
       </div>
 
-      <div className="mb-4 h-7 w-48 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+      <div className="bg-surface-sunken mb-4 h-7 w-48 animate-pulse rounded" />
 
       <div className="mb-4 flex flex-wrap gap-2">
         {Array.from({ length: 4 }, (_, i) => (
           <div
             key={i}
-            className="h-7 w-24 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800"
+            className="bg-surface-sunken h-7 w-24 animate-pulse rounded-full"
           />
         ))}
       </div>
 
-      <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+      <ul className="border-line divide-line divide-y overflow-hidden rounded-xl border">
         {Array.from({ length: 8 }, (_, i) => (
-          <li key={i} className="flex items-center justify-between gap-3 bg-white px-3 py-3 dark:bg-slate-900">
+          <li key={i} className="bg-surface flex items-center justify-between gap-3 px-3 py-3">
             <div className="min-w-0 flex-1">
-              <div className="h-4 w-32 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
-              <div className="mt-2 h-3 w-48 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+              <div className="bg-surface-sunken h-4 w-32 animate-pulse rounded" />
+              <div className="bg-surface-sunken mt-2 h-3 w-48 animate-pulse rounded" />
             </div>
-            <div className="h-6 w-20 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800" />
+            <div className="bg-surface-sunken h-6 w-20 animate-pulse rounded-full" />
           </li>
         ))}
       </ul>

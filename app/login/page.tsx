@@ -17,7 +17,7 @@ export default async function LoginPage({
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">{t('name')}</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('tagline')}</p>
+          <p className="text-ink-subtle mt-1 text-sm">{t('tagline')}</p>
         </div>
         <LanguageSwitcher />
       </div>

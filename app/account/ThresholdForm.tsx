@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { saveThresholds } from './thresholdActions';
 import { SETTINGS_IDLE, type SettingsActionState } from '@/lib/settings/state';
 import { EDITABLE_KEYS, defaultFieldsFor } from '@/lib/ratios/editableThresholds';
+import { SectionHeading } from '@/components/ui/Surface';
 
 export interface ThresholdLabels {
   title: string;
@@ -30,7 +31,7 @@ function SubmitButton({ idle, busy }: { idle: string; busy: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+      className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60"
     >
       {pending ? busy : idle}
     </button>
@@ -62,22 +63,22 @@ export function ThresholdForm({
 
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.intro}</p>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.bookNote}</p>
+      <SectionHeading>{labels.title}</SectionHeading>
+      <p className="text-ink-subtle mt-1 text-sm">{labels.intro}</p>
+      <p className="text-ink-subtle mt-1 text-sm">{labels.bookNote}</p>
 
       <form action={action} className="mt-3 space-y-4">
         {EDITABLE_KEYS.map((key) => {
           const defaults = defaultFieldsFor(key);
           return (
             <fieldset key={key}>
-              <legend className="text-xs font-medium text-slate-600 dark:text-slate-300">
+              <legend className="text-ink-muted text-xs font-medium">
                 {labels.names[key] ?? key}
               </legend>
               <div className="mt-1 flex flex-wrap gap-3">
                 {Object.entries(defaults).map(([field, fallback]) => (
                   <label key={field} className="block">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="text-ink-subtle text-xs">
                       {labels.fields[field] ?? field}
                     </span>
                     <input
@@ -85,7 +86,7 @@ export function ThresholdForm({
                       inputMode="decimal"
                       defaultValue={overrides[key]?.[field] ?? ''}
                       placeholder={String(fallback)}
-                      className="mt-1 block w-24 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm tabular-nums dark:border-slate-600 dark:bg-slate-950"
+                      className="border-line-strong mt-1 block w-24 rounded-lg border bg-surface px-2 py-1.5 text-sm tabular-nums"
                     />
                   </label>
                 ))}
@@ -94,8 +95,8 @@ export function ThresholdForm({
           );
         })}
 
-        <p className="text-xs text-slate-400 dark:text-slate-500">{labels.resetHint}</p>
-        <p className="text-xs text-slate-400 dark:text-slate-500">{labels.appliesNote}</p>
+        <p className="text-ink-faint text-xs">{labels.resetHint}</p>
+        <p className="text-ink-faint text-xs">{labels.appliesNote}</p>
 
         <SubmitButton idle={labels.save} busy={labels.saving} />
 

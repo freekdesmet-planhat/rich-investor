@@ -9,7 +9,7 @@ Formaat, per blok:
 
     ## <namespace>:<sleutel>
     **Naam:** korte titel op de kaart
-    **Doel:** het doel, met tussen haakjes of het uit het boek komt
+    **Doel:** het doel, en waar het vandaan komt
 
     De uitleg achter de "?"-knop.
 
@@ -17,23 +17,23 @@ Formaat, per blok:
 
 ## ratio:pe
 **Naam:** Koers-winstverhouding (K/W)
-**Doel:** maximaal 30 (uit het boek)
+**Doel:** maximaal 30
 
 De bekendste waarderingsmaatstaf, maar op zichzelf onvolledig: hij kijkt naar één
 jaar winst en zegt niets over groei. Een lage K/W is nooit op zichzelf een reden
 om te kopen — zonder winstgroei is een aandeel feitelijk nooit goedkoop. Beoordeel
-de K/W altijd samen met de PEG-ratio en de groeicategorie. Het boek geeft 30 als
+de K/W altijd samen met de PEG-ratio en de groeicategorie. Deze methode hanteert 30 als
 plafond, ook voor hardgroeiers: 60 keer de winst betalen voor 60% groei is niet
 realistisch. Voor grote technologiebedrijven met hoge uitgaven aan onderzoek en
 ontwikkeling loont het om ook naar de voor R&D gecorrigeerde K/W te kijken.
 
 ## ratio:peg
 **Naam:** PEG-ratio
-**Doel:** ≤ 1 bij hoge groei, ≤ 0,7 bij gemiddelde groei, ≤ 0,5 bij lage groei (uit het boek)
+**Doel:** ≤ 1 bij hoge groei, ≤ 0,7 bij gemiddelde groei, ≤ 0,5 bij lage groei
 
-De centrale waarderingsmaatstaf van het boek: hij koppelt de prijs aan de groei.
+De centrale waarderingsmaatstaf van deze methode: hij koppelt de prijs aan de groei.
 Winstgroei is "een vector met richting, kracht en lengte"; de PEG maakt dat
-meetbaar. Het boek wil dat je strenger wordt naarmate de groei lager ligt, vandaar
+meetbaar. Naarmate de groei lager ligt wordt de eis strenger, vandaar
 drie verschillende grenzen. Let op: een PEG van 1 bij 5% groei levert veel minder
 op dan een PEG van 1 bij 25% groei — vertrouw nooit op één maatstaf alleen.
 Voorwaarde voor hoge groei is dat het bedrijf die groei kan volhouden dankzij een
@@ -48,7 +48,7 @@ gerapporteerde cijfers.
 **Naam:** Ondernemingswaarde / EBIT
 **Doel:** ≤ 20 (standaardinstelling van de app)
 
-Het boek noemt dit een van de drie belangrijkste waarderingsmethodes, en preciezer
+Dit is een van de drie belangrijkste waarderingsmethodes, en preciezer
 dan de K/W omdat de schuld wordt meegerekend: wie een bedrijf koopt, koopt de
 schuld erbij. Denk aan een ijsberg — de beurswaarde is het zichtbare deel boven
 water, de schuld het onzichtbare deel eronder. EBIT laat de operationele winst zien
@@ -69,20 +69,20 @@ een voorzichtige en transparante boekhouding. Een negatieve vrije kasstroom is r
 
 ## ratio:earnings_quality
 **Naam:** Operationele kasstroom / nettowinst
-**Doel:** ≥ 1 (uit het boek)
+**Doel:** ≥ 1
 
 Rapporteert een bedrijf meer nettowinst dan het aan kasstroom uit de kernactiviteiten
 binnenhaalt, vraag je dan af waar dat verschil vandaan komt — vaak zijn het eenmalige
 baten, bijvoorbeeld de verkoop van een pand of machines, die geen structureel inkomen
 zijn. Een stijgende operationele kasstroom is een duidelijk signaal van echte,
-autonome groei. Het boek noemt het uitdrukkelijk een rode vlag wanneer de operationele
+autonome groei. Het is uitdrukkelijk een rode vlag wanneer de operationele
 kasstroom negatief is terwijl de nettowinst positief is.
 
 ## ratio:roe
 **Naam:** Rendement op eigen vermogen (ROE)
-**Doel:** > 15%, en dat meerdere jaren achtereen (uit het boek)
+**Doel:** > 15%, en dat meerdere jaren achtereen
 
-De favoriete ratio van Warren Buffett; het boek noemt hem "het spaarpercentage van
+De favoriete ratio van Warren Buffett, en te omschrijven als het spaarpercentage van
 het bedrijf". Hij laat zien hoeveel winst een bedrijf maakt op elke euro ingelegd
 eigen vermogen. Het effect van samengestelde groei werkt alleen als (1) de winst
 wordt geherinvesteerd en (2) het bedrijf dat hoge rendement vasthoudt terwijl het
@@ -92,11 +92,11 @@ minstens vier van de vijf jaar is gehaald.
 
 ## ratio:roa
 **Naam:** Rendement op activa (ROA)
-**Doel:** > 10%, consistent (uit het boek)
+**Doel:** > 10%, consistent
 
 Een variant op de ROE die ook het vreemd vermogen meetelt. Een hoge ROA laat zien
 dat het bedrijf al zijn beschikbare middelen effectief inzet, niet alleen het eigen
-vermogen. Samen met een hoge ROE noemt het boek dit "een sterk fundament voor
+vermogen. Samen met een hoge ROE is dat een sterk fundament voor
 waardecreatie".
 
 Bij betaalbedrijven wordt de ROA gecorrigeerd. Hun balans bevat settlementsaldi —
@@ -106,9 +106,9 @@ zichtbaar naast de gecorrigeerde.
 
 ## ratio:eps_growth
 **Naam:** Groei van de winst per aandeel
-**Doel:** ≥ 15% per jaar (uit het boek)
+**Doel:** ≥ 15% per jaar
 
-Volgens het boek de uitkomst waar al het andere uiteindelijk toe dient: groei van de
+De uitkomst waar al het andere uiteindelijk toe dient: groei van de
 winst per aandeel. Bedrijven met consistente hoge of gemiddelde winstgroei leveren op
 lange termijn het beste rendement. Peter Lynch noemt 20 tot 25% het optimale,
 vol te houden tempo. Let ook op hoeveel van de groei uit echte winststijging komt en
@@ -122,26 +122,26 @@ zo niet in zijn eentje het hele groeicijfer.
 **Naam:** Omzetgroei
 **Doel:** ≥ 10% per jaar (standaardinstelling van de app)
 
-Het boek noemt omzet "de turbotrigger": moeilijker te manipuleren dan winst, en
+Omzet is de turbotrigger: moeilijker te manipuleren dan winst, en
 zonder omzetgroei loopt de winstgroei uiteindelijk tegen een plafond aan, want
 kosten kun je niet eindeloos blijven snijden. Kijk ook naar de samenstelling van de
 omzet (eenmalig versus terugkerend, abonnementen) en naar prijs versus volume.
 
 ## ratio:gross_margin
 **Naam:** Brutomarge
-**Doel:** ≥ 50%, of vijf jaar achtereen gestegen (uit het boek)
+**Doel:** ≥ 50%, of vijf jaar achtereen gestegen
 
 Marges maken het concurrentievoordeel meetbaar. Hoge, stabiele marges wijzen op
-prijszettingsmacht. Het boek zoekt twee soorten bedrijven: bedrijven met een hoge
+prijszettingsmacht. Deze methode zoekt twee soorten bedrijven: bedrijven met een hoge
 brutomarge, en bedrijven met een lagere marge die gestaag stijgt. De echte magie
 ontstaat wanneer omzetgroei samenvalt met stijgende marges — dan versnelt de
 winstgroei.
 
 ## ratio:net_margin
 **Naam:** Nettomarge
-**Doel:** ≥ 20% (uit het boek)
+**Doel:** ≥ 20%
 
-Het boek noemt ongeveer 12% als gemiddelde van de S&P 500 en wil bedrijven die daar
+Ongeveer 12% is het gemiddelde van de S&P 500, en gezocht worden bedrijven die daar
 duidelijk boven zitten. De nettomarge laat zien wat er van elke euro omzet
 daadwerkelijk als winst overblijft.
 
@@ -149,7 +149,7 @@ daadwerkelijk als winst overblijft.
 **Naam:** Nettoschuld / EBITDA
 **Doel:** ≤ 1 (standaardinstelling van de app)
 
-Het boek geeft hier geen getallen, maar is ondubbelzinnig: te veel schuld is een
+Hier zijn geen vaste getallen, maar het uitgangspunt is ondubbelzinnig: te veel schuld is een
 no-gocriterium. De rijke belegger kiest grote, volwassen bedrijven met veel kas,
 stabiele inkomsten en weinig schuld. De risico's nemen toe bij hogere rente of
 afzwakkende groei, zeker bij kapitaalintensieve bedrijven. Grote, gevestigde
@@ -158,9 +158,9 @@ nettokaspositie is groen: er is dan meer kas dan schuld.
 
 ## ratio:dividend_yield
 **Naam:** Dividendrendement
-**Doel:** geen koopcriterium; boven 7% een waarschuwing (uit het boek)
+**Doel:** geen koopcriterium; boven 7% een waarschuwing
 
-Het boek zegt het onomwonden: beleg nooit uitsluitend op basis van het
+Onomwonden gezegd: beleg nooit uitsluitend op basis van het
 dividendrendement. De rijke belegger kijkt naar het totaalrendement — koerswinst
 plus dividend — waarbij het grootste deel uit koerswinst komt. Dividend werkt wel
 als anker bij beweeglijke koersen. Weeg het dividend altijd samen met de
@@ -170,12 +170,12 @@ is geen minpunt.
 
 ## ratio:payout_ratio
 **Naam:** Uitkeringsratio
-**Doel:** ≤ 40% voor groeiaandelen (uit het boek)
+**Doel:** ≤ 40% voor groeiaandelen
 
 0% betekent dat alle winst wordt geherinvesteerd — precies wat het effect van
 samengestelde groei nodig heeft. 100% betekent dat het eigen vermogen niet meer
 groeit. Een hoge uitkeringsratio zet een plafond op het opwaarts potentieel, zoals
-je spaarrente elk jaar opnemen. Het boek noemt 90% als signaal dat er weinig
+je spaarrente elk jaar opnemen. 90% is het signaal dat er weinig
 groeiruimte over is en het dividend kwetsbaar wordt, en ongeveer 36% als het
 gemiddelde van de S&P 500 in 2024. Een bedrijf met zowel een hoge ROE als een hoge
 uitkeringsratio staat vaak op het punt waar verdere groei in eigen huis minder
@@ -183,14 +183,14 @@ rendabel is geworden.
 
 ## ratio:rnd_adjusted_pe
 **Naam:** Voor R&D gecorrigeerde K/W
-**Doel:** ≤ 20 (uit het boek)
+**Doel:** ≤ 20
 
 Grote technologiebedrijven boeken enorme bedragen aan onderzoek en ontwikkeling
 direct als kosten, terwijl een groot deel daarvan investering in de toekomst is
 ("moonshots"). Tel je die weer bij de winst op, dan wordt verborgen winstgevendheid
-zichtbaar — het boek laat zien hoe de K/W van Meta van 27 naar ongeveer 10,8 gaat na
+zichtbaar — de K/W van Meta gaat bijvoorbeeld van 27 naar ongeveer 10,8 na
 correctie voor R&D. Alleen zinvol bij bedrijven met hoge R&D-uitgaven en sterke
-omzetgroei, en wees voorzichtig: niet alle R&D is verborgen winst. Het boek noemt
+omzetgroei, en wees voorzichtig: niet alle R&D is verborgen winst. Er zijn
 drie voordelen: je kunt verantwoord instappen bij een op het oog hoge K/W,
 R&D-uitgaven hangen sterk samen met de koers op lange termijn, en snijdt het bedrijf
 in R&D, dan springt de gerapporteerde winst omhoog.
@@ -200,7 +200,7 @@ in R&D, dan springt de gerapporteerde winst omhoog.
 **Doel:** informatief, geen kleurcode
 
 Vooral nuttig bij snelgroeiende bedrijven die nog geen winst maken. Waarschuwing uit
-het boek: in 2008 werd pijnlijk duidelijk dat omzet geen winst is — bedrijven die op
+de praktijk: in 2008 werd pijnlijk duidelijk dat omzet geen winst is — bedrijven die op
 deze ratio goedkoop leken, werden het hardst geraakt in de crash.
 
 ## ratio:p_b
@@ -213,12 +213,12 @@ aandelen die alleen op boekwaarde goedkoop lijken.
 
 ## ratio:inventory_receivables
 **Naam:** Voorraden en debiteuren versus omzet
-**Doel:** groeien niet sneller dan de omzet (uit het boek)
+**Doel:** groeien niet sneller dan de omzet
 
 Oplopende voorraden betekenen dat producten minder goed verkopen dan gepland;
 oplopende debiteuren dat klanten later betalen. Beide kunnen leiden tot
 afwaarderingen en winstwaarschuwingen, zeker in sectoren waar de ontwikkelingen snel
-gaan. Bedrijven zonder voorraden — software, betaalnetwerken — noemt het boek het
+gaan. Bedrijven zonder voorraden — software, betaalnetwerken — zijn het
 ideale bedrijfsmodel; daar is deze toets niet van toepassing.
 
 Bij betaalbedrijven is deze kaart grijs: hun debiteuren zijn settlementsaldi die
@@ -227,7 +227,7 @@ niet betaalt.
 
 ## ratio:drawdown_5y
 **Naam:** Daling vanaf de top van vijf jaar
-**Doel:** ≥ 50% onder de hoogste slotkoers van vijf jaar (uit het boek)
+**Doel:** ≥ 50% onder de hoogste slotkoers van vijf jaar
 
 "De logaritmische waterval": een daling van 20% vraagt 25% herstel, een daling van
 70% vraagt 233%. Hoe dieper een kwaliteitsaandeel valt, hoe groter het statistische
@@ -238,9 +238,9 @@ tijdelijk of structureel? Een koersdaling alleen is nooit een reden om te kopen.
 
 ## ratio:market_cap
 **Naam:** Beurswaarde
-**Doel:** ≥ 10 miljard dollar (uit het boek)
+**Doel:** ≥ 10 miljard dollar
 
-Volgens het boek hebben sectorleiders meer herstelpotentieel: ze herstellen sneller,
+Sectorleiders hebben meer herstelpotentieel: ze herstellen sneller,
 met meer zekerheid, en blijven daarna doorgroeien. Greenwald: de afstand tot nummer
 twee telt net zo zwaar als het marktaandeel zelf. Kleine bedrijven zijn vaker
 goedkoop, maar blijven ook langer goedkoop.
@@ -251,7 +251,7 @@ goedkoop, maar blijven ook langer goedkoop.
 **Naam:** Hoge winstgroei
 **Doel:** winst per aandeel groeit met 20% of meer per jaar
 
-De categorie waar het boek zich op richt. Deze bedrijven kunnen een koopsignaal
+De categorie waar dit raamwerk zich op richt. Deze bedrijven kunnen een koopsignaal
 krijgen. Voorwaarde is wel dat de groei vol te houden is dankzij een sterk
 concurrentievoordeel.
 
@@ -270,11 +270,11 @@ Alleen met een uitdrukkelijke waarschuwing. De PEG-grens is hier 0,5.
 
 ## lynch:cyclical
 **Naam:** Cyclisch
-**Doel:** buiten de focus van het boek
+**Doel:** buiten de vier focussectoren
 
-De winst beweegt sterk mee met de economische cyclus. Het boek denkt hierbij aan
+De winst beweegt sterk mee met de economische cyclus. Denk hierbij aan
 auto's, bouw, grondstoffen en industrie. Halfgeleiders vallen hier uitdrukkelijk
-niet onder: hun winst is beweeglijk, maar het boek noemt microchips juist de
+niet onder: hun winst is beweeglijk, maar microchips zijn juist de
 best presterende subsector die het behandelt.
 
 ## lynch:turnaround
@@ -282,7 +282,7 @@ best presterende subsector die het behandelt.
 **Doel:** buiten de focus, hoog risico
 
 Het bedrijf maakt verlies of ziet de winst meerdere jaren achtereen dalen. Zo'n
-herstelverhaal kan uitzonderlijk goed uitpakken, maar het boek rekent het
+herstelverhaal kan uitzonderlijk goed uitpakken, maar het hoort
 uitdrukkelijk tot de categorie met hoog risico en houdt het buiten de focus: de
 uitkomst hangt af van een ommekeer die nog moet worden bewezen, niet van een
 bewezen vermogen om winst te laten groeien. Deze categorie krijgt geen
@@ -300,8 +300,8 @@ plaats daarvan naar de koers/boekwaarde gekeken.
 **Naam:** Niet te classificeren
 **Doel:** uitgesloten van koopsignalen
 
-Er is te weinig samenhangende winsthistorie om de groei te meten. Het boek
-waarschuwt ervoor een gebrek aan informatie op te vullen met een aanname, dus de app
+Er is te weinig samenhangende winsthistorie om de groei te meten. Let op:
+hier geldt ervoor een gebrek aan informatie op te vullen met een aanname, dus de app
 forceert hier geen categorie.
 
 ## lynch:basis_eps_partial
@@ -332,40 +332,40 @@ bepalen welke PEG-grens geldt.
 
 ## condition:focus_sector
 **Naam:** Focussector
-**Doel:** valt binnen een van de vier focussectoren (uit het boek)
+**Doel:** valt binnen een van de vier focussectoren
 
-Het boek beperkt zich tot vier sectoren: informatietechnologie, luxegoederen en
+Deze methode beperkt zich tot vier sectoren: informatietechnologie, luxegoederen en
 consumentengoederen, entertainment en interactieve media, en niet-bancaire
 financiële dienstverlening. Aandelen daarbuiten mag je zelf toevoegen, maar ze
 krijgen een oranje label en geen koopsignaal.
 
 ## condition:lynch_category
 **Naam:** Groeicategorie
-**Doel:** hoge of gemiddelde winstgroei (uit het boek)
+**Doel:** hoge of gemiddelde winstgroei
 
 Alleen bedrijven met hoge of gemiddelde winstgroei komen in aanmerking voor een
 koopsignaal. Cyclische bedrijven, turnarounds en financiële instellingen vallen
-buiten de focus van het boek; bedrijven met lage groei alleen met een
+buiten de focus; bedrijven met lage groei alleen met een
 uitdrukkelijke waarschuwing.
 
 ## condition:market_cap
 **Naam:** Beurswaarde
-**Doel:** ten minste 10 miljard dollar (uit het boek)
+**Doel:** ten minste 10 miljard dollar
 
 De rijke belegger kiest grote, gevestigde bedrijven. Die herstellen sneller en
 met meer zekerheid na een diepe daling, en blijven daarna doorgroeien.
 
 ## condition:drawdown
 **Naam:** Daling vanaf de top van vijf jaar
-**Doel:** ten minste 50% onder de hoogste slotkoers van vijf jaar (uit het boek)
+**Doel:** ten minste 50% onder de hoogste slotkoers van vijf jaar
 
-Het kernsignaal van het boek. Dalingen van 50 tot 70% bij kwaliteitsbedrijven
+Het kernsignaal van deze methode. Dalingen van 50 tot 70% bij kwaliteitsbedrijven
 zijn zeldzaam zonder structureel probleem, en juist daar ligt het statistische
 voordeel. Instelbaar, met een ondergrens van 35%.
 
 ## condition:peg
 **Naam:** PEG-ratio
-**Doel:** onder de grens van de groeicategorie, gerealiseerd óf verwacht (uit het boek)
+**Doel:** onder de grens van de groeicategorie, gerealiseerd óf verwacht
 
 De voorwaarde slaagt als de PEG op basis van de gerealiseerde winstgroei óf op
 basis van de verwachte groei onder de grens blijft. Welke van de twee het deed,
@@ -374,21 +374,21 @@ oordeel op een verwachting die nog niet in de cijfers zichtbaar is.
 
 ## condition:pe
 **Naam:** Koers-winstverhouding
-**Doel:** ≤ 30, of ≤ 20 na correctie voor R&D (uit het boek)
+**Doel:** ≤ 30, of ≤ 20 na correctie voor R&D
 
 Het plafond van 30 geldt ook voor hardgroeiers. Voor technologiebedrijven met
 hoge R&D-uitgaven telt de gecorrigeerde variant mee als alternatief.
 
 ## condition:returns
 **Naam:** Rendement op eigen vermogen en activa
-**Doel:** ROE > 15% en ROA > 10%, meerdere jaren achtereen (uit het boek)
+**Doel:** ROE > 15% en ROA > 10%, meerdere jaren achtereen
 
 Beide moeten consistent gehaald worden, niet alleen in het laatste jaar. Bij
 betaalbedrijven wordt de ROA gecorrigeerd voor settlementsaldi.
 
 ## condition:cash_flow
 **Naam:** Kwaliteit van de kasstroom
-**Doel:** vrije kasstroom positief en operationele kasstroom ≥ 70% van de nettowinst (uit het boek)
+**Doel:** vrije kasstroom positief en operationele kasstroom ≥ 70% van de nettowinst
 
 Winst die niet in kas binnenkomt is geen winst waar je op kunt bouwen. Bij banken
 en verzekeraars is deze voorwaarde niet van toepassing en telt hij niet mee in de
@@ -398,7 +398,7 @@ noemer.
 **Naam:** Schuldniveau
 **Doel:** nettoschuld/EBITDA ≤ 2,5 (standaardinstelling van de app)
 
-Te veel schuld is voor het boek een no-gocriterium. Bij banken en verzekeraars is
+Te veel schuld is hier een no-gocriterium. Bij banken en verzekeraars is
 deze voorwaarde niet van toepassing.
 
 ---
@@ -446,7 +446,7 @@ Continuïteit aan de top, met een eigenaarsblik op de lange termijn.
 **Naam:** Het probleem beperkt zich tot één cyclus
 **Doel:** —
 
-Vraag óf aanbod, niet allebei tegelijk. Het boek ziet dat als het verschil tussen
+Vraag óf aanbod, niet allebei tegelijk. Dat is het verschil tussen
 een tijdelijke dip en een structureel probleem.
 
 ## sell_signal:deteriorating_performance
@@ -459,7 +459,7 @@ Niet één zwak kwartaal, maar een lijn die de verkeerde kant op blijft gaan.
 **Naam:** Grote overname tegen een hoge premie
 **Doel:** —
 
-Het boek is wantrouwig richting bedrijven die groei kopen in plaats van verdienen.
+Wees wantrouwig richting bedrijven die groei kopen in plaats van verdienen.
 
 ## sell_signal:involuntary_cfo_departure
 **Naam:** Onvrijwillig vertrek van de CFO
@@ -483,5 +483,5 @@ Bestuurders die tegelijk en in omvang verkopen, weten doorgaans iets.
 **Naam:** Ik zie niet meer waar toekomstige winstgroei vandaan moet komen
 **Doel:** —
 
-Het boek zet dit bewust in de eerste persoon: als jíj het verhaal niet meer kunt
+Dit staat bewust in de eerste persoon: als jíj het verhaal niet meer kunt
 navertellen, is dat op zichzelf een reden om te verkopen.

@@ -127,8 +127,8 @@ export function AnalyseNow({
         disabled={state === 'running'}
         className={
           compact
-            ? 'rounded px-2 py-1 text-xs text-slate-600 underline underline-offset-2 transition hover:text-slate-900 disabled:opacity-60 dark:text-slate-300 dark:hover:text-slate-100'
-            : 'rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800'
+            ? 'rounded px-2 py-1 text-xs text-ink-muted underline underline-offset-2 transition hover:text-ink disabled:opacity-60'
+            : 'rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover disabled:opacity-60'
         }
       >
         {state === 'running' ? labels.analysing : labels.analyse}

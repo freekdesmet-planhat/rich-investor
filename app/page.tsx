@@ -35,6 +35,7 @@ import {
 } from '@/lib/data/watchlistView';
 import type { FocusSector } from '@/lib/sectors/mapping';
 import type { Lang } from '@/lib/i18n/config';
+import { SectionHeading } from '@/components/ui/Surface';
 
 export const dynamic = 'force-dynamic';
 
@@ -258,13 +259,13 @@ export default async function WatchlistPage({
             <h1 className="text-xl font-semibold">{tNav('watchlist')}</h1>
             {/* The counts used to be printed here as prose and then left you to
                 scroll for them; they are the chips below now. */}
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-ink-subtle text-sm">
               {tWatchlist('showing', { shown: visible.length, total: all.length })}
             </p>
           </div>
           <Link
             href="/search"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="border-line-strong text-ink-muted hover:bg-surface-hover rounded-md border px-3 py-1.5 text-sm transition"
           >
             {tSearch('title')}
           </Link>
@@ -319,7 +320,7 @@ export default async function WatchlistPage({
         )}
 
         {all.length === 0 && (
-          <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="border-line-strong text-ink-subtle rounded-lg border border-dashed p-6 text-center text-sm">
             {tWatchlist('empty')}
           </p>
         )}
@@ -327,7 +328,7 @@ export default async function WatchlistPage({
         {/* A filter that matches nothing is a different state from an empty
             watchlist, and saying so is what stops it reading as data loss. */}
         {all.length > 0 && visible.length === 0 && (
-          <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="border-line-strong text-ink-subtle rounded-lg border border-dashed p-6 text-center text-sm">
             {tWatchlist('noMatches')}
           </p>
         )}
@@ -336,14 +337,12 @@ export default async function WatchlistPage({
           {groups
             ? [...groups].map(([sector, rows]) => (
                 <section key={sector}>
-                  <h2 className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                    {tSector(sector)}
+                  <SectionHeading>{tSector(sector)}
                     {sector === 'outside_focus' && (
-                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                      <span className="ml-2 rounded bg-near-wash px-1.5 py-0.5 text-xs font-normal text-near">
                         !
                       </span>
-                    )}
-                  </h2>
+                    )}</SectionHeading>
                   <RowList
                     rows={rows}
                     labels={rowLabels}
@@ -425,11 +424,11 @@ function RowList({
   analyseLabels: AnalyseLabels;
 }) {
   return (
-    <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+    <ul className="border-line divide-line divide-y overflow-hidden rounded-xl border">
       {rows.map((entry) => (
         <li
           key={entry.symbol}
-          className="flex items-center justify-between gap-2 bg-white pr-2 transition hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+          className="bg-surface hover:bg-surface-hover flex items-center justify-between gap-2 pr-2 transition"
         >
           {/* Only the row body navigates: a remove button inside the link would
               open the stock page on its way to removing. */}
@@ -440,11 +439,11 @@ function RowList({
             <div className="min-w-0">
               <p className="truncate font-medium">
                 {entry.symbol}
-                <span className="ml-2 font-normal text-slate-500 dark:text-slate-400">
+                <span className="text-ink-subtle ml-2 font-normal">
                   {entry.name ?? ''}
                 </span>
               </p>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-ink-subtle mt-0.5 text-xs">
                 {entry.signal
                   ? labels.conditionsMet(
                       entry.signal.conditions_met,
@@ -455,7 +454,7 @@ function RowList({
                     stocks on the same count can wear different badges, and the
                     count alone cannot say why. */}
                 {labels.missingOne(entry) && (
-                  <span className="text-slate-400 dark:text-slate-500">
+                  <span className="text-ink-faint">
                     {' · '}
                     {labels.missingOne(entry)}
                   </span>
@@ -504,7 +503,7 @@ function ReviewMark({ text, done }: { text: string; done: boolean }) {
   return (
     <p
       className={`mt-0.5 text-xs ${
-        done ? 'text-slate-500 dark:text-slate-400' : 'text-amber-700 dark:text-amber-500'
+        done ? 'text-ink-subtle' : 'text-amber-700 dark:text-amber-500'
       }`}
     >
       <span aria-hidden="true" className="mr-1">

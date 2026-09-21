@@ -23,12 +23,12 @@ export default async function NotFound() {
       <SiteHeader />
       <main className="mx-auto max-w-5xl px-4 py-16">
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="mt-3 max-w-prose text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        <p className="text-ink-muted mt-3 max-w-prose text-sm leading-relaxed">
           {t('body')}
         </p>
         <Link
           href="/"
-          className="mt-6 inline-block rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="border-line-strong text-ink-muted hover:bg-surface-hover mt-6 inline-block rounded-md border px-3 py-2 text-sm transition"
         >
           {t('back')}
         </Link>

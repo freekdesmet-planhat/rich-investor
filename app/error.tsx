@@ -66,13 +66,13 @@ export default function RouteError({
   return (
     <main className="mx-auto max-w-2xl px-4 py-16">
       <h1 className="text-xl font-semibold">{t.title}</h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.body}</p>
+      <p className="text-ink-muted mt-2 text-sm">{t.body}</p>
 
       <div className="mt-6 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={reset}
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover"
         >
           {t.retry}
         </button>
@@ -83,14 +83,14 @@ export default function RouteError({
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/"
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="border-line-strong text-ink-muted hover:bg-surface-hover rounded-md border px-3 py-1.5 text-sm transition"
         >
           {t.home}
         </a>
       </div>
 
       {error.digest && (
-        <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
+        <p className="text-ink-faint mt-6 text-xs">
           Reference: <span className="font-mono">{error.digest}</span>
         </p>
       )}

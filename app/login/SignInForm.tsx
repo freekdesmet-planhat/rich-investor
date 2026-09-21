@@ -27,7 +27,7 @@ function Buttons({ labels }: { labels: SignInLabels }) {
         name="intent"
         value="password"
         disabled={pending}
-        className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+        className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60"
       >
         {pending ? labels.signingIn : labels.signIn}
       </button>
@@ -39,7 +39,7 @@ function Buttons({ labels }: { labels: SignInLabels }) {
         name="intent"
         value="magiclink"
         disabled={pending}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+        className="border-line-strong text-ink-muted hover:bg-surface-hover w-full rounded-md border px-3 py-2 text-sm transition disabled:opacity-60"
       >
         {labels.orLink}
       </button>
@@ -64,7 +64,7 @@ export function SignInForm({ next, labels }: { next?: string; labels: SignInLabe
           there instead of dropping everyone on the watchlist. */}
       {next && <input type="hidden" name="next" value={next} />}
       <label className="block">
-        <span className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
+        <span className="text-ink-muted mb-1 block text-sm">
           {labels.email}
         </span>
         <input
@@ -73,12 +73,12 @@ export function SignInForm({ next, labels }: { next?: string; labels: SignInLabe
           required
           autoComplete="email"
           inputMode="email"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+          className="bg-surface border-line-strong w-full rounded-md border px-3 py-2 text-sm"
         />
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
+        <span className="text-ink-muted mb-1 block text-sm">
           {labels.password}
         </span>
         {/* Not `required`: leaving it empty and asking for a link is a valid
@@ -87,9 +87,9 @@ export function SignInForm({ next, labels }: { next?: string; labels: SignInLabe
           type="password"
           name="password"
           autoComplete="current-password"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+          className="bg-surface border-line-strong w-full rounded-md border px-3 py-2 text-sm"
         />
-        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+        <span className="text-ink-subtle mt-1 block text-xs">
           {labels.passwordHint}
         </span>
       </label>
@@ -102,7 +102,7 @@ export function SignInForm({ next, labels }: { next?: string; labels: SignInLabe
         </p>
       )}
 
-      <p className="text-xs text-slate-500 dark:text-slate-400">{labels.hint}</p>
+      <p className="text-ink-subtle text-xs">{labels.hint}</p>
     </form>
   );
 }

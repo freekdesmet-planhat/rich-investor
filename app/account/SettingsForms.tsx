@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { saveLanguage, saveNotifications, signOutEverywhere } from './settingsActions';
 import { SETTINGS_IDLE, type SettingsActionState } from '@/lib/settings/state';
 import type { MemberSettings } from '@/lib/data/queries';
+import { SectionHeading } from '@/components/ui/Surface';
 
 export interface SettingsLabels {
   notifications: { title: string; intro: string; email: string; emailHint: string; enabled: string; onBuy: string; weekly: string };
@@ -22,7 +23,7 @@ function SubmitButton({ idle, busy }: { idle: string; busy: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+      className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60"
     >
       {pending ? busy : idle}
     </button>
@@ -82,16 +83,14 @@ export function SettingsForms({
   return (
     <>
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {labels.notifications.title}
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <SectionHeading>{labels.notifications.title}</SectionHeading>
+        <p className="text-ink-subtle mt-1 text-sm">
           {labels.notifications.intro}
         </p>
 
         <form action={notifyAction} className="mt-3 space-y-3">
           <label className="block">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-ink-subtle text-xs">
               {labels.notifications.email}
             </span>
             <input
@@ -99,9 +98,9 @@ export function SettingsForms({
               type="email"
               defaultValue={settings.notify_email ?? ''}
               placeholder="you@example.com"
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+              className="border-line-strong mt-1 block w-full rounded-lg border bg-surface px-3 py-2 text-sm"
             />
-            <span className="mt-1 block text-xs text-slate-400 dark:text-slate-500">
+            <span className="text-ink-faint mt-1 block text-xs">
               {labels.notifications.emailHint}
             </span>
           </label>
@@ -125,10 +124,8 @@ export function SettingsForms({
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {labels.language.title}
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.language.intro}</p>
+        <SectionHeading>{labels.language.title}</SectionHeading>
+        <p className="text-ink-subtle mt-1 text-sm">{labels.language.intro}</p>
 
         <form action={languageAction} className="mt-3 space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -141,7 +138,7 @@ export function SettingsForms({
                   defaultChecked={(settings.language ?? locale) === value}
                   className="peer sr-only"
                 />
-                <span className="inline-block rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 peer-checked:border-slate-900 peer-checked:bg-slate-900 peer-checked:font-medium peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:peer-checked:border-slate-100 dark:peer-checked:bg-slate-100 dark:peer-checked:text-slate-900">
+                <span className="border-line-strong text-ink-muted hover:bg-surface-hover inline-block rounded-full border px-3 py-2 text-sm transition peer-checked:border-accent peer-checked:bg-accent peer-checked:font-medium peer-checked:text-accent-ink peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
                   {labels.language[value]}
                 </span>
               </label>
@@ -154,10 +151,8 @@ export function SettingsForms({
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {labels.security.title}
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.security.intro}</p>
+        <SectionHeading>{labels.security.title}</SectionHeading>
+        <p className="text-ink-subtle mt-1 text-sm">{labels.security.intro}</p>
 
         <form action={signOutEverywhere} className="mt-3">
           <SubmitButton

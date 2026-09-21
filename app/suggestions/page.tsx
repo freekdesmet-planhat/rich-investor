@@ -85,8 +85,8 @@ export default async function SuggestionsPage({
   const chip = (active: boolean) =>
     `rounded-full border px-3 py-1 text-xs transition ${
       active
-        ? 'border-slate-900 bg-slate-900 font-medium text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
-        : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800'
+        ? 'border-accent bg-accent font-medium text-accent-ink'
+        : 'border-line-strong text-ink-muted hover:bg-surface-hover'
     }`;
 
   return (
@@ -99,7 +99,7 @@ export default async function SuggestionsPage({
         {/* What was looked at to produce these. Four out of a dozen and four out
             of six thousand are different claims, and the page used to make
             neither — it showed the cards and nothing else. */}
-        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-ink-subtle mb-4 text-sm">
           {provenance.screened != null
             ? t('provenance', {
                 shown: counts.pending,
@@ -145,7 +145,7 @@ export default async function SuggestionsPage({
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">{t('sortBy')}:</span>
+          <span className="text-ink-subtle">{t('sortBy')}:</span>
           {SUGGESTION_SORTS.map((value) => (
             <Link
               key={value}
@@ -153,8 +153,8 @@ export default async function SuggestionsPage({
               aria-current={sort === value ? 'true' : undefined}
               className={
                 sort === value
-                  ? 'font-medium text-slate-900 underline underline-offset-4 dark:text-slate-100'
-                  : 'text-slate-500 underline-offset-4 hover:underline dark:text-slate-400'
+                  ? 'font-medium text-ink underline underline-offset-4'
+                  : 'text-ink-subtle underline-offset-4 hover:text-ink hover:underline'
               }
             >
               {t(`sort.${value}`)}
@@ -163,7 +163,7 @@ export default async function SuggestionsPage({
         </div>
 
         {visible.length === 0 && (
-          <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="border-line-strong text-ink-subtle rounded-lg border border-dashed p-6 text-center text-sm">
             {t(`empty.${tab}`)}
           </p>
         )}
@@ -174,7 +174,7 @@ export default async function SuggestionsPage({
             return (
               <li
                 key={row.symbol}
-                className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                className="bg-surface border-line rounded-lg border p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -184,14 +184,14 @@ export default async function SuggestionsPage({
                         DOM, which is not a navigation model. */}
                     <Link
                       href={`/stock/${encodeURIComponent(row.symbol)}`}
-                      className="font-medium text-slate-900 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900 dark:text-slate-100 dark:decoration-slate-600 dark:hover:decoration-slate-100"
+                      className="text-ink font-medium underline decoration-line-strong underline-offset-4 hover:decoration-ink"
                     >
                       {row.symbol}
-                      <span className="ml-2 font-normal text-slate-500 dark:text-slate-400">
+                      <span className="text-ink-subtle ml-2 font-normal">
                         {row.name}
                       </span>
                     </Link>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-ink-subtle mt-0.5 text-xs">
                       {tSector(row.focus_sector)} · {t('suggestedOn', { date: row.suggested_at })}
                       {daysLeft != null && (
                         <span className="ml-1 text-amber-700 dark:text-amber-500">
@@ -204,7 +204,7 @@ export default async function SuggestionsPage({
                 </div>
 
                 {/* The same generated reasoning the detail page and email use. */}
-                <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                <p className="text-ink-muted mt-3 text-sm leading-relaxed">
                   {locale === 'nl' ? row.why_nl : row.why_en}
                 </p>
 
@@ -225,7 +225,7 @@ export default async function SuggestionsPage({
                       decisions, so reading first is as available as deciding. */}
                   <Link
                     href={`/stock/${encodeURIComponent(row.symbol)}`}
-                    className="text-sm text-slate-600 underline underline-offset-4 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+                    className="text-ink-muted text-sm underline underline-offset-4 hover:text-ink"
                   >
                     {t('openAnalysis')}
                   </Link>

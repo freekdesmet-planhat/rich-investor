@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Rich Investor",
-    "tagline": "Personal stock analysis, on the framework from Rijke Belegger, Arme Belegger",
+    "tagline": "A disciplined checklist for long-term investors.",
     "disclaimer": "This is a personal analysis tool, not investment advice."
   },
   "nav": {
@@ -13,7 +13,8 @@
     "search": "Search",
     "menu": "Menu",
     "backToWatchlist": "Back to watchlist",
-    "compare": "Compare"
+    "compare": "Compare",
+    "methodology": "Methodology"
   },
   "language": {
     "label": "Language",
@@ -37,13 +38,13 @@
     "luxury_consumer": "Luxury goods and consumer discretionary",
     "entertainment_media": "Entertainment and interactive media",
     "financial_services_non_bank": "Financial services, non-bank",
-    "outside_focus": "Outside the book's focus sectors"
+    "outside_focus": "Outside the four focus sectors"
   },
   "ratio": {
     "explain": "What does this mean?",
     "target": "Target",
     "source": {
-      "book": "from the book",
+      "book": "core methodology",
       "app_default": "app default",
       "your_setting": "your setting"
     },
@@ -141,7 +142,7 @@
     "checklistReminder": "{met} of {total} quantitative conditions met. The review below is the final step before a buy decision.",
     "assessment": {
       "label": "Is the problem temporary or structural?",
-      "help": "The book's own next question: a slowdown over one or a few quarters, with the growth story intact, is not the same as structurally deteriorating results.",
+      "help": "The next question the method asks: a slowdown over one or a few quarters, with the growth story intact, is not the same as structurally deteriorating results.",
       "temporary": "Temporary problem",
       "structural": "Structural problem",
       "not_assessed": "Not yet assessed"
@@ -230,7 +231,7 @@
   },
   "macro": {
     "title": "Market context",
-    "subtitle": "The book's temperature gauge: not a timing tool, an indication of how much effort finding a buy-worthy stock will take.",
+    "subtitle": "A temperature gauge, not a timing tool: an indication of how much effort finding a buy-worthy stock will take.",
     "asOf": "As of {date}",
     "unavailable": "Not available",
     "buffett": {
@@ -239,13 +240,13 @@
     },
     "yieldSpread": {
       "name": "Yield curve (10y − 2y)",
-      "help": "The gap between 10-year and 2-year Treasury yields. Negative means an inverted curve. The book's point is about direction rather than level: since the 1960s the S&P 500 averaged 14.5%/year through falling-rate periods against 0.8% through rising ones.",
+      "help": "The gap between 10-year and 2-year Treasury yields. Negative means an inverted curve. The signal here is about direction rather than level: since the 1960s the S&P 500 averaged 14.5%/year through falling-rate periods against 0.8% through rising ones.",
       "inverted": "Inverted",
       "normal": "Normal"
     },
     "concentration": {
       "name": "Index concentration",
-      "help": "One-year return of the cap-weighted S&P 500 minus the equal-weighted one. A wide positive gap means the index is being carried by its largest members. The book notes only 28% of constituents beat the index in 2024, a record low.",
+      "help": "One-year return of the cap-weighted S&P 500 minus the equal-weighted one. A wide positive gap means the index is being carried by its largest members. Only 28% of constituents beat the index in 2024, a record low.",
       "narrow": "Narrow breadth",
       "broad": "Broad breadth"
     },
@@ -324,8 +325,8 @@
     "savedSettings": "Saved.",
     "thresholds": {
       "title": "Thresholds the app chose",
-      "intro": "The book states no cutoff for these four, so the app picked one. Change them and the next evaluation uses yours.",
-      "bookNote": "The book’s own thresholds — the P/E ceiling of 30, the PEG bands, the 50% decline, the $10bn floor — are not editable. Applying that framework is what this app is for.",
+      "intro": "The method states no cutoff for these four, so the app picked one. Change them and the next evaluation uses yours.",
+      "bookNote": "The core thresholds — the P/E ceiling of 30, the PEG bands, the 50% decline, the $10bn floor — are not editable. Applying that framework consistently is what this app is for.",
       "appliesNote": "Takes effect at the next evaluation: tonight’s run, or \"Analyse now\" on a stock. Figures already on screen were computed with the old numbers.",
       "resetHint": "Leave a field blank to follow the app default shown in grey.",
       "saved": "Saved. The next evaluation will use these.",
@@ -474,5 +475,19 @@
       "notSignedIn": "You are signed out.",
       "unknown": "That did not save."
     }
+  },
+  "methodology": {
+    "title": "Methodology",
+    "intro": "How Rich Investor decides that a stock is buy-worthy, almost there, or still one to watch — and what it deliberately does not claim to know.",
+    "conditionsTitle": "The nine conditions",
+    "conditionsIntro": "Every stock on your watchlist is measured against the same nine conditions, every night. Nothing is weighted, scored or averaged: a condition either holds or it does not, and the verdict is a count. A stock meeting all nine is buy-worthy; one or two short is almost there; anything further back is still watching.",
+    "fixedTitle": "Why the thresholds do not move",
+    "fixedBody": "The core thresholds — the P/E ceiling of 30, the PEG bands, the 50% decline from the five-year high, the $10bn floor — are fixed and cannot be edited. That is the point of a framework: a rule you relax when a stock you like fails it is not a rule. A handful of secondary thresholds the app chose for itself are editable under Account, and any figure judged against one says so on the card.",
+    "revisitTitle": "Fixed is not permanent",
+    "revisitBody": "Fixed means the thresholds do not bend for an individual stock, not that they are true forever. They are re-checked against fresh market data periodically, and if the evidence moves, they move — visibly, and with the reasoning recorded. A number that has never been re-examined is a habit, not a method.",
+    "honestTitle": "What it does not know",
+    "honestBody": "The app measures what can be measured and says so when it cannot. A condition with missing data is shown grey rather than failed, a figure that could not be reconciled says why, and the qualitative judgement — whether a decline is temporary or structural — is left to you, because no screen can answer it. It is an analysis tool, not investment advice.",
+    "creditTitle": "Credit",
+    "creditBody": "The framework this app applies is drawn from “Rijke Belegger, Arme Belegger”. The implementation, the data handling and the wording throughout the app are our own; the underlying investment method is the book's."
   }
 }

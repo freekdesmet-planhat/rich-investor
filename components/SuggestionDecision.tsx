@@ -36,11 +36,11 @@ function SubmitButton({ idle, busy, className }: { idle: string; busy: string; c
 }
 
 const PRIMARY =
-  'rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300';
+  'rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60';
 const SECONDARY =
-  'rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800';
+  'rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover disabled:opacity-60';
 const LINKISH =
-  'font-medium text-slate-700 underline underline-offset-2 disabled:opacity-60 dark:text-slate-200';
+  'font-medium text-ink-muted underline underline-offset-2 disabled:opacity-60';
 
 /**
  * Accept or dismiss, with a way back.
@@ -95,7 +95,7 @@ export function SuggestionDecision({
   // in the archive: the same undo serves both.
   if (dismissed || dismissedState.status === 'dismissed') {
     return (
-      <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+      <div className="text-ink-subtle flex flex-wrap items-center gap-2 text-sm">
         {dismissedState.status === 'dismissed' && (
           <span>
             {labels.dismissed
