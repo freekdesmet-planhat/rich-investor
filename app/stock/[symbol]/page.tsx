@@ -45,6 +45,7 @@ import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { upcomingEarnings } from '@/lib/data/earnings';
+import { LiquidityNote } from '@/components/LiquidityNote';
 import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
@@ -133,7 +134,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -155,6 +156,7 @@ export default async function StockPage({
     getTranslations('nav'),
     getTranslations('position'),
     getTranslations('earnings'),
+    getTranslations('liquidity'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -222,6 +224,18 @@ export default async function StockPage({
   const name = snapshot?.quote?.name ?? symbol;
   const lynch = docs.get(`lynch:${signal.lynch_category}`);
   const earnings = upcomingEarnings(snapshot?.quote?.nextEarningsDate);
+  // Resolved here so the client block carries no translation bundle of its own.
+  const liquidityLabels = {
+    heading: tLiquidity('heading'),
+    loading: tLiquidity('loading'),
+    volume: tLiquidity('volume'),
+    turnover: tLiquidity('turnover'),
+    spread: tLiquidity('spread'),
+    thin: tLiquidity('thin'),
+    marketClosed: tLiquidity('marketClosed'),
+    notQuoted: tLiquidity('notQuoted'),
+    note: tLiquidity('note'),
+  };
   const why = locale === 'nl' ? signal.why_nl : signal.why_en;
 
   return (
@@ -278,6 +292,11 @@ export default async function StockPage({
                 </Chip>
               )}
             </div>
+
+            {/* Execution cost, beside the price it would be paid at. Never a
+                condition — the nine are unchanged — so it sits outside the
+                checklist entirely. */}
+            <LiquidityNote symbol={symbol} locale={locale} labels={liquidityLabels} />
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <StatusBadge status={signal.status} size="lg" />

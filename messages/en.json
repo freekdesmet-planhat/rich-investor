@@ -538,5 +538,16 @@
     "net": "Net:",
     "by": "By:",
     "source": "From SEC Form 4. Grants, option exercises and tax withholding are excluded — only open-market trades count here."
+  },
+  "liquidity": {
+    "heading": "Tradability",
+    "loading": "Checking…",
+    "volume": "Avg daily volume",
+    "turnover": "Daily turnover",
+    "spread": "Spread",
+    "thin": "thin for a large cap",
+    "marketClosed": "market closed",
+    "notQuoted": "not quoted",
+    "note": "Informational — it does not affect the verdict."
   }
 }

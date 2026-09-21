@@ -538,5 +538,16 @@
     "net": "Netto:",
     "by": "Door:",
     "source": "Uit SEC Form 4. Toekenningen, optie-uitoefeningen en ingehouden belastingaandelen tellen niet mee — alleen transacties op de markt."
+  },
+  "liquidity": {
+    "heading": "Verhandelbaarheid",
+    "loading": "Ophalen…",
+    "volume": "Gem. dagvolume",
+    "turnover": "Dagomzet",
+    "spread": "Spread",
+    "thin": "dun voor een large cap",
+    "marketClosed": "markt gesloten",
+    "notQuoted": "niet genoteerd",
+    "note": "Informatief — dit beïnvloedt het oordeel niet."
   }
 }
