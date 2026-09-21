@@ -15,6 +15,7 @@ import {
   type StatementPeriodicity,
 } from '@/lib/data/statementTable';
 import { fetchRecentFilings } from '@/lib/providers/secFilings';
+import { secConfigured } from '@/lib/providers/secUserAgent';
 import { fetchEarningsCalls, transcriptsConfigured } from '@/lib/providers/equibles';
 import { createMarketDataService } from '@/lib/providers/marketData';
 import { formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
@@ -212,7 +213,18 @@ export default async function ResearchPage({
           <Section className="mt-5">
             <SectionHeading>{t('tab.filings')}</SectionHeading>
             {filings.length === 0 ? (
-              <Card><p className="text-sm text-ink-subtle">{t('noFilings')}</p></Card>
+              <Card tone={secConfigured() ? undefined : 'sunken'}>
+                <p className="text-sm text-ink-subtle">
+                  {/* Three different silences, and saying the wrong one is worse
+                      than saying nothing: a US filer told it is not a US filer
+                      reads as the app being broken, which it would be. */}
+                  {!secConfigured()
+                    ? t('filingsUnconfigured')
+                    : symbol.includes('.')
+                      ? t('filingsNotUsFiler')
+                      : t('noFilings')}
+                </p>
+              </Card>
             ) : (
               <Card padding="none">
                 <ul className="divide-y divide-line">
