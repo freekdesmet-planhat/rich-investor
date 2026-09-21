@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { clearPosition, savePosition } from '@/app/stock/[symbol]/positionActions';
 import { POSITION_IDLE, type PositionActionState } from '@/lib/positions/state';
 import type { Position } from '@/lib/data/position';
+import { SectionHeading } from './ui/Surface';
 
 export interface PositionLabels {
   title: string;
@@ -41,9 +42,9 @@ function SubmitButton({ idle, busy, className }: { idle: string; busy: string; c
 }
 
 const PRIMARY =
-  'rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300';
+  'rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60';
 const SECONDARY =
-  'rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800';
+  'rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover disabled:opacity-60';
 
 /**
  * Whether you own this, and what it has done since you bought it.
@@ -93,16 +94,16 @@ export function PositionBlock({
 
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.intro}</p>
+      <SectionHeading>{labels.title}</SectionHeading>
+      <p className="text-ink-subtle mt-1 text-sm">{labels.intro}</p>
 
-      <div className="mt-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="bg-surface border-line mt-3 rounded-lg border p-4">
         {position && !showForm && (
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
             <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-2 text-sm">
               {summary?.change && (
                 <div>
-                  <dt className="text-xs text-slate-500 dark:text-slate-400">{labels.since}</dt>
+                  <dt className="text-ink-subtle text-xs">{labels.since}</dt>
                   <dd
                     className={`text-lg font-semibold tabular-nums ${
                       summary.change.startsWith('-')
@@ -116,22 +117,22 @@ export function PositionBlock({
               )}
               {summary?.value && (
                 <div>
-                  <dt className="text-xs text-slate-500 dark:text-slate-400">{labels.value}</dt>
+                  <dt className="text-ink-subtle text-xs">{labels.value}</dt>
                   <dd className="tabular-nums">{summary.value}</dd>
                 </div>
               )}
               {summary?.gain && (
                 <div>
-                  <dt className="text-xs text-slate-500 dark:text-slate-400">{labels.gain}</dt>
+                  <dt className="text-ink-subtle text-xs">{labels.gain}</dt>
                   <dd className="tabular-nums">{summary.gain}</dd>
                 </div>
               )}
               {summary?.days != null && (
                 <div>
-                  <dt className="text-xs text-slate-500 dark:text-slate-400">
+                  <dt className="text-ink-subtle text-xs">
                     {labels.held.replace('{days}', String(summary.days))}
                   </dt>
-                  <dd className="tabular-nums text-slate-500 dark:text-slate-400">
+                  <dd className="text-ink-subtle tabular-nums">
                     {position.entry_date}
                   </dd>
                 </div>
@@ -151,7 +152,7 @@ export function PositionBlock({
         )}
 
         {position && !showForm && position.note && (
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{position.note}</p>
+          <p className="text-ink-muted mt-3 text-sm">{position.note}</p>
         )}
 
         {!position && !showForm && (
@@ -167,7 +168,7 @@ export function PositionBlock({
 
             <div className="flex flex-wrap gap-3">
               <label className="block">
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-ink-subtle text-xs">
                   {labels.entryPrice}
                   {currency ? ` (${currency})` : ''}
                 </span>
@@ -176,40 +177,40 @@ export function PositionBlock({
                   inputMode="decimal"
                   required
                   defaultValue={position?.entry_price ?? ''}
-                  className="mt-1 block w-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+                  className="border-line-strong mt-1 block w-32 rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
                 />
               </label>
               <label className="block">
-                <span className="text-xs text-slate-500 dark:text-slate-400">{labels.entryDate}</span>
+                <span className="text-ink-subtle text-xs">{labels.entryDate}</span>
                 <input
                   name="entry_date"
                   type="date"
                   required
                   defaultValue={position?.entry_date ?? ''}
-                  className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+                  className="border-line-strong mt-1 block rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
                 />
               </label>
               <label className="block">
-                <span className="text-xs text-slate-500 dark:text-slate-400">{labels.quantity}</span>
+                <span className="text-ink-subtle text-xs">{labels.quantity}</span>
                 <input
                   name="quantity"
                   inputMode="decimal"
                   defaultValue={position?.quantity ?? ''}
-                  className="mt-1 block w-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+                  className="border-line-strong mt-1 block w-28 rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
                 />
-                <span className="mt-1 block text-xs text-slate-400 dark:text-slate-500">
+                <span className="text-ink-faint mt-1 block text-xs">
                   {labels.quantityHint}
                 </span>
               </label>
             </div>
 
             <label className="block">
-              <span className="text-xs text-slate-500 dark:text-slate-400">{labels.note}</span>
+              <span className="text-ink-subtle text-xs">{labels.note}</span>
               <textarea
                 name="note"
                 rows={2}
                 defaultValue={position?.note ?? ''}
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+                className="border-line-strong mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
               />
             </label>
 
@@ -228,7 +229,7 @@ export function PositionBlock({
             <span className="text-emerald-700 dark:text-emerald-300">{labels.saved}</span>
           )}
           {clearState.status === 'cleared' && (
-            <span className="text-slate-500 dark:text-slate-400">{labels.cleared}</span>
+            <span className="text-ink-subtle">{labels.cleared}</span>
           )}
         </p>
       </div>

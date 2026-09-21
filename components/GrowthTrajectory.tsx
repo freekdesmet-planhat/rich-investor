@@ -1,4 +1,5 @@
 import type { Trajectory } from '@/lib/ratios/trajectory';
+import { Card, Section, SectionHeading } from './ui/Surface';
 
 export interface GrowthTrajectoryLabels {
   title: string;
@@ -73,11 +74,11 @@ export function GrowthTrajectory({
     .filter((c): c is string => c != null);
 
   return (
-    <section className="mt-8">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.intro}</p>
+    <Section>
+      <SectionHeading>{labels.title}</SectionHeading>
+      <p className="-mt-1 mb-3 text-sm text-ink-subtle">{labels.intro}</p>
 
-      <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+      <Card padding="tight">
         {/* Wraps to a column on a phone rather than squeezing four figures
             into a single line of two-character abbreviations. */}
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
@@ -113,7 +114,7 @@ export function GrowthTrajectory({
             x2={width - padding.right}
             y1={zeroY}
             y2={zeroY}
-            className="stroke-slate-200 dark:stroke-slate-700"
+            className="stroke-line"
             strokeWidth="1"
           />
 
@@ -131,7 +132,7 @@ export function GrowthTrajectory({
                 className={
                   point.dip
                     ? 'fill-rose-200 dark:fill-rose-900'
-                    : 'fill-slate-200 dark:fill-slate-700'
+                    : 'fill-line'
                 }
               />
             );
@@ -144,7 +145,7 @@ export function GrowthTrajectory({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="stroke-emerald-600 dark:stroke-emerald-400"
+              className="stroke-pass"
               vectorEffect="non-scaling-stroke"
             />
           )}
@@ -155,7 +156,7 @@ export function GrowthTrajectory({
               x={centre(i)}
               y={height - 8}
               textAnchor="middle"
-              className="fill-slate-400 text-[11px] dark:fill-slate-500"
+              className="fill-ink-faint text-[11px]"
             >
               {point.period.slice(0, 4)}
             </text>
@@ -167,7 +168,7 @@ export function GrowthTrajectory({
             the panel usable when the SVG is too narrow to label. */}
         <div className="mt-2 overflow-x-auto">
           <table className="w-full min-w-[20rem] text-left text-xs">
-            <thead className="text-slate-400 dark:text-slate-500">
+            <thead className="text-ink-faint">
               <tr>
                 <th className="py-1 pr-3 font-normal">{''}</th>
                 {points.map((p) => (
@@ -177,7 +178,7 @@ export function GrowthTrajectory({
                 ))}
               </tr>
             </thead>
-            <tbody className="text-slate-600 dark:text-slate-300">
+            <tbody className="text-ink-muted">
               <tr>
                 <th scope="row" className="py-1 pr-3 font-normal">
                   {labels.eps}
@@ -208,22 +209,22 @@ export function GrowthTrajectory({
         </div>
 
         {trajectory.rate == null && (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{labels.noFit}</p>
+          <p className="text-ink-subtle mt-2 text-xs">{labels.noFit}</p>
         )}
-      </div>
-    </section>
+      </Card>
+    </Section>
   );
 }
 
 function Figure({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-slate-500 dark:text-slate-400">{label}</dt>
+      <dt className="text-ink-subtle text-xs">{label}</dt>
       <dd
         className={`tabular-nums ${
           strong
-            ? 'text-lg font-semibold text-slate-900 dark:text-slate-50'
-            : 'text-sm text-slate-700 dark:text-slate-200'
+            ? 'text-lg font-semibold text-ink'
+            : 'text-sm text-ink-muted'
         }`}
       >
         {value}

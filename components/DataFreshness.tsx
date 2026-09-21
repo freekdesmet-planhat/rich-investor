@@ -67,9 +67,9 @@ export function DataFreshness({
   if (warningOnly) return null;
 
   return (
-    <p className="text-xs text-slate-400 dark:text-slate-500">
+    <p className="text-ink-faint text-xs">
       {labels.updated.replace('{age}', age ?? '')}
-      <span className="ml-2 text-slate-300 dark:text-slate-600">{labels.asOf}</span>
+      <span className="ml-2 text-ink-faint">{labels.asOf}</span>
     </p>
   );
 }

@@ -36,7 +36,7 @@ export function BackLink({ href, label }: { href: string; label: string }) {
         event.preventDefault();
         router.back();
       }}
-      className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+      className="text-ink-subtle inline-flex items-center gap-1.5 text-sm transition hover:text-ink"
     >
       <span aria-hidden="true">←</span>
       {label}

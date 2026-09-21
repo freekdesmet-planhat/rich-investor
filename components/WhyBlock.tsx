@@ -34,20 +34,20 @@ export function WhyBlock({
   labels: WhyLabels;
 }) {
   if (!parts || parts.length === 0) {
-    return <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{prose}</p>;
+    return <p className="text-sm leading-relaxed text-ink-muted">{prose}</p>;
   }
 
   const verdict = parts.filter((p) => p.section === 'verdict');
   const groups: Array<{ key: 'passes' | 'missing' | 'check'; label: string; tone: string }> = [
     { key: 'passes', label: labels.passes, tone: 'text-emerald-700 dark:text-emerald-300' },
     { key: 'missing', label: labels.missing, tone: 'text-amber-700 dark:text-amber-300' },
-    { key: 'check', label: labels.check, tone: 'text-slate-700 dark:text-slate-200' },
+    { key: 'check', label: labels.check, tone: 'text-ink-muted' },
   ];
 
   return (
-    <div className="text-sm text-slate-600 dark:text-slate-300">
+    <div className="text-sm text-ink-muted">
       {verdict.length > 0 && (
-        <p className="text-base font-medium leading-relaxed text-slate-900 dark:text-slate-50">
+        <p className="text-base font-medium leading-relaxed text-ink">
           {verdict.map((p) => p.text).join(' ')}
         </p>
       )}
@@ -77,7 +77,7 @@ export function WhyBlock({
       {/* The full text is still one click away, and is the same prose the
           email sends — a reader who wants the argument in order can have it. */}
       <details className="mt-4">
-        <summary className="cursor-pointer text-xs text-slate-500 underline-offset-4 hover:underline dark:text-slate-400">
+        <summary className="text-ink-subtle cursor-pointer text-xs underline-offset-4 hover:underline">
           {labels.fullReasoning}
         </summary>
         <p className="mt-2 leading-relaxed">{prose}</p>

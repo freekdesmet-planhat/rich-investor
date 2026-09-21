@@ -75,7 +75,7 @@ export function ReviewForm({
       // which `change` alone would only report on blur.
       onChange={() => setDirty(true)}
       onInput={() => setDirty(true)}
-      className="mt-4 space-y-5 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+      className="bg-surface border-line mt-4 space-y-5 rounded-lg border p-4"
     >
       <input type="hidden" name="symbol" value={symbol} />
 

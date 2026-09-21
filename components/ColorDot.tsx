@@ -1,8 +1,12 @@
+/**
+ * The same three verdict colours as the status badge and the checklist, so a
+ * green dot on a ratio card is the same green as the verdict it feeds.
+ */
 const TONE: Record<string, string> = {
-  green: 'bg-emerald-500',
-  orange: 'bg-amber-500',
-  red: 'bg-rose-500',
-  gray: 'bg-slate-300 dark:bg-slate-600',
+  green: 'bg-pass',
+  orange: 'bg-near',
+  red: 'bg-fail',
+  gray: 'bg-none',
 };
 
 /** The colour code on every ratio card (section 5). */

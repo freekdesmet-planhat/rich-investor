@@ -137,13 +137,13 @@ export function PriceChart({
               x2={width - padding.right}
               y1={y(tick)}
               y2={y(tick)}
-              className="stroke-slate-200 dark:stroke-slate-800"
+              className="stroke-line"
               strokeWidth="1"
             />
             <text
               x={width - padding.right + 6}
               y={y(tick) + 3}
-              className="fill-slate-400 text-[10px] dark:fill-slate-500"
+              className="fill-ink-faint text-[10px]"
             >
               {formatMoney(tick)}
             </text>
@@ -217,20 +217,20 @@ export function PriceChart({
               x2={x(hover)}
               y1={padding.top}
               y2={padding.top + innerH}
-              className="stroke-slate-400 dark:stroke-slate-500"
+              className="stroke-ink-faint"
               strokeWidth="1"
             />
-            <circle cx={x(hover)} cy={y(active.close)} r="3.5" className="fill-slate-700 dark:fill-slate-200" />
+            <circle cx={x(hover)} cy={y(active.close)} r="3.5" className="fill-ink" />
           </g>
         )}
       </svg>
 
-      <figcaption className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+      <figcaption className="text-ink-subtle mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         {/* The hovered reading replaces the date range while the pointer is
             down, which is the only place a value-and-date pair can go without
             the layout jumping. */}
         {active ? (
-          <span className="font-medium text-slate-700 tabular-nums dark:text-slate-200">
+          <span className="text-ink-muted font-medium tabular-nums">
             {active.date} · {formatMoney(active.close)}
           </span>
         ) : (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { SectionHeading } from './ui/Surface';
 
 export interface ThesisLabels {
   title: string;
@@ -29,7 +30,7 @@ function ThesisSkeleton() {
       {['w-full', 'w-11/12', 'w-full', 'w-4/5'].map((width, i) => (
         <div
           key={i}
-          className={`h-3 animate-pulse rounded bg-slate-200 dark:bg-slate-700 ${width}`}
+          className={`h-3 animate-pulse rounded bg-line ${width}`}
         />
       ))}
     </div>
@@ -152,14 +153,14 @@ export function AiThesisCard({
   const hasText = Boolean(text && text.length > 0);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
-      <p className="mb-3 mt-1 text-xs text-slate-500 dark:text-slate-400">{labels.intro}</p>
+    <section className="bg-surface border-line rounded-lg border p-4">
+      <SectionHeading>{labels.title}</SectionHeading>
+      <p className="text-ink-subtle mb-3 mt-1 text-xs">{labels.intro}</p>
 
       {pending && !hasText && <ThesisSkeleton />}
 
       {!pending && !hasText && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">{labels.empty}</p>
+        <p className="text-ink-subtle text-sm">{labels.empty}</p>
       )}
 
       {hasText && (
@@ -169,13 +170,13 @@ export function AiThesisCard({
           )}
           <p
             aria-live="polite"
-            className="whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300"
+            className="whitespace-pre-line text-sm leading-relaxed text-ink-muted"
           >
             {text}
             {pending && <span className="ml-0.5 animate-pulse">▍</span>}
           </p>
           {generatedAt && !pending && (
-            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-ink-faint mt-2 text-xs">
               {labels.generatedAt.replace('{date}', generatedAt.slice(0, 10))}
             </p>
           )}
@@ -188,12 +189,12 @@ export function AiThesisCard({
             type="button"
             onClick={generate}
             disabled={pending}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="border-line-strong text-ink-muted hover:bg-surface-hover rounded-md border px-3 py-1.5 text-sm transition disabled:opacity-60"
           >
             {pending ? labels.generating : cached || hasText ? labels.refresh : labels.generate}
           </button>
         ) : (
-          <p className="text-xs text-slate-500 dark:text-slate-400">{labels.signedOut}</p>
+          <p className="text-ink-subtle text-xs">{labels.signedOut}</p>
         )}
         {errorCode && (
           <p className="text-xs text-rose-600 dark:text-rose-400">

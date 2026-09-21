@@ -1,5 +1,6 @@
 import { Sparkline } from './Sparkline';
 import type { ConditionChange, Trend } from '@/lib/data/trend';
+import { SectionHeading } from './ui/Surface';
 
 export interface ConditionTrendLabels {
   title: string;
@@ -41,16 +42,16 @@ export function ConditionTrend({
 
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h2>
+      <SectionHeading>{labels.title}</SectionHeading>
 
       {!reference ? (
         // One evaluation is not a trend. Saying so is better than drawing a
         // flat line that implies nothing has changed.
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{labels.tooSoon}</p>
+        <p className="text-ink-subtle mt-1 text-sm">{labels.tooSoon}</p>
       ) : (
-        <div className="mt-2 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="bg-surface border-line mt-2 rounded-lg border p-4">
           <div className="flex items-end justify-between gap-4">
-            <p className="text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-ink-muted text-sm">
               {delta === 0
                 ? labels.steady
                     .replace('{count}', String(latest.conditions_met))
@@ -67,8 +68,8 @@ export function ConditionTrend({
           </div>
 
           {changes.length > 0 && (
-            <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+            <div className="border-line mt-3 border-t pt-3">
+              <p className="text-ink-subtle text-xs">
                 {labels.changesSince.replace('{date}', reference.as_of)}
               </p>
               <ul className="mt-1 space-y-0.5">

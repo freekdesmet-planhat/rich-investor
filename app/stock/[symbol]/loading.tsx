@@ -13,23 +13,23 @@ export default function StockLoading() {
     <main className="mx-auto max-w-5xl px-4 py-6" aria-busy="true">
       <span className="sr-only">Loading</span>
 
-      <div className="h-4 w-36 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+      <div className="bg-surface-sunken h-4 w-36 animate-pulse rounded" />
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="h-8 w-64 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
-          <div className="mt-2 h-4 w-48 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+          <div className="bg-surface-sunken h-8 w-64 animate-pulse rounded" />
+          <div className="bg-surface-sunken mt-2 h-4 w-48 animate-pulse rounded" />
         </div>
-        <div className="h-8 w-40 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800" />
+        <div className="bg-surface-sunken h-8 w-40 animate-pulse rounded-full" />
       </div>
 
-      <div className="mt-6 h-48 animate-pulse rounded-lg bg-slate-100 sm:h-56 dark:bg-slate-800" />
+      <div className="bg-surface-sunken mt-6 h-48 animate-pulse rounded-lg sm:h-56" />
 
-      <ul className="mt-8 divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+      <ul className="border-line mt-8 divide-line divide-y overflow-hidden rounded-xl border">
         {Array.from({ length: 9 }, (_, i) => (
-          <li key={i} className="flex items-center justify-between gap-3 bg-white px-3 py-2 dark:bg-slate-900">
-            <div className="h-4 w-56 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
-            <div className="h-3 w-24 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+          <li key={i} className="bg-surface flex items-center justify-between gap-3 px-3 py-2">
+            <div className="bg-surface-sunken h-4 w-56 animate-pulse rounded" />
+            <div className="bg-surface-sunken h-3 w-24 animate-pulse rounded" />
           </li>
         ))}
       </ul>
@@ -38,7 +38,7 @@ export default function StockLoading() {
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}
-            className="h-28 animate-pulse rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800"
+            className="bg-surface-sunken border-line h-28 animate-pulse rounded-lg border"
           />
         ))}
       </div>

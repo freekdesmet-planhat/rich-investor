@@ -16,7 +16,7 @@ export interface HistoryLabels {
 const TONE: Record<string, string> = {
   temporary: 'text-emerald-700 dark:text-emerald-300',
   structural: 'text-rose-700 dark:text-rose-300',
-  not_assessed: 'text-slate-500 dark:text-slate-400',
+  not_assessed: 'text-ink-subtle',
 };
 
 /**
@@ -39,22 +39,22 @@ export function HistoryLog({
 
   return (
     <div className="mt-6">
-      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels.title}</h3>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{labels.intro}</p>
+      <h3 className="text-ink-muted text-sm font-medium">{labels.title}</h3>
+      <p className="text-ink-subtle mt-1 text-xs">{labels.intro}</p>
 
-      <ol className="mt-3 space-y-3 border-l border-slate-200 pl-4 dark:border-slate-800">
+      <ol className="border-line mt-3 space-y-3 border-l pl-4">
         {changes.map((change) => {
           const verdict = labels.assessment[change.entry.assessment] ?? change.entry.assessment;
 
           return (
             <li key={change.entry.id} className="text-sm">
-              <p className="text-xs tabular-nums text-slate-400 dark:text-slate-500">
+              <p className="text-ink-faint text-xs tabular-nums">
                 {change.entry.saved_at.slice(0, 10)}
               </p>
 
               <p className="mt-0.5">
                 {change.isFirst && (
-                  <span className="text-slate-600 dark:text-slate-300">{`${labels.first}: `}</span>
+                  <span className="text-ink-muted">{`${labels.first}: `}</span>
                 )}
                 {change.changedFrom ? (
                   <span className={TONE[change.entry.assessment]}>
@@ -63,7 +63,7 @@ export function HistoryLog({
                       .replace('{to}', verdict)}
                   </span>
                 ) : change.unchanged ? (
-                  <span className="text-slate-400 dark:text-slate-500">{labels.unchanged}</span>
+                  <span className="text-ink-faint">{labels.unchanged}</span>
                 ) : (
                   <span className={TONE[change.entry.assessment]}>{verdict}</span>
                 )}
@@ -85,11 +85,11 @@ export function HistoryLog({
                   ...change.removedCatalysts.map((k) => label('catalyst', k)),
                   ...change.removedSellSignals.map((k) => label('sell_signal', k)),
                 ]}
-                tone="text-slate-500 dark:text-slate-400"
+                tone="text-ink-subtle"
               />
 
               {change.marksChanged && !change.isFirst && (
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{labels.marks}</p>
+                <p className="text-ink-subtle mt-0.5 text-xs">{labels.marks}</p>
               )}
             </li>
           );

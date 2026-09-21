@@ -5,6 +5,7 @@ import type { Translation } from '@/lib/data/queries';
 import { HistoryLog } from './HistoryLog';
 import { ReviewForm } from './ReviewForm';
 import { SaveButton } from './SaveButton';
+import { SectionHeading } from '../ui/Surface';
 
 export interface ReviewRecord {
   user_id: string;
@@ -24,7 +25,7 @@ export interface ReviewRecord {
 const ASSESSMENT_TONE: Record<string, string> = {
   temporary: 'text-emerald-700 dark:text-emerald-300',
   structural: 'text-rose-700 dark:text-rose-300',
-  not_assessed: 'text-slate-500 dark:text-slate-400',
+  not_assessed: 'text-ink-subtle',
 };
 
 /**
@@ -58,11 +59,11 @@ export async function QualitativeReview({
 
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('title')}</h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('intro')}</p>
+      <SectionHeading>{t('title')}</SectionHeading>
+      <p className="text-ink-subtle mt-1 text-sm">{t('intro')}</p>
 
       {/* The quantitative result restated, so the order of operations is plain. */}
-      <p className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
+      <p className="bg-surface-sunken border-line text-ink-muted mt-3 rounded-md border px-3 py-2 text-sm">
         {t('checklistReminder', { met: conditionsMet, total: conditionsApplicable })}
       </p>
 
@@ -79,7 +80,7 @@ export async function QualitativeReview({
       >
         <fieldset>
           <legend className="text-sm font-medium">{t('assessment.label')}</legend>
-          <p className="mb-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-ink-subtle mb-2 mt-1 text-xs">
             {t('assessment.help')}
           </p>
           {/* Chips rather than 13px browser radios. The input is still a real
@@ -97,7 +98,7 @@ export async function QualitativeReview({
                   defaultChecked={(mine?.assessment ?? 'not_assessed') === value}
                   className="peer sr-only"
                 />
-                <span className="inline-block rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 peer-checked:border-slate-900 peer-checked:bg-slate-900 peer-checked:font-medium peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:peer-checked:border-slate-100 dark:peer-checked:bg-slate-100 dark:peer-checked:text-slate-900">
+                <span className="border-line-strong text-ink-muted hover:bg-surface-hover inline-block rounded-full border px-3 py-2 text-sm transition peer-checked:border-accent peer-checked:bg-accent peer-checked:font-medium peer-checked:text-accent-ink peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
                   {t(`assessment.${value}`)}
                 </span>
               </label>
@@ -125,14 +126,14 @@ export async function QualitativeReview({
 
         <label className="block">
           <span className="text-sm font-medium">{t('marksLabel')}</span>
-          <span className="mb-1 mt-1 block text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-ink-subtle mb-1 mt-1 block text-xs">
             {t('marksQuestion')}
           </span>
           <textarea
             name="marks_answer"
             rows={2}
             defaultValue={mine?.marks_answer ?? ''}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+            className="border-line-strong w-full rounded-md border bg-surface px-3 py-2 text-sm"
           />
         </label>
 
@@ -142,14 +143,14 @@ export async function QualitativeReview({
             name="note"
             rows={3}
             placeholder={t('notesPlaceholder')}
-            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+            className="border-line-strong mt-1 w-full rounded-md border bg-surface px-3 py-2 text-sm"
           />
         </label>
 
         <SaveButton idle={t('save')} busy={t('saving')} />
 
         {mine?.updated_at && (
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-ink-faint text-xs">
             {t('lastUpdated', { date: mine.updated_at.slice(0, 10) })}
           </p>
         )}
@@ -186,7 +187,7 @@ export async function QualitativeReview({
           {others.map((review) => (
             <article
               key={review.user_id}
-              className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+              className="bg-surface-sunken border-line rounded-lg border p-3 text-sm"
             >
               <h3 className="font-medium">{t('theirs', { email: review.authorLabel })}</h3>
               <p className={`mt-1 ${ASSESSMENT_TONE[review.assessment]}`}>
@@ -213,10 +214,10 @@ export async function QualitativeReview({
               )}
 
               {review.marks_answer && (
-                <p className="mt-2 text-slate-600 dark:text-slate-300">{review.marks_answer}</p>
+                <p className="text-ink-muted mt-2">{review.marks_answer}</p>
               )}
               {review.notes.slice(0, 3).map((note, i) => (
-                <p key={i} className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                <p key={i} className="text-ink-subtle mt-2 text-xs">
                   <span className="tabular-nums">{note.noted_on}</span> — {note.note}
                 </p>
               ))}
@@ -268,7 +269,7 @@ function CheckboxGroup({
                 className="peer sr-only"
               />
               <span
-                className={`inline-block rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 ${tone}`}
+                className={`inline-block rounded-full border border-line-strong px-3 py-2 text-sm text-ink-muted transition hover:bg-surface-hover peer-focus-visible:ring-2 peer-focus-visible:ring-accent ${tone}`}
               >
                 {doc?.name ?? key}
               </span>
@@ -300,7 +301,7 @@ function ChipList({
 
   return (
     <div className="mt-2">
-      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-ink-subtle text-xs">{label}</p>
       <ul className="mt-1 flex flex-wrap gap-1">
         {keys.map((key) => (
           <li key={key} className={`rounded px-1.5 py-0.5 text-xs ${classes}`}>
@@ -321,11 +322,11 @@ function NoteLog({
 }) {
   return (
     <div className="mt-4">
-      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200">{title}</h3>
+      <h3 className="text-ink-muted text-sm font-medium">{title}</h3>
       <ul className="mt-2 space-y-2">
         {notes.map((note, i) => (
-          <li key={i} className="text-sm text-slate-600 dark:text-slate-300">
-            <span className="mr-2 tabular-nums text-xs text-slate-400 dark:text-slate-500">
+          <li key={i} className="text-ink-muted text-sm">
+            <span className="text-ink-faint mr-2 tabular-nums text-xs">
               {note.noted_on}
             </span>
             {note.note}

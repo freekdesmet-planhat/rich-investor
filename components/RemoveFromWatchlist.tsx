@@ -69,14 +69,14 @@ export function RemoveFromWatchlist({
 
   if (state.status === 'removed') {
     return (
-      <span className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <span className="text-ink-subtle flex flex-wrap items-center gap-2 text-xs">
         {labels.removed.replace('{symbol}', symbol)}
         <form action={restoreAction}>
           <input type="hidden" name="symbol" value={symbol} />
           <SubmitButton
             idle={labels.undo}
             busy={labels.undo}
-            className="font-medium text-slate-700 underline underline-offset-2 disabled:opacity-60 dark:text-slate-200"
+            className="text-ink-muted font-medium underline underline-offset-2 disabled:opacity-60"
           />
         </form>
       </span>
@@ -91,8 +91,8 @@ export function RemoveFromWatchlist({
         busy={labels.removing}
         className={
           compact
-            ? 'rounded px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-60 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
-            : 'rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800'
+            ? 'rounded px-2 py-1 text-xs text-ink-subtle transition hover:bg-surface-hover hover:text-ink disabled:opacity-60'
+            : 'rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover disabled:opacity-60'
         }
       />
       {state.status === 'error' && (

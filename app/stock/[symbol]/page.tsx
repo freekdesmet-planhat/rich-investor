@@ -13,6 +13,7 @@ import { QualitativeReview, type ReviewRecord } from '@/components/review/Qualit
 import { ConditionTrend } from '@/components/ConditionTrend';
 import { GrowthTrajectory } from '@/components/GrowthTrajectory';
 import { PegBasisBadge } from '@/components/PegBasisBadge';
+import { Card, Chip, Section, SectionHeading, Stat } from '@/components/ui/Surface';
 import { createClient } from '@/lib/supabase/server';
 import {
   getRatios,
@@ -228,21 +229,31 @@ export default async function StockPage({
         <BackLink href="/" label={tNav('backToWatchlist')} />
 
         {/* --- header ------------------------------------------------------ */}
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+        {/* The ticker leads and the price sits with it, at a size that can be
+            read at a glance; the company name steps down to a subtitle rather
+            than trailing the ticker at the same weight. Everything that
+            classifies the company — sector, growth category, PEG basis — drops
+            to a row of chips underneath, so the top of the page answers "what
+            am I looking at, and what is it worth" before anything else. */}
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold">
-              {symbol}
-              <span className="ml-2 text-base font-normal text-slate-500 dark:text-slate-400">
-                {name}
-              </span>
-            </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
-              <span>{tSector(signal.focus_sector)}</span>
-              {lynch && (
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">
-                  {lynch.name}
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h1 className="text-3xl font-semibold tracking-tight text-ink">{symbol}</h1>
+              {snapshot?.price != null && (
+                // Formatted as money rather than a bare number with a code
+                // appended: "928.70 EUR" sat three inches from a market cap
+                // printed as "$34.0B" and nothing said whether the two were
+                // the same currency, different currencies, or converted.
+                <span className="text-xl font-medium tabular-nums text-ink-muted">
+                  {formatCurrency(snapshot.price, snapshot.currency, locale)}
                 </span>
               )}
+            </div>
+            {name && <p className="mt-0.5 truncate text-sm text-ink-subtle">{name}</p>}
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Chip>{tSector(signal.focus_sector)}</Chip>
+              {lynch && <Chip>{lynch.name}</Chip>}
               {/* Says on the page header what the PEG card says in a caption:
                   the valuation test was carried by expected growth. */}
               <PegBasisBadge
@@ -250,18 +261,9 @@ export default async function StockPage({
                 label={tWatchlist('pegForward')}
                 title={tWatchlist('pegForwardHelp')}
               />
-              {snapshot?.price != null && (
-                // Formatted as money rather than a bare number with a code
-                // appended: "928.70 EUR" sat three inches from a market cap
-                // printed as "$34.0B" and nothing said whether the two were
-                // the same currency, different currencies, or converted.
-                <span className="tabular-nums">
-                  {formatCurrency(snapshot.price, snapshot.currency, locale)}
-                </span>
-              )}
-            </p>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex shrink-0 flex-col items-end gap-2">
             <StatusBadge status={signal.status} size="lg" />
             {onWatchlist && (
               <RemoveFromWatchlist
@@ -295,16 +297,17 @@ export default async function StockPage({
         />
 
         {snapshot?.is_stale && (
-          <p className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          <p className="border-near-line bg-near-wash text-near mt-4 rounded-lg border px-3 py-2 text-sm">
             {tData('staleBanner', { date: snapshot.as_of })}
           </p>
         )}
 
         {/* --- the mandatory "why", directly under the status badge -------- */}
-        <section className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            {tSignal('why.title')}
-          </h2>
+        {/* Sunken rather than raised: this is the verdict explaining itself,
+            so it belongs to the header above it rather than reading as the
+            first of the page's several independent panels. */}
+        <Card as="section" tone="sunken" className="mt-5" padding="loose">
+          <SectionHeading>{tSignal('why.title')}</SectionHeading>
           <WhyBlock
             parts={signal.why_parts?.[locale] ?? null}
             prose={why}
@@ -316,15 +319,15 @@ export default async function StockPage({
             }}
           />
           {signal.peg_basis && (
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-3 text-xs text-ink-subtle">
               PEG: {tSignal(`pegBasis.${signal.peg_basis}`)}
             </p>
           )}
-        </section>
+        </Card>
 
         {/* --- price chart ------------------------------------------------- */}
         {snapshot?.price_history && snapshot.price_history.length > 1 && (
-          <section className="mt-6">
+          <Section>
             {/* Range as links, so the choice lives in the URL and the chart
                 stays readable with JavaScript off. */}
             <div className="mb-1 flex flex-wrap items-center justify-end gap-2 text-xs">
@@ -335,8 +338,8 @@ export default async function StockPage({
                   aria-current={range === value ? 'true' : undefined}
                   className={
                     range === value
-                      ? 'font-medium text-slate-900 underline underline-offset-4 dark:text-slate-100'
-                      : 'text-slate-500 underline-offset-4 hover:underline dark:text-slate-400'
+                      ? 'font-medium text-ink underline underline-offset-4'
+                      : 'text-ink-subtle underline-offset-4 hover:text-ink hover:underline'
                   }
                 >
                   {tChart(`range.${value}`)}
@@ -357,20 +360,23 @@ export default async function StockPage({
                 chart: tChart('label'),
               }}
             />
-          </section>
+          </Section>
         )}
 
         {/* --- buy-worthy checklist ---------------------------------------- */}
-        <section className="mt-8">
-          <h2 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            {tSignal('checklist')}{' '}
-            <span className="font-normal text-slate-500 dark:text-slate-400">
-              — {tStatus('conditionsMet', {
-                met: signal.conditions_met,
-                total: signal.conditions_applicable,
-              })}
-            </span>
-          </h2>
+        <Section>
+          <SectionHeading
+            action={
+              <span className="text-xs tabular-nums text-ink-subtle">
+                {tStatus('conditionsMet', {
+                  met: signal.conditions_met,
+                  total: signal.conditions_applicable,
+                })}
+              </span>
+            }
+          >
+            {tSignal('checklist')}
+          </SectionHeading>
           {/* Which of the nine below rested on a figure that was not there. */}
           <DataQualityNotice
             quality={quality}
@@ -382,7 +388,7 @@ export default async function StockPage({
             }}
           />
 
-          <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-800">
+          <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border text-sm">
             {signal.checklist.map((condition) => (
               // Condition and criterion sit side by side where there is room
               // and stack where there is not. They used to share one line at
@@ -391,7 +397,7 @@ export default async function StockPage({
               // and dropped exactly the part that says what is being tested.
               <li
                 key={condition.key}
-                className="flex flex-col gap-0.5 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 dark:bg-slate-900"
+                className="bg-surface flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
               >
                 <span className="flex min-w-0 items-start gap-2 sm:items-center">
                   <span aria-hidden="true" className="w-4 shrink-0 text-center">
@@ -399,13 +405,13 @@ export default async function StockPage({
                   </span>
                   <span
                     className={
-                      !condition.applicable ? 'text-slate-400 dark:text-slate-500' : undefined
+                      !condition.applicable ? 'text-ink-faint' : undefined
                     }
                   >
                     {docs.get(`condition:${condition.key}`)?.name ?? condition.key}
                   </span>
                 </span>
-                <span className="pl-6 text-xs text-slate-500 sm:shrink-0 sm:pl-0 dark:text-slate-400">
+                <span className="text-ink-subtle pl-6 text-xs sm:shrink-0 sm:pl-0">
                   {/* The engine stores an English target on the row; the
                       localised one lives in docs/ratios.<lang>.md beside the
                       condition's name, so the criteria translate with it. */}
@@ -416,7 +422,7 @@ export default async function StockPage({
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
 
         {/* --- why this growth category (the series behind the label) -------- */}
         {trajectory && (
@@ -442,7 +448,7 @@ export default async function StockPage({
         )}
 
         {/* --- ratio cards -------------------------------------------------- */}
-        <section className="mt-8">
+        <Section>
           {/* One column below 768px. Two columns at 640px put a ratio name, a
               value and a target into ~300px, which is where the truncation
               started; the cards are readable in one column and the grid only
@@ -613,15 +619,13 @@ export default async function StockPage({
               );
             })}
           </div>
-        </section>
+        </Section>
 
         {/* --- analyst estimates -------------------------------------------- */}
         {snapshot?.estimates && (
-          <section className="mt-8">
-            <h2 className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-              {locale === 'nl' ? 'Analistenverwachtingen' : 'Analyst estimates'}
-            </h2>
-            <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+          <Section>
+            <SectionHeading>{locale === 'nl' ? 'Analistenverwachtingen' : 'Analyst estimates'}</SectionHeading>
+            <Card className="text-sm">
               <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Stat
                   label={locale === 'nl' ? 'Verwachte WPA' : 'Next-year EPS'}
@@ -644,11 +648,11 @@ export default async function StockPage({
                   value={formatCurrency(snapshot.estimates.targetPrice, snapshot.currency, locale)}
                 />
               </dl>
-              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-3 text-xs text-ink-faint">
                 {tData('source')}: {snapshot.estimates_source}
               </p>
-            </div>
-          </section>
+            </Card>
+          </Section>
         )}
 
         {/* --- AI thesis, beside the human judgement it is not a substitute for
@@ -656,7 +660,7 @@ export default async function StockPage({
              why there is no summary is of no use to a reader who cannot act
              on it, and a placeholder in its place reads as an analysis. */}
         {thesisEnabled() && (
-          <section className="mt-8">
+          <Section>
             <AiThesisCard
               // Keyed on the language so switching it remounts the card.
               // Changing language posts a server action, which re-renders the
@@ -697,7 +701,7 @@ export default async function StockPage({
                 },
               }}
             />
-          </section>
+          </Section>
         )}
 
         {/* --- what has moved since last time (the stored evaluations) -------- */}
@@ -798,7 +802,7 @@ export default async function StockPage({
               }}
           />
         </div>
-        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+        <p className="mt-1 text-xs text-ink-faint">
           {snapshot?.statement_sources?.income
             ? `${tData('source')}: ${snapshot.statement_sources.income}`
             : ''}
@@ -818,11 +822,3 @@ export default async function StockPage({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd className="mt-0.5 font-medium tabular-nums">{value}</dd>
-    </div>
-  );
-}

@@ -1,26 +1,255 @@
 @import "tailwindcss";
 
+/**
+ * The design tokens the app is built from.
+ *
+ * Every page until now reached for raw Tailwind greys, in pairs: a card was
+ * `border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900`, written
+ * out again at each of the couple of dozen places a card appears. That is not
+ * a design system, it is a convention held together by copy-paste, and it has
+ * two costs. Changing the surface colour means finding every one of them. And
+ * because light mode was only ever the `dark:` half written backwards, it was
+ * never actually designed — it was whatever the light values happened to be.
+ *
+ * So: semantic names, defined once for each theme. `bg-surface` rather than
+ * `bg-white dark:bg-slate-900`. The component says what a thing *is*; this
+ * file decides what that looks like in each theme. Both themes are first-class
+ * here — each value is chosen for its own theme rather than derived from the
+ * other.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* --- surfaces, back to front ------------------------------------------ */
+  --canvas: #f8fafc;        /* the page itself */
+  --surface: #ffffff;       /* cards, panels, anything lifted off the page */
+  --surface-sunken: #f1f5f9;/* wells: inset panels, table headers, code */
+  --surface-hover: #f1f5f9;
+
+  /* --- lines ------------------------------------------------------------- */
+  --line: #e2e8f0;          /* ordinary borders and rules */
+  --line-strong: #cbd5e1;   /* where a border has to carry weight */
+
+  /* --- text, by role rather than by lightness ---------------------------- */
+  --ink: #0f172a;           /* primary text */
+  --ink-muted: #475569;     /* secondary text, still meant to be read */
+  --ink-subtle: #64748b;    /* captions, units, provenance */
+  --ink-faint: #94a3b8;     /* placeholders, disabled, decorative */
+
+  /* --- accent ------------------------------------------------------------ */
+  --accent: #1d4ed8;
+  --accent-hover: #1e40af;
+  --accent-ink: #ffffff;
+  --accent-wash: #eff6ff;
+
+  /**
+   * The three verdicts, and nothing else uses these.
+   *
+   * Deliberately desaturated. A checklist of nine conditions renders a lot of
+   * colour at once, and at full saturation the page reads as an alarm rather
+   * than as a summary. These are legible on their own surface at small sizes,
+   * which the previous straight `green-500`/`red-500` were not in light mode.
+   */
+  --pass: #15803d;
+  --pass-wash: #f0fdf4;
+  --pass-line: #bbf7d0;
+
+  --near: #b45309;
+  --near-wash: #fffbeb;
+  --near-line: #fde68a;
+
+  --fail: #b91c1c;
+  --fail-wash: #fef2f2;
+  --fail-line: #fecaca;
+
+  /* Neutral, for a condition that does not apply or has no data. Grey is a
+     real answer here and must not be mistaken for a failure. */
+  --none: #64748b;
+  --none-wash: #f8fafc;
+  --none-line: #e2e8f0;
+
+  /* --- elevation ---------------------------------------------------------- */
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-raised: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 6px -2px rgb(15 23 42 / 0.05);
 }
 
+/**
+ * Dark mode, chosen rather than inverted.
+ *
+ * The canvas is lighter than pure black and the surfaces sit *above* it, so
+ * cards read as lifted in both themes; flipping the light values would have
+ * put the cards below the page and lost that. Text steps down in four stages
+ * as it does in light mode, but the gaps are narrower, because contrast
+ * against a dark ground reads stronger at the same numeric distance.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #020617;
+    --surface: #0f172a;
+    --surface-sunken: #1e293b;
+    --surface-hover: #1e293b;
+
+    --line: #1e293b;
+    --line-strong: #334155;
+
+    --ink: #f1f5f9;
+    --ink-muted: #cbd5e1;
+    --ink-subtle: #94a3b8;
+    --ink-faint: #64748b;
+
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --accent-ink: #0f172a;
+    --accent-wash: #172554;
+
+    --pass: #4ade80;
+    --pass-wash: #052e16;
+    --pass-line: #166534;
+
+    --near: #fbbf24;
+    --near-wash: #2c1a02;
+    --near-line: #854d0e;
+
+    --fail: #f87171;
+    --fail-wash: #300c0c;
+    --fail-line: #991b1b;
+
+    --none: #94a3b8;
+    --none-wash: #0f172a;
+    --none-line: #1e293b;
+
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    --shadow-raised: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  }
+}
+
+/* The same values under an explicit choice, so a theme toggle has something to
+   drive. Nothing sets this yet — the switch itself belongs with the navigation
+   work — but the tokens are ready for it rather than needing a second pass. */
+:root[data-theme="dark"] {
+  --canvas: #020617;
+  --surface: #0f172a;
+  --surface-sunken: #1e293b;
+  --surface-hover: #1e293b;
+
+  --line: #1e293b;
+  --line-strong: #334155;
+
+  --ink: #f1f5f9;
+  --ink-muted: #cbd5e1;
+  --ink-subtle: #94a3b8;
+  --ink-faint: #64748b;
+
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-ink: #0f172a;
+  --accent-wash: #172554;
+
+  --pass: #4ade80;
+  --pass-wash: #052e16;
+  --pass-line: #166534;
+
+  --near: #fbbf24;
+  --near-wash: #2c1a02;
+  --near-line: #854d0e;
+
+  --fail: #f87171;
+  --fail-wash: #300c0c;
+  --fail-line: #991b1b;
+
+  --none: #94a3b8;
+  --none-wash: #0f172a;
+  --none-line: #1e293b;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --shadow-raised: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+}
+
+/* Exposed to Tailwind, so the tokens are reachable as ordinary utilities:
+   `bg-surface`, `text-ink-subtle`, `border-line`. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+
+  --color-pass: var(--pass);
+  --color-pass-wash: var(--pass-wash);
+  --color-pass-line: var(--pass-line);
+
+  --color-near: var(--near);
+  --color-near-wash: var(--near-wash);
+  --color-near-line: var(--near-line);
+
+  --color-fail: var(--fail);
+  --color-fail-wash: var(--fail-wash);
+  --color-fail-line: var(--fail-line);
+
+  --color-none: var(--none);
+  --color-none-wash: var(--none-wash);
+  --color-none-line: var(--none-line);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/**
+ * The font the layout has been loading all along.
+ *
+ * `body { font-family: Arial, Helvetica, sans-serif }` sat here since the
+ * project was generated, and it beat the Geist variables the layout sets on
+ * `<html>` — so every page has rendered in Arial while paying to download
+ * Geist. Fixing this is most of the typographic change on its own.
+ */
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/**
+ * Figures line up in columns whether or not anyone remembered to ask.
+ *
+ * Every number on this page is meant to be compared with the one above it, and
+ * proportional digits make a column of them ragged. Applied at the element
+ * level rather than per component, because the failure is silent: nobody
+ * notices a missing `tabular-nums`, they just find the table slightly hard to
+ * read.
+ */
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A visible, consistent focus ring, rather than each control inventing one. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
