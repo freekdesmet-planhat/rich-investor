@@ -227,7 +227,7 @@ export async function sendDailyDigest(
   const log = options.onProgress ?? (() => {});
   if (entries.length === 0) return [];
 
-  const recipients = await resolveRecipients(client);
+  const recipients = await resolveRecipients(client, log);
   if (recipients.length === 0) {
     log('no digest recipients configured — nothing sent');
     return [];

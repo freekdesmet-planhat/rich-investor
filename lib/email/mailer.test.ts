@@ -70,6 +70,38 @@ describe('recipient routing', () => {
     expect(recipients).toHaveLength(1);
   });
 
+  /**
+   * The case that went unnoticed: notifications on, `notify_on_buy` on, and
+   * no address ever saved. The row was skipped, the fallback was empty, and
+   * the nightly digest said only "no digest recipients configured" — true,
+   * and indistinguishable from nobody having asked for mail at all.
+   */
+  it('says so when a member wants mail but has saved no address', async () => {
+    const lines: string[] = [];
+    const recipients = await resolveRecipients(
+      stubClient([
+        { user_id: 'u1', notify_email: null, language: 'en', notify_on_buy: true, notify_enabled: true },
+      ]),
+      (m) => lines.push(m),
+    );
+
+    expect(recipients).toEqual([]);
+    expect(lines.join(' ')).toContain('no address saved');
+    expect(lines.join(' ')).toContain('NOTIFY_EMAILS is not set');
+  });
+
+  it('stays quiet about a member who simply has notifications off', async () => {
+    const lines: string[] = [];
+    await resolveRecipients(
+      stubClient([
+        { user_id: 'u1', notify_email: null, language: 'en', notify_on_buy: false, notify_enabled: false },
+      ]),
+      (m) => lines.push(m),
+    );
+
+    expect(lines.join(' ')).not.toContain('no address saved');
+  });
+
   it('falls back to NOTIFY_EMAILS before anyone has saved settings', async () => {
     process.env.NOTIFY_EMAILS = 'me@example.com, wife@example.com';
     const recipients = await resolveRecipients(stubClient([]));

@@ -41,7 +41,7 @@ export async function sendBuySignalAlerts(
   const log = options.onProgress ?? (() => {});
   if (signals.length === 0) return [];
 
-  const recipients = await resolveRecipients(client);
+  const recipients = await resolveRecipients(client, log);
   if (recipients.length === 0) {
     log('no notification recipients configured — nothing sent');
     return [];
