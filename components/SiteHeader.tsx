@@ -24,9 +24,11 @@ import { signOut } from '@/app/login/actions';
  * carried matters and has moved to the footer, which is already on every page
  * and is where a credit belongs; a proper methodology page comes with item 4.
  *
- * Now: brand, then navigation, then a separated account cluster. Under `md`
+ * Now: brand, then navigation, then a separated account cluster. Under `lg`
  * the navigation collapses into a menu that actually behaves like one — see
- * MobileNav.
+ * MobileNav. `lg` rather than `md` because seven tabs need the room: at
+ * tablet widths they wrapped, which quietly doubled the height of a sticky
+ * header instead of overflowing where it would have been noticed.
  */
 export async function SiteHeader() {
   const [t, tAuth, tNav] = await Promise.all([
@@ -45,6 +47,7 @@ export async function SiteHeader() {
     { href: '/suggestions', label: tNav('suggestions') },
     { href: '/compare', label: tNav('compare') },
     { href: '/how-it-works', label: tNav('howItWorks') },
+    { href: '/methodology', label: tNav('methodology') },
     ...(user ? [{ href: '/account', label: tNav('account') }] : []),
   ];
 
@@ -74,16 +77,16 @@ export async function SiteHeader() {
         {/* The separator does the work the old layout asked whitespace to do:
             everything left of it moves you around, everything right of it is
             about your session. */}
-        <div className="hidden min-w-0 flex-1 md:block">
+        <div className="hidden min-w-0 flex-1 lg:block">
           <NavLinks links={links} />
         </div>
 
-        <div className="ml-auto hidden shrink-0 items-center gap-1 border-l border-line pl-3 md:flex">
+        <div className="ml-auto hidden shrink-0 items-center gap-1 border-l border-line pl-3 lg:flex">
           <LanguageSwitcher />
           {signOutButton}
         </div>
 
-        <div className="ml-auto md:hidden">
+        <div className="ml-auto lg:hidden">
           <MobileNav links={links} label={tNav('menu')}>
             <LanguageSwitcher />
             {signOutButton}

@@ -66,7 +66,11 @@ export function NavLinks({
             // not distinguish.
             aria-current={active ? 'page' : undefined}
             className={[
-              'rounded-lg px-3 py-1.5 text-sm transition',
+              // `whitespace-nowrap` is load-bearing: without it "How it works"
+              // wraps to three lines at tablet widths and silently drags the
+              // header to 100px tall. It fails by wrapping rather than
+              // overflowing, so a scrollWidth check does not catch it.
+              'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition',
               orientation === 'column' ? 'w-full' : '',
               active
                 ? 'bg-surface-sunken font-semibold text-ink'

@@ -72,7 +72,7 @@ export function MobileNav({
       ref={ref}
       open={open}
       onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}
-      className="relative shrink-0 md:hidden"
+      className="relative shrink-0 lg:hidden"
     >
       <summary
         aria-label={label}
