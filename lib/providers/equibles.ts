@@ -70,14 +70,21 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
-/** Recent calls for a ticker, newest first. Null when unavailable. */
-export async function fetchEarningsCalls(symbol: string): Promise<EarningsCall[] | null> {
+/**
+ * Recent calls for a ticker, newest first. Null when unavailable.
+ *
+ * The list lives under investor-events, not under earnings-calls: that path
+ * exists only with a fiscal year and quarter already in hand, which is the
+ * thing this call is for finding out. `eventType` narrows the feed to
+ * earnings calls, since it also carries conferences, investor days and AGMs.
+ */
+export async function fetchEarningsCalls(symbol: string, limit = 12): Promise<EarningsCall[] | null> {
   // Non-US listings are not covered, and asking spends an allowance that is
   // only 100 a day.
   if (symbol.includes('.')) return [];
 
   const raw = await get<{ data?: unknown[] } | unknown[]>(
-    `/stocks/${encodeURIComponent(symbol)}/earnings-calls`,
+    `/stocks/${encodeURIComponent(symbol)}/investor-events?eventType=EarningsCall&limit=${limit}`,
   );
   if (raw === null) return null;
 

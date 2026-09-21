@@ -623,6 +623,7 @@
     "filingPeriod": "Periode",
     "transcriptsUnconfigured": "Transcripties zijn niet ingesteld. Daarvoor is een Equibles-API-sleutel nodig in EQUIBLES_API_KEY — de gratis laag is 100 verzoeken per dag.",
     "noTranscripts": "Geen transcripties beschikbaar voor dit bedrijf.",
+    "transcriptsUnavailable": "Transcripties zijn tijdelijk niet beschikbaar. De aanbieder gaf geen antwoord, dus dit is een leemte en geen oordeel — probeer het later opnieuw.",
     "transcriptPartial": "Dit is het eerste deel van dit gesprek.",
     "openCall": "Lezen",
     "figuresIn": "Bedragen in {currency}, zoals gerapporteerd."

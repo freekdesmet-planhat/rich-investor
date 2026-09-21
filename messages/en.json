@@ -623,6 +623,7 @@
     "filingPeriod": "Period",
     "transcriptsUnconfigured": "Transcripts are not set up. They need an Equibles API key in EQUIBLES_API_KEY — the free tier is 100 requests a day.",
     "noTranscripts": "No transcripts available for this company.",
+    "transcriptsUnavailable": "Transcripts are temporarily unavailable. The provider did not answer, so this is a gap rather than a verdict — try again later.",
     "transcriptPartial": "Showing the first part of this call.",
     "openCall": "Read",
     "figuresIn": "Figures in {currency}, as reported."

@@ -261,7 +261,14 @@ export default async function ResearchPage({
               <Card tone="sunken">
                 <p className="text-sm text-ink-subtle">{t('transcriptsUnconfigured')}</p>
               </Card>
-            ) : !calls || calls.length === 0 ? (
+            ) : calls === null ? (
+              // Null is the provider failing, empty is the provider saying
+              // there is nothing. Collapsing the two is what let a wrong
+              // endpoint read for a week as "this company has no calls".
+              <Card tone="sunken">
+                <p className="text-sm text-ink-subtle">{t('transcriptsUnavailable')}</p>
+              </Card>
+            ) : calls.length === 0 ? (
               <Card><p className="text-sm text-ink-subtle">{t('noTranscripts')}</p></Card>
             ) : (
               <Card padding="none">
