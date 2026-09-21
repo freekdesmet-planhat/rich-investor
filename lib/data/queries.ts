@@ -85,13 +85,21 @@ export interface SnapshotRow {
   /**
    * Annual income and cash statements, newest period first.
    *
-   * Loaded for the earnings-quality note, which needs per-share and
-   * stock-compensation figures the ratio rows do not carry. Together they are
-   * about 4kB against the 156kB of price history already in this query, so
-   * the extra columns cost nothing worth measuring.
+   * All six, for the research tab's statement views and the stock page's
+   * earnings-quality note.
+   *
+   * Originally only `income_annual` and `cash_annual` were selected, which
+   * was all the earnings-quality note needed — and the research tab then
+   * rendered an empty balance sheet, because a column that is not selected
+   * comes back undefined rather than as an error. Together the six are about
+   * 12kB against the 156kB of price history already in this query.
    */
   income_annual: { periods: StatementPeriodRow[] } | null;
+  income_quarterly: { periods: StatementPeriodRow[] } | null;
+  balance_annual: { periods: StatementPeriodRow[] } | null;
+  balance_quarterly: { periods: StatementPeriodRow[] } | null;
   cash_annual: { periods: StatementPeriodRow[] } | null;
+  cash_quarterly: { periods: StatementPeriodRow[] } | null;
   estimates: {
     nextYearEps: number | null;
     nextYearEpsGrowth: number | null;
@@ -164,7 +172,8 @@ export async function getSnapshot(symbol: string): Promise<SnapshotRow | null> {
     .from('daily_snapshots')
     .select(
       'symbol,as_of,price,currency,market_cap_usd,quote,price_history,estimates,' +
-        'income_annual,cash_annual,' +
+        'income_annual,income_quarterly,balance_annual,balance_quarterly,' +
+        'cash_annual,cash_quarterly,' +
         'filing_currency,statement_sources,estimates_source,is_stale,fetch_errors',
     )
     .eq('symbol', symbol)

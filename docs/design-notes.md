@@ -209,6 +209,21 @@ the order someone wants them in: plain language first, reference second.
 - A missing value is an em dash (`—`) plus, where there is room, a reason.
   Never a blank cell, and never `0`.
 
+## Density, and where it is allowed
+
+One place: the "Full research" tab. Dense numeric tables, small type, tight
+rows, growth percentages in muted `pass`/`fail`. A financial statement read
+four numbers at a time is not a financial statement, and a reader who has
+clicked through to it has asked for the numbers.
+
+It does not leak back. The default stock page stays sparse — verdict, chart,
+thesis, review — and the ground rules lock that. If a table wants to appear
+on the default view, the answer is a link to the research tab.
+
+Tab strips inside a page use the same active-pill treatment as the top-level
+nav, and carry their state in the URL, so a particular statement at a
+particular periodicity is addressable and works with JavaScript off.
+
 ## Both themes, always
 
 Every new surface must be checked in light and dark. The tokens make this

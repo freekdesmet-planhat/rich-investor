@@ -593,5 +593,36 @@
       "gross_margin": "Brutomarge",
       "net_margin": "Nettomarge"
     }
+  },
+  "research": {
+    "title": "Volledig onderzoek",
+    "back": "Terug naar de analyse",
+    "tab": {
+      "financials": "Cijfers",
+      "news": "Nieuws",
+      "filings": "Documenten",
+      "transcripts": "Transcripties"
+    },
+    "statement": {
+      "income": "Winst-en-verliesrekening",
+      "balance": "Balans",
+      "cash": "Kasstroom"
+    },
+    "period": {
+      "annual": "Jaar",
+      "quarterly": "Kwartaal"
+    },
+    "growthRow": "Verandering",
+    "noStatements": "Nog geen cijfers opgeslagen voor dit bedrijf.",
+    "noNews": "Geen recent nieuws voor dit aandeel.",
+    "noFilings": "Geen SEC-documenten — dit is geen Amerikaanse indiener, dus EDGAR indexeert het niet.",
+    "filingForm": "Formulier",
+    "filingFiled": "Ingediend",
+    "filingPeriod": "Periode",
+    "transcriptsUnconfigured": "Transcripties zijn niet ingesteld. Daarvoor is een Equibles-API-sleutel nodig in EQUIBLES_API_KEY — de gratis laag is 100 verzoeken per dag.",
+    "noTranscripts": "Geen transcripties beschikbaar voor dit bedrijf.",
+    "transcriptPartial": "Dit is het eerste deel van dit gesprek.",
+    "openCall": "Lezen",
+    "figuresIn": "Bedragen in {currency}, zoals gerapporteerd."
   }
 }

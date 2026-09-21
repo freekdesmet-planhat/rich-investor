@@ -141,7 +141,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline, tQuality, tPeers, peerRows] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline, tQuality, tPeers, tResearch, peerRows] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -168,6 +168,7 @@ export default async function StockPage({
     getTranslations('declineHistory'),
     getTranslations('earningsQuality'),
     getTranslations('peers'),
+    getTranslations('research'),
     getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
   ]);
 
@@ -346,6 +347,17 @@ export default async function StockPage({
                 condition — the nine are unchanged — so it sits outside the
                 checklist entirely. */}
             <LiquidityNote symbol={symbol} locale={locale} labels={liquidityLabels} />
+
+            {/* The way into everything this page deliberately leaves out.
+                One click, and never expanded here — the ground rules keep
+                the default view to the verdict and the review. */}
+            <Link
+              href={`/stock/${encodeURIComponent(symbol)}/research`}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+            >
+              {tResearch('title')}
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <StatusBadge status={signal.status} size="lg" />

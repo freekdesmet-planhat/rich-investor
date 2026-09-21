@@ -104,5 +104,9 @@
 #                                     and by the time the watchlist pass left;
 #                                     0 skips the scan, which the run also says.
 #                                     Every outcome lands in `cron_runs`.
+#     EQUIBLES_API_KEY                Earnings call transcripts. Free tier is
+#                                     100 requests/day. Without it the
+#                                     Transcripts tab says so and nothing
+#                                     else is affected.
 #     FINANCE_QUERY_BASE_URL          Point at a self-hosted finance-query
 # ---------------------------------------------------------------------------

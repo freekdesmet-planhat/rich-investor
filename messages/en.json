@@ -593,5 +593,36 @@
       "gross_margin": "Gross margin",
       "net_margin": "Net margin"
     }
+  },
+  "research": {
+    "title": "Full research",
+    "back": "Back to the analysis",
+    "tab": {
+      "financials": "Financials",
+      "news": "News",
+      "filings": "Filings",
+      "transcripts": "Transcripts"
+    },
+    "statement": {
+      "income": "Income statement",
+      "balance": "Balance sheet",
+      "cash": "Cash flow"
+    },
+    "period": {
+      "annual": "Annual",
+      "quarterly": "Quarterly"
+    },
+    "growthRow": "Change",
+    "noStatements": "No statements stored for this company yet.",
+    "noNews": "No recent news for this ticker.",
+    "noFilings": "No SEC filings — this is not a US filer, so EDGAR does not index it.",
+    "filingForm": "Form",
+    "filingFiled": "Filed",
+    "filingPeriod": "Period",
+    "transcriptsUnconfigured": "Transcripts are not set up. They need an Equibles API key in EQUIBLES_API_KEY — the free tier is 100 requests a day.",
+    "noTranscripts": "No transcripts available for this company.",
+    "transcriptPartial": "Showing the first part of this call.",
+    "openCall": "Read",
+    "figuresIn": "Figures in {currency}, as reported."
   }
 }
