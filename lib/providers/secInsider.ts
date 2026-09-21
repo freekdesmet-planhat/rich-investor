@@ -17,12 +17,11 @@
  */
 import { parseForm4, summariseInsiderActivity, type Form4Transaction, type InsiderSummary } from './form4';
 
+import { secConfigured, secHeaders } from './secUserAgent';
+
 const TICKER_FILE = 'https://www.sec.gov/files/company_tickers.json';
 const SUBMISSIONS = 'https://data.sec.gov/submissions/CIK';
 const ARCHIVES = 'https://www.sec.gov/Archives/edgar/data';
-
-const USER_AGENT =
-  process.env.SEC_USER_AGENT ?? 'rich-investor-app (personal analysis tool; contact via repo)';
 
 /** The SEC asks for no more than ten requests a second. This is well under. */
 const MIN_REQUEST_INTERVAL_MS = 120;
@@ -49,7 +48,7 @@ async function secFetch(url: string): Promise<Response> {
   lastRequest = Date.now();
 
   return fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, accept: 'application/json' },
+    headers: secHeaders(),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 }
@@ -125,6 +124,10 @@ export async function fetchInsiderActivity(
     filingsRead: 0,
     truncated: false,
   });
+
+  // Unconfigured is an empty answer, not an error: the block renders its
+  // "nothing to show" state rather than a failure the reader cannot act on.
+  if (!secConfigured()) return empty();
 
   const cik = await getCik(symbol);
   if (cik === null) return empty();

@@ -87,6 +87,11 @@
 #     ALLOWED_EMAILS                  Comma-separated sign-in whitelist
 #     NEXT_PUBLIC_SITE_URL            Absolute site URL, for magic-link redirects
 #     CRON_SECRET                     Shared secret for both /api/cron/* endpoints
+#     SEC_USER_AGENT                  Contact string EDGAR requires, with a real
+#                                     address: "app-name/0.1 (you@example.com)".
+#                                     www.sec.gov answers 403 without one, so
+#                                     unset costs filings, insider activity and
+#                                     EDGAR fundamentals — quietly, in each case.
 #
 #   Email alerts
 #     RESEND_API_KEY                  Resend API key
@@ -97,7 +102,6 @@
 #     GEMINI_API_KEY                  Enables AI thesis summaries; without it the block is hidden
 #     GEMINI_MODEL                    Override the default model
 #     FMP_API_KEY                     Analyst estimates for the tickers FMP covers
-#     SEC_USER_AGENT                  Contact string the SEC requires for EDGAR
 #     SCAN_BATCH_SIZE                 Candidates the nightly scan evaluates.
 #                                     Unset or unreadable falls back to 60, and
 #                                     the run says which it got. Capped at 200

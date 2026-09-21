@@ -28,16 +28,12 @@ import {
   type StatementKind,
   type StatementPeriod,
 } from './types';
+import { secConfigured, secHeaders } from './secUserAgent';
 
 const TICKER_FILE = 'https://www.sec.gov/files/company_tickers.json';
 const COMPANY_FACTS = 'https://data.sec.gov/api/xbrl/companyfacts/CIK';
 
-/**
- * The SEC requires a descriptive User-Agent with a contact address and asks for
- * no more than 10 requests/second.
- */
-const USER_AGENT =
-  process.env.SEC_USER_AGENT ?? 'rich-investor-app (personal analysis tool; contact via repo)';
+/** The SEC asks for no more than 10 requests/second. */
 const MIN_REQUEST_INTERVAL_MS = 120;
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -221,7 +217,7 @@ async function secFetch(url: string): Promise<Response> {
   lastRequest = Date.now();
 
   return fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, accept: 'application/json' },
+    headers: secHeaders(),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 }
@@ -258,6 +254,9 @@ export class SecEdgarProvider implements FundamentalsProvider {
     // A suffixed symbol is a non-US listing; EDGAR indexes US listings only,
     // and the bare ticker almost always belongs to a different company.
     if (symbol.includes('.')) return false;
+    // Without a contact address EDGAR refuses the ticker file, so this
+    // provider cannot cover anything and the chain moves on.
+    if (!secConfigured()) return false;
     return (await this.getTickerMap()).has(symbol.toUpperCase());
   }
 

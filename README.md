@@ -361,7 +361,7 @@ npx tsx --env-file=.env.local scripts/run-scan.ts --limit 60 # a batch of the un
 | `GEMINI_API_KEY` | Enables AI thesis summaries. Without it the AI block is hidden and nothing is stored |
 | `GEMINI_MODEL` | Defaults to `gemini-3.6-flash` |
 | `FMP_API_KEY` | Analyst estimates. Free tier covers ~15 of the 27 seed tickers; yahoo-finance2 catches the rest |
-| `SEC_USER_AGENT` | Contact string EDGAR's access policy requires, e.g. `"app-name/0.1 (you@example.com)"` |
+| `SEC_USER_AGENT` | Contact string EDGAR's access policy requires, e.g. `"app-name/0.1 (you@example.com)"`. **Required in every deployed environment**, not just locally: `www.sec.gov` returns 403 without a contact address, and unset means no filings, no insider activity and no EDGAR fundamentals |
 | `SCAN_BATCH_SIZE` | Candidates evaluated per nightly run (default 60) |
 | `FINANCE_QUERY_BASE_URL` | Point at a self-hosted finance-query |
 | `FRED_API_KEY` | Not needed — FRED's CSV endpoint is keyless |

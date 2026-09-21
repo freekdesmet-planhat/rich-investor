@@ -11,12 +11,11 @@
  * filings a person would actually open.
  */
 
+import { secConfigured, secHeaders } from './secUserAgent';
+
 const SUBMISSIONS = 'https://data.sec.gov/submissions/CIK';
 const TICKER_FILE = 'https://www.sec.gov/files/company_tickers.json';
 const ARCHIVES = 'https://www.sec.gov/Archives/edgar/data';
-
-const USER_AGENT =
-  process.env.SEC_USER_AGENT ?? 'rich-investor-app (personal analysis tool; contact via repo)';
 
 /** Worth opening. Everything else is noise at this level of detail. */
 const INTERESTING_FORMS = new Set([
@@ -39,7 +38,7 @@ let tickerMap: Map<string, number> | null = null;
 
 async function secFetch(url: string): Promise<Response> {
   return fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, accept: 'application/json' },
+    headers: secHeaders(),
     signal: AbortSignal.timeout(12_000),
     next: { revalidate: 3_600 },
   });
@@ -54,6 +53,9 @@ async function secFetch(url: string): Promise<Response> {
  */
 export async function fetchRecentFilings(symbol: string, limit = 25): Promise<Filing[]> {
   if (symbol.includes('.')) return [];
+  // No contact address configured means EDGAR will refuse the ticker file,
+  // so there is nothing to be gained by asking.
+  if (!secConfigured()) return [];
 
   try {
     if (!tickerMap) {
