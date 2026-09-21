@@ -238,6 +238,20 @@ direction and on any data-source gap in items 7 or 8.
   timed_out after 10 minutes via a reapStale check at the start of each job.
   Manual runs confirmed clean with notify=false; unattended confirmation was
   pending as of end of day 09-20.
+- 2026-09-21: Unattended confirmation came clean. 02:00 nightly-scan ok in
+  42.9s (32 tickers); 02:15 universe-scan ok in 32.7s, 27 candidates
+  evaluated, 1 suggestion filed (DECK, buy_worthy), cursor 47 -> 108. The
+  pipeline fix is closed.
+- 2026-09-21: **Known risk, not being fixed now.** Watchlist ran 42.9s
+  against the ~60s ceiling on the first unattended night (~17s margin).
+  Worth re-checking as the universe/watchlist grows or more work gets added
+  to that route, since this is the same failure mode that was just fixed —
+  and unlike the scan, when the watchlist dies the daily digest dies with
+  it. Two plausible answers when it comes to that: batch the watchlist
+  across requests the way the scan now is, or price a Netlify plan upgrade
+  (the route already declares `maxDuration = 300`, so that would need no
+  code change). Its own decision, not a rushed change riding on something
+  else.
 - 2026-09-20: Scope substantially expanded after a proper spec discussion.
   This is no longer just a personal-tool enhancement list, it's headed
   toward a paid subscription launch in about a month (large-cap framework
