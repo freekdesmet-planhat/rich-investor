@@ -570,5 +570,12 @@
     "deep2": "Een daling van deze omvang is zeldzaam op marktniveau: van de {total} Amerikaanse marktdalingen van meer dan 20% sinds {since} gingen er maar twee voorbij de 50%, en beide waren dieper dan deze.",
     "recovery": "Herstel van de grote dalingen duurde tussen de {months} maanden en {years} jaar.",
     "caveat": "Dit zijn indexcijfers, geen bedrijfscijfers. Dat één bedrijf 50% daalt komt veel vaker voor dan dat de markt dat doet — soms herstelt het, soms had de markt gelijk."
+  },
+  "earningsQuality": {
+    "heading": "Winstkwaliteit",
+    "intro": "Naast de kasstroomvoorwaarde, die hierdoor niet verandert.",
+    "cashConversion": "De vrije kasstroom per aandeel was {fcfPerShare} tegenover een gerapporteerde winst van {eps} — ongeveer {percent}% van de winst werd kasgeld dat een eigenaar eruit kan halen. De kasstroomvoorwaarde vergelijkt operationele kasstroom met nettowinst, dus vóór investeringen; dit is erna.",
+    "stockComp": "De beloning in aandelen bedroeg {percent}% van de omzet. Het is een echte kostenpost die nooit als kasgeld vertrekt, waardoor de operationele kasstroom er beter uitziet — en daarmee ook de kasstroomvoorwaarde zelf.",
+    "dilution": "Het verwaterde aantal aandelen steeg {total}% in {years} jaar, ongeveer {percent}% per jaar. Elk cijfer per aandeel op deze pagina deelt erdoor, dus de winst kan groeien terwijl de winst per aandeel dat niet doet."
   }
 }

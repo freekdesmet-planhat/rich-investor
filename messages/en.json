@@ -570,5 +570,12 @@
     "deep2": "A fall this deep is rare at market level: of {total} US market declines worse than 20% since {since}, only two passed 50%, and both were deeper than this.",
     "recovery": "Recovering from the major ones took anywhere from {months} months to {years} years.",
     "caveat": "These are index figures, not company ones. An individual company falling 50% is far more common than the market doing so — sometimes it recovers, sometimes the fall was the market being right."
+  },
+  "earningsQuality": {
+    "heading": "Earnings quality",
+    "intro": "Beyond the cash-flow condition, which this does not change.",
+    "cashConversion": "Free cash flow per share was {fcfPerShare} against reported earnings of {eps} — about {percent}% of the profit turned into cash an owner could take out. The cash-flow condition compares operating cash flow to net income, which is before capital spending; this is after it.",
+    "stockComp": "Stock-based compensation ran at {percent}% of revenue. It is a real cost that never leaves as cash, so it flatters operating cash flow — and therefore the cash-flow condition itself.",
+    "dilution": "The diluted share count rose {total}% over {years} years, about {percent}% a year. Every per-share figure on this page divides by it, so earnings can grow while earnings per share do not."
   }
 }

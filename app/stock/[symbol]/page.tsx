@@ -49,6 +49,7 @@ import { LiquidityNote } from '@/components/LiquidityNote';
 import { ValuationRangeChart } from '@/components/ValuationRangeChart';
 import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
 import { declineContext } from '@/lib/data/declineHistory';
+import { earningsQualityNotes } from '@/lib/ratios/earningsQuality';
 import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { thesisEnabled } from '@/lib/ai/thesis';
@@ -137,7 +138,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline, tQuality] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -162,6 +163,7 @@ export default async function StockPage({
     getTranslations('liquidity'),
     getTranslations('valuationHistory'),
     getTranslations('declineHistory'),
+    getTranslations('earningsQuality'),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
@@ -233,6 +235,27 @@ export default async function StockPage({
   // The same annual EPS series the PEG card draws its sparkline from, so the
   // history here and the growth figures there cannot drift apart.
   const decline = declineContext(byKey.get('drawdown_5y')?.value ?? null);
+
+  // Informational notes that sit alongside condition 8 without touching it.
+  // Statement metrics are stored loosely typed, so each is read through a
+  // helper rather than asserted into shape.
+  const metricAt = (
+    statement: { periods: Array<{ endDate: string; metrics: Record<string, number | null | undefined> }> } | null | undefined,
+    index: number,
+    key: string,
+  ) => statement?.periods?.[index]?.metrics?.[key] ?? null;
+
+  const qualityYears = (snapshot?.income_annual?.periods ?? []).map((period, i) => ({
+    endDate: period.endDate,
+    dilutedEps: metricAt(snapshot?.income_annual, i, 'dilutedEps'),
+    dilutedShares: metricAt(snapshot?.income_annual, i, 'dilutedShares'),
+    revenue: metricAt(snapshot?.income_annual, i, 'revenue'),
+    freeCashFlow: metricAt(snapshot?.cash_annual, i, 'freeCashFlow'),
+    operatingCashFlow: metricAt(snapshot?.cash_annual, i, 'operatingCashFlow'),
+    capitalExpenditure: metricAt(snapshot?.cash_annual, i, 'capitalExpenditure'),
+    stockBasedCompensation: metricAt(snapshot?.cash_annual, i, 'stockBasedCompensation'),
+  }));
+  const qualityNotes = earningsQualityNotes(qualityYears);
   const valuation = summariseValuation(
     peHistory(
       (snapshot?.price_history ?? []).map((p) => ({ date: p.date, close: p.close })),
@@ -727,6 +750,35 @@ export default async function StockPage({
             })}
           </div>
         </Section>
+
+        {/* --- earnings quality, beside the condition it does not change ----- */}
+        {qualityNotes.length > 0 && (
+          <Section>
+            <SectionHeading>{tQuality('heading')}</SectionHeading>
+            <p className="-mt-1 mb-2 text-sm text-ink-subtle">{tQuality('intro')}</p>
+            <Card tone="sunken">
+              <ul className="space-y-2.5">
+                {qualityNotes.map((note) => (
+                  <li key={note.key} className="text-sm leading-relaxed text-ink-muted">
+                    {/* `formatNumber` pads to two decimals, which turns
+                        "over 3 years" into "over 3.00 years" and 8.5% into
+                        8.50%. These values are already rounded to the
+                        precision each one deserves, so the formatter's job
+                        here is only the locale's separators. */}
+                    {Object.entries(note.values).reduce(
+                      (text, [key, value]) =>
+                        text.replace(
+                          `{${key}}`,
+                          new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value),
+                        ),
+                      tQuality.raw(note.key) as string,
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </Section>
+        )}
 
         {/* --- analyst estimates -------------------------------------------- */}
         {snapshot?.estimates && (

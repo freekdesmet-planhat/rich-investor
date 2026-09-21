@@ -63,6 +63,11 @@ export interface RatioRow {
   raw_value: number | null;
 }
 
+export interface StatementPeriodRow {
+  endDate: string;
+  metrics: Record<string, number | null | undefined>;
+}
+
 export interface SnapshotRow {
   symbol: string;
   as_of: string;
@@ -77,6 +82,16 @@ export interface SnapshotRow {
     description?: string | null;
   } | null;
   price_history: Array<{ date: string; close: number }> | null;
+  /**
+   * Annual income and cash statements, newest period first.
+   *
+   * Loaded for the earnings-quality note, which needs per-share and
+   * stock-compensation figures the ratio rows do not carry. Together they are
+   * about 4kB against the 156kB of price history already in this query, so
+   * the extra columns cost nothing worth measuring.
+   */
+  income_annual: { periods: StatementPeriodRow[] } | null;
+  cash_annual: { periods: StatementPeriodRow[] } | null;
   estimates: {
     nextYearEps: number | null;
     nextYearEpsGrowth: number | null;
@@ -149,6 +164,7 @@ export async function getSnapshot(symbol: string): Promise<SnapshotRow | null> {
     .from('daily_snapshots')
     .select(
       'symbol,as_of,price,currency,market_cap_usd,quote,price_history,estimates,' +
+        'income_annual,cash_annual,' +
         'filing_currency,statement_sources,estimates_source,is_stale,fetch_errors',
     )
     .eq('symbol', symbol)
