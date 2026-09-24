@@ -3,17 +3,15 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { PriceChart } from '@/components/PriceChart';
 import { BackLink } from '@/components/BackLink';
-import { RatioCard } from '@/components/RatioCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AiThesisCard } from '@/components/AiThesisCard';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
-import { ConditionTrend } from '@/components/ConditionTrend';
-import { GrowthTrajectory } from '@/components/GrowthTrajectory';
 import { PegBasisBadge } from '@/components/PegBasisBadge';
-import { Card, Chip, Section, SectionHeading, Stat } from '@/components/ui/Surface';
+import { Card, Chip, Section, SectionHeading } from '@/components/ui/Surface';
+import { RatioGrid, HEADLINE_RATIOS } from '@/components/RatioGrid';
 import { createClient } from '@/lib/supabase/server';
 import {
   getPosition,
@@ -27,96 +25,26 @@ import {
   getTickerSummary,
   getTranslations as getDocTranslations,
   getWatchlistSymbols,
-  type RatioRow,
 } from '@/lib/data/queries';
 import type { Lang } from '@/lib/i18n/config';
-import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
-import { dataQualityOf, sourcesForRatio } from '@/lib/data/dataQuality';
+import { dataQualityOf } from '@/lib/data/dataQuality';
 import { DataQualityNotice } from '@/components/DataQualityNotice';
 import { WhyBlock } from '@/components/WhyBlock';
 import { PositionBlock } from '@/components/PositionBlock';
 import { positionReturn } from '@/lib/data/position';
-import {
-  isOverridden,
-  overriddenTargetLabel,
-  RATIO_THRESHOLD,
-} from '@/lib/ratios/editableThresholds';
-import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/lib/data/priceRange';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { upcomingEarnings } from '@/lib/data/earnings';
 import { LiquidityNote } from '@/components/LiquidityNote';
-import { ValuationRangeChart } from '@/components/ValuationRangeChart';
-import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
-import { declineContext } from '@/lib/data/declineHistory';
-import { earningsQualityNotes } from '@/lib/ratios/earningsQuality';
 import { comparePeers, PEER_METRICS } from '@/lib/data/peerComparison';
-import { PeerComparison } from '@/components/PeerComparison';
-import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
-import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
+import { formatCurrency, formatDate, formatPercent } from '@/lib/i18n/format';
 import { thesisEnabled } from '@/lib/ai/thesis';
 
 export const dynamic = 'force-dynamic';
 
 /** A quarter of stored evaluations: long enough to show a recovery forming. */
 const TREND_DAYS = 90;
-
-/** Card order: valuation, then returns, then growth, then the core signal. */
-const CARD_ORDER = [
-  'pe',
-  'peg',
-  'ev_ebit',
-  'p_fcf',
-  'earnings_quality',
-  'roe',
-  'roa',
-  'eps_growth',
-  'revenue_growth',
-  'gross_margin',
-  'net_margin',
-  'debt',
-  'rnd_adjusted_pe',
-  'payout_ratio',
-  'dividend_yield',
-  'inventory_receivables',
-  'p_s',
-  'p_b',
-  'drawdown_5y',
-  'market_cap',
-];
-
-function formatRatio(row: RatioRow, lang: Lang): string {
-  if (row.value == null) return '—';
-  switch (row.unit) {
-    case 'percent':
-      return formatPercent(row.value, lang);
-    case 'currency':
-      return formatBillions(row.value, row.currency ?? 'USD', lang);
-    default:
-      return formatNumber(row.value, lang);
-  }
-}
-
-/**
- * The checklist's pass mark, for the cards whose healthy target is stricter.
- *
- * Condition 8 passes at 70% of net income and condition 9 at net debt/EBITDA
- * 2.5, while those two cards state the healthy targets (1 and 1). Printing only
- * one of the pair made the page contradict itself, so both are shown and both
- * are read from the same constant — a change to `DEFAULT_THRESHOLDS` moves the
- * checklist and the card together.
- */
-function checklistGate(ratioKey: string, lang: Lang): string | null {
-  switch (ratioKey) {
-    case 'debt':
-      return `≤ ${formatNumber(DEFAULT_THRESHOLDS.debt.value.netDebtEbitdaOrange, lang, 1)}`;
-    case 'earnings_quality':
-      return `≥ ${formatPercent(DEFAULT_THRESHOLDS.earningsQuality.value.orange, lang, 0)}`;
-    default:
-      return null;
-  }
-}
 
 export default async function StockPage({
   params,
@@ -141,7 +69,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tValuation, tDecline, tQuality, tPeers, tResearch, peerRows] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, peerRows] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -164,10 +92,6 @@ export default async function StockPage({
     getTranslations('position'),
     getTranslations('earnings'),
     getTranslations('liquidity'),
-    getTranslations('valuationHistory'),
-    getTranslations('declineHistory'),
-    getTranslations('earningsQuality'),
-    getTranslations('peers'),
     getTranslations('research'),
     getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
   ]);
@@ -207,22 +131,10 @@ export default async function StockPage({
     ? history.find((row) => row.as_of === trend.reference!.as_of)
     : undefined;
   const changes = reference ? conditionChanges(reference.checklist, signal.checklist) : [];
-
-  // The EPS series, the fitted rate and the endpoint CAGR are all already on
-  // the PEG row — that is the series the growth figure was measured from, so
-  // the panel explains the label rather than computing a second opinion.
-  const pegRow = byKey.get('peg');
-  const pegGrowth = (pegRow?.detail ?? {}) as { epsCagr?: number | null; endpointCagr?: number | null };
-  const trajectory = pegRow?.history?.length
-    ? buildTrajectory(pegRow.history, {
-        rate: pegGrowth.epsCagr ?? null,
-        endpointCagr: pegGrowth.endpointCagr ?? null,
-        bands: {
-          highGrowth: DEFAULT_THRESHOLDS.lynch.value.highGrowth,
-          averageGrowth: DEFAULT_THRESHOLDS.lynch.value.averageGrowth,
-        },
-      })
-    : null;
+  // The condition trend is no longer a block of its own; it folds into the
+  // checklist as a per-row marker on the conditions that flipped since the
+  // reference evaluation. Keyed for a quick lookup while rendering the rows.
+  const changeByKey = new Map(changes.map((c) => [c.key, c.gained]));
 
   // Derived from the checklist and the snapshot the evaluation was made from,
   // so it describes this verdict rather than the state of the providers now.
@@ -238,42 +150,14 @@ export default async function StockPage({
   const lynch = docs.get(`lynch:${signal.lynch_category}`);
   const earnings = upcomingEarnings(snapshot?.quote?.nextEarningsDate);
 
-  // The same annual EPS series the PEG card draws its sparkline from, so the
-  // history here and the growth figures there cannot drift apart.
-  const decline = declineContext(byKey.get('drawdown_5y')?.value ?? null);
-
-  // Informational notes that sit alongside condition 8 without touching it.
-  // Statement metrics are stored loosely typed, so each is read through a
-  // helper rather than asserted into shape.
-  const metricAt = (
-    statement: { periods: Array<{ endDate: string; metrics: Record<string, number | null | undefined> }> } | null | undefined,
-    index: number,
-    key: string,
-  ) => statement?.periods?.[index]?.metrics?.[key] ?? null;
-
-  const qualityYears = (snapshot?.income_annual?.periods ?? []).map((period, i) => ({
-    endDate: period.endDate,
-    dilutedEps: metricAt(snapshot?.income_annual, i, 'dilutedEps'),
-    dilutedShares: metricAt(snapshot?.income_annual, i, 'dilutedShares'),
-    revenue: metricAt(snapshot?.income_annual, i, 'revenue'),
-    freeCashFlow: metricAt(snapshot?.cash_annual, i, 'freeCashFlow'),
-    operatingCashFlow: metricAt(snapshot?.cash_annual, i, 'operatingCashFlow'),
-    capitalExpenditure: metricAt(snapshot?.cash_annual, i, 'capitalExpenditure'),
-    stockBasedCompensation: metricAt(snapshot?.cash_annual, i, 'stockBasedCompensation'),
-  }));
-  const qualityNotes = earningsQualityNotes(qualityYears);
-
+  // Peer comparison is no longer a section; it survives as a one-line caption
+  // on the headline ratio cards below (and on the full grid in Full research).
+  // Computed here, unchanged, and handed to the grid.
   const peers = comparePeers(
     new Map(PEER_METRICS.map((key) => [key, byKey.get(key)?.value ?? null])),
     peerRows,
   );
-  const valuation = summariseValuation(
-    peHistory(
-      (snapshot?.price_history ?? []).map((p) => ({ date: p.date, close: p.close })),
-      (byKey.get('peg')?.history ?? []) as Array<{ period: string; value: number }>,
-    ),
-    byKey.get('pe')?.value ?? null,
-  );
+
   // Resolved here so the client block carries no translation bundle of its own.
   const liquidityLabels = {
     heading: tLiquidity('heading'),
@@ -459,62 +343,6 @@ export default async function StockPage({
           </Section>
         )}
 
-        {/* --- the company's own valuation range ---------------------------- */}
-        {/* Straight after the price chart, because the two answer halves of
-            one question: that one says how far the price has fallen, this one
-            says whether that made the company cheap. */}
-        {valuation && (
-          <Section>
-            <SectionHeading>{tValuation('title')}</SectionHeading>
-            <p className="-mt-1 mb-2 max-w-prose text-sm text-ink-subtle">
-              {tValuation('intro')}
-            </p>
-            <Card>
-              <ValuationRangeChart
-                range={valuation}
-                labels={{
-                  current: tValuation('current'),
-                  median: tValuation('median'),
-                  low: tValuation('low'),
-                  high: tValuation('high'),
-                  percentileCheap: tValuation.raw('percentileCheap') as string,
-                  percentileRich: tValuation.raw('percentileRich') as string,
-                  footnote: tValuation('footnote'),
-                }}
-              />
-            </Card>
-
-            {decline && (
-              // Market history, kept visually separate from the company's own
-              // figures above so the two cannot be read as one claim. The
-              // caveat is not small print: index odds and single-stock odds
-              // differ by an order of magnitude, and conflating them is the
-              // mistake this whole block could otherwise encourage.
-              <Card tone="sunken" className="mt-3">
-                <SectionHeading>{tDecline('heading')}</SectionHeading>
-                <p className="text-sm leading-relaxed text-ink-muted">
-                  {/* The deep band needs three sentences, not one with a
-                      number substituted: "0 of those were deeper than this"
-                      is technically right and reads like a bug. */}
-                  {tDecline
-                    .raw(
-                      decline.severity === 'deep'
-                        ? `deep${decline.deeperInHistory}`
-                        : decline.severity,
-                    )
-                    .replace('{total}', String(decline.totalDeclines))
-                    .replace('{since}', String(1870))}{' '}
-                  {tDecline
-                    .raw('recovery')
-                    .replace('{months}', String(decline.fastestRecoveryMonths))
-                    .replace('{years}', String(decline.slowestRecoveryYears))}
-                </p>
-                <p className="mt-2 text-xs text-ink-faint">{tDecline('caveat')}</p>
-              </Card>
-            )}
-          </Section>
-        )}
-
         {/* --- buy-worthy checklist ---------------------------------------- */}
         <Section>
           <SectionHeading
@@ -540,8 +368,19 @@ export default async function StockPage({
             }}
           />
 
+          {/* What changed since the reference evaluation, named here rather
+              than in a block of its own further down — the per-row markers
+              below carry the detail, this line carries the date. */}
+          {changes.length > 0 && reference && (
+            <p className="mb-2 text-xs text-ink-subtle">
+              {(tSignal.raw('trend.changesSince') as string).replace('{date}', reference.as_of)}
+            </p>
+          )}
+
           <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border text-sm">
-            {signal.checklist.map((condition) => (
+            {signal.checklist.map((condition) => {
+              const flipped = changeByKey.get(condition.key);
+              return (
               // Condition and criterion sit side by side where there is room
               // and stack where there is not. They used to share one line at
               // every width, with the name truncated — on a phone that cut
@@ -562,6 +401,16 @@ export default async function StockPage({
                   >
                     {docs.get(`condition:${condition.key}`)?.name ?? condition.key}
                   </span>
+                  {/* The condition-trend delta, folded in: only on rows that
+                      flipped since the reference, coloured the way a pass and a
+                      fail are coloured everywhere else. */}
+                  {flipped !== undefined && (
+                    <span
+                      className={`shrink-0 text-xs font-medium ${flipped ? 'text-pass' : 'text-fail'}`}
+                    >
+                      {flipped ? '↑' : '↓'} {tSignal(flipped ? 'delta.gained' : 'delta.lost')}
+                    </span>
+                  )}
                 </span>
                 <span className="text-ink-subtle pl-6 text-xs sm:shrink-0 sm:pl-0">
                   {/* The engine stores an English target on the row; the
@@ -572,307 +421,40 @@ export default async function StockPage({
                     : (docs.get(`condition:${condition.key}`)?.target ?? condition.target)}
                 </span>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </Section>
 
-        {/* --- why this growth category (the series behind the label) -------- */}
-        {trajectory && (
-          <GrowthTrajectory
-            trajectory={trajectory}
-            bandName={lynch?.name ?? null}
-            formatPercent={(value) => formatPercent(value, locale)}
-            formatNumber={(value) => formatNumber(value, locale)}
-            labels={{
-              title: tRatio('trajectory.title'),
-              intro: tRatio('trajectory.intro'),
-              fitted: tRatio.raw('trajectory.fitted') as string,
-              endpoint: tRatio('trajectory.endpoint'),
-              dips: tRatio.raw('trajectory.dips') as string,
-              steady: tRatio('trajectory.steady'),
-              band: tRatio('trajectory.band'),
-              eps: tRatio('trajectory.eps'),
-              yoy: tRatio('trajectory.yoy'),
-              curve: tRatio('trajectory.curve'),
-              noFit: tRatio('trajectory.noFit'),
-            }}
-          />
-        )}
-
-        {/* --- ratio cards -------------------------------------------------- */}
+        {/* --- headline ratios, with the way to the full twenty ------------ */}
+        {/* The default view carries the decision path and a handful of headline
+            figures; the full twenty-card grid, and the valuation, growth and
+            quality panels, live one click away in Full research. */}
         <Section>
-          {/* One column below 768px. Two columns at 640px put a ratio name, a
-              value and a target into ~300px, which is where the truncation
-              started; the cards are readable in one column and the grid only
-              splits once there is room for them. */}
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {CARD_ORDER.map((key) => {
-              const row = byKey.get(key as RatioRow['ratio_key']);
-              if (!row) return null;
-              const doc = docs.get(`ratio:${key}`);
-
-              // PEG is judged on either the trailing or the forward figure, so
-              // one number with one dot could contradict the checklist row
-              // above: passed on expected growth, red dot on the trailing
-              // figure. Both are shown, the one the condition used is
-              // highlighted, and the dot follows the condition rather than the
-              // trailing number alone.
-              const pegCondition =
-                key === 'peg' ? signal.checklist.find((c) => c.key === 'peg') : undefined;
-              const pegDetail = (pegCondition?.detail ?? {}) as {
-                trailingPeg?: number | null;
-                forwardPeg?: number | null;
-                trailingPasses?: boolean;
-                forwardPasses?: boolean;
-              };
-
-              // The $10bn floor is stated in USD, so USD is the figure the
-              // condition judges and stays the headline. The native figure sits
-              // beside it, because that is the currency the price above is in.
-              const capDetail =
-                key === 'market_cap'
-                  ? (row.detail as {
-                      marketCapNative?: number | null;
-                      quoteCurrency?: string | null;
-                    })
-                  : null;
-              const capVariants =
-                capDetail?.marketCapNative != null &&
-                capDetail.quoteCurrency &&
-                capDetail.quoteCurrency !== 'USD'
-                  ? [
-                      {
-                        label: 'USD',
-                        value: formatBillions(row.value, 'USD', locale),
-                        used: true,
-                      },
-                      {
-                        label: capDetail.quoteCurrency,
-                        value: formatBillions(
-                          capDetail.marketCapNative,
-                          capDetail.quoteCurrency,
-                          locale,
-                        ),
-                        used: false,
-                      },
-                    ]
-                  : null;
-
-              const variants = pegCondition
-                ? [
-                    {
-                      label: tRatio('peg.trailing'),
-                      value: formatNumber(pegDetail.trailingPeg ?? row.value, locale),
-                      used: Boolean(pegDetail.trailingPasses),
-                    },
-                    {
-                      label: tRatio('peg.forward'),
-                      value: formatNumber(pegDetail.forwardPeg ?? null, locale),
-                      used: Boolean(pegDetail.forwardPasses),
-                    },
-                  ]
-                : capVariants;
-
-              const color = pegCondition
-                ? pegCondition.passed
-                  ? 'green'
-                  : 'red'
-                : row.color;
-
-              // The same fact already sits under the Why block; it belongs on
-              // the card that shows the number it is about.
-              let caption =
-                pegCondition && signal.peg_basis
-                  ? `PEG: ${tSignal(`pegBasis.${signal.peg_basis}`)}`
-                  : null;
-
-              // The drawdown is rendered neutral now, because green and red
-              // mean passed and failed everywhere else on this page. Whether it
-              // clears the book's entry threshold is said in words instead.
-              if (key === 'drawdown_5y') {
-                const dd = row.detail as {
-                  meetsEntryThreshold?: boolean;
-                  approachingEntryThreshold?: boolean;
-                };
-                if (dd.meetsEntryThreshold) caption = tRatio('entryThreshold');
-                else if (dd.approachingEntryThreshold) caption = tRatio('nearEntryThreshold');
-              }
-
-              // The doc names the source in prose and the row carries it as
-              // data; the card renders it once, from the data.
-              // "app default" stopped being true the moment the household
-              // changed the number, so the card says whose it is now. Read from
-              // the current overrides rather than the stored row: a setting
-              // changed today should not have to wait for tonight to be named
-              // correctly, even though the figure it produced will.
-              const editableKey = RATIO_THRESHOLD[key];
-              const isMine = editableKey != null && isOverridden(editableKey, thresholdOverrides);
-              const sourceLabel = isMine
-                ? tRatio('source.your_setting')
-                : tRatio(`source.${row.target_source}`);
-              // The documented target is prose and does not follow the
-              // threshold, so an overridden card builds its own rather than
-              // printing "≤ 20 (your setting)" when the setting is 15.
-              const targetLabel =
-                overriddenTargetLabel(key, thresholdOverrides, (value) =>
-                  formatNumber(value, locale),
-                ) ?? stripSourceSuffix(doc?.target ?? row.target_label);
-
-              const detail = row.detail as { isApproximation?: boolean };
-              const adjusted = row.is_adjusted
-                ? {
-                    rawDisplayValue: formatPercent(row.raw_value, locale),
-                    rawLabel: tRatio('adjusted.raw'),
-                    adjustedLabel: tRatio('adjusted.label'),
-                    note: tRatio('adjusted.roaNote'),
-                    approximationNote: detail.isApproximation
-                      ? tRatio('adjusted.approximation')
-                      : null,
-                  }
-                : null;
-
-              return (
-                <RatioCard
-                  key={key}
-                  ratioKey={key}
-                  name={doc?.name ?? key}
-                  // The markdown is hard-wrapped for an editor; the card is not an
-                  // editor, so the wrapping is undone and the browser decides.
-                  explanation={unwrapParagraphs(doc?.explanation ?? '')}
-                  displayValue={formatRatio(row, locale)}
-                  color={color}
-                  variants={variants}
-                  caption={caption}
-                  targetLabel={targetLabel}
-                  targetSourceLabel={sourceLabel}
-                  gateLabel={(() => {
-                    const gate = checklistGate(key, locale);
-                    return gate ? tRatio('gate', { value: gate }) : null;
-                  })()}
-                  history={row.history ?? []}
-                  unavailableLabel={
-                    row.value == null && row.unavailable_reason
-                      ? tRatio(`unavailable.${row.unavailable_reason}`)
-                      : null
-                  }
-                  adjusted={adjusted}
-                  provenance={{
-                    sources: sourcesForRatio(key, snapshot?.statement_sources),
-                    asOf: signal.as_of,
-                  }}
-                  labels={{
-                    explain: tRatio('explain'),
-                    target: tRatio('target'),
-                    fiveYears: tRatio('fiveYears'),
-                    close: tRatio('close'),
-                    source: tData.raw('metricSource') as string,
-                  }}
-                />
-              );
-            })}
-          </div>
+          <SectionHeading
+            action={
+              <Link
+                href={`/stock/${encodeURIComponent(symbol)}/research?section=analysis`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+              >
+                {tRatio('seeAll')}
+                <span aria-hidden="true">→</span>
+              </Link>
+            }
+          >
+            {tRatio('headline')}
+          </SectionHeading>
+          <RatioGrid
+            keys={HEADLINE_RATIOS}
+            byKey={byKey}
+            signal={signal}
+            docs={docs}
+            snapshot={snapshot}
+            thresholdOverrides={thresholdOverrides}
+            peers={peers}
+            locale={locale}
+          />
         </Section>
-
-        {/* --- earnings quality, beside the condition it does not change ----- */}
-        {qualityNotes.length > 0 && (
-          <Section>
-            <SectionHeading>{tQuality('heading')}</SectionHeading>
-            <p className="-mt-1 mb-2 text-sm text-ink-subtle">{tQuality('intro')}</p>
-            <Card tone="sunken">
-              <ul className="space-y-2.5">
-                {qualityNotes.map((note) => (
-                  <li key={note.key} className="text-sm leading-relaxed text-ink-muted">
-                    {/* `formatNumber` pads to two decimals, which turns
-                        "over 3 years" into "over 3.00 years" and 8.5% into
-                        8.50%. These values are already rounded to the
-                        precision each one deserves, so the formatter's job
-                        here is only the locale's separators. */}
-                    {Object.entries(note.values).reduce(
-                      (text, [key, value]) =>
-                        text.replace(
-                          `{${key}}`,
-                          new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value),
-                        ),
-                      tQuality.raw(note.key) as string,
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </Section>
-        )}
-
-        {/* --- how it compares with the others you follow -------------------- */}
-        {peers && (
-          <Section>
-            <SectionHeading>{tPeers('heading')}</SectionHeading>
-            <p className="-mt-1 mb-2 max-w-prose text-sm text-ink-subtle">
-              {tPeers
-                .raw('intro')
-                .replace('{count}', String(peers.peerCount))
-                .replace('{sector}', tSector(signal.focus_sector).toLowerCase())}
-            </p>
-            <Card>
-              <PeerComparison
-                summary={peers}
-                labels={{
-                  yours: tPeers('yours'),
-                  median: tPeers('median'),
-                  difference: tPeers('difference'),
-                  above: tPeers.raw('above') as string,
-                  below: tPeers.raw('below') as string,
-                  level: tPeers('level'),
-                  metric: {
-                    pe: tPeers('metric.pe'),
-                    roe: tPeers('metric.roe'),
-                    gross_margin: tPeers('metric.gross_margin'),
-                    net_margin: tPeers('metric.net_margin'),
-                  },
-                }}
-                // Margins and returns are fractions; the multiple is not.
-                format={(metric, value) =>
-                  metric === 'pe'
-                    ? formatNumber(value, locale)
-                    : formatPercent(value, locale)
-                }
-              />
-            </Card>
-          </Section>
-        )}
-
-        {/* --- analyst estimates -------------------------------------------- */}
-        {snapshot?.estimates && (
-          <Section>
-            <SectionHeading>{locale === 'nl' ? 'Analistenverwachtingen' : 'Analyst estimates'}</SectionHeading>
-            <Card className="text-sm">
-              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat
-                  label={locale === 'nl' ? 'Verwachte WPA' : 'Next-year EPS'}
-                  // Per-share money, and it was printed as a bare number. The
-                  // estimates are quoted in the trading currency, which for a
-                  // company filing in another one is not the currency the
-                  // statements above are in.
-                  value={formatCurrency(snapshot.estimates.nextYearEps, snapshot.currency, locale)}
-                />
-                <Stat
-                  label={locale === 'nl' ? 'Verwachte groei' : 'Expected growth'}
-                  value={formatPercent(snapshot.estimates.nextYearEpsGrowth, locale)}
-                />
-                <Stat
-                  label={locale === 'nl' ? 'Analisten' : 'Analysts'}
-                  value={snapshot.estimates.analystCount?.toString() ?? '—'}
-                />
-                <Stat
-                  label={locale === 'nl' ? 'Koersdoel' : 'Target price'}
-                  value={formatCurrency(snapshot.estimates.targetPrice, snapshot.currency, locale)}
-                />
-              </dl>
-              <p className="mt-3 text-xs text-ink-faint">
-                {tData('source')}: {snapshot.estimates_source}
-              </p>
-            </Card>
-          </Section>
-        )}
 
         {/* --- AI thesis, beside the human judgement it is not a substitute for
              Absent entirely when no API key is configured: a card explaining
@@ -922,22 +504,6 @@ export default async function StockPage({
             />
           </Section>
         )}
-
-        {/* --- what has moved since last time (the stored evaluations) -------- */}
-        <ConditionTrend
-          trend={trend}
-          changes={changes}
-          labels={{
-            title: tSignal('trend.title'),
-            summary: tSignal.raw('trend.summary') as string,
-            steady: tSignal.raw('trend.steady') as string,
-            changesSince: tSignal.raw('trend.changesSince') as string,
-            started: tSignal('trend.started'),
-            stopped: tSignal('trend.stopped'),
-            tooSoon: tSignal('trend.tooSoon'),
-            condition: (key) => CONDITION_LABEL[key]?.[locale] ?? key,
-          }}
-        />
 
         {/* --- what you own, above the sell signals it gives meaning to ------ */}
         <PositionBlock
@@ -1040,4 +606,3 @@ export default async function StockPage({
     </>
   );
 }
-

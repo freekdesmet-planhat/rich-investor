@@ -4,26 +4,43 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteHeader } from '@/components/SiteHeader';
 import { BackLink } from '@/components/BackLink';
-import { Card, Section, SectionHeading } from '@/components/ui/Surface';
+import { Card, Section, SectionHeading, Stat } from '@/components/ui/Surface';
 import { TabStrip } from '@/components/research/TabStrip';
 import { StatementTable } from '@/components/research/StatementTable';
-import { getSnapshot } from '@/lib/data/queries';
+import { RatioGrid, CARD_ORDER } from '@/components/RatioGrid';
+import { ValuationRangeChart } from '@/components/ValuationRangeChart';
+import { GrowthTrajectory } from '@/components/GrowthTrajectory';
+import {
+  getRatios,
+  getSectorPeerRatios,
+  getSignal,
+  getSnapshot,
+  getThresholdOverrides,
+  getTranslations as getDocTranslations,
+  type SnapshotRow,
+} from '@/lib/data/queries';
 import {
   buildStatementTable,
   STATEMENT_ROWS,
   type StatementKind,
   type StatementPeriodicity,
 } from '@/lib/data/statementTable';
+import { comparePeers, PEER_METRICS } from '@/lib/data/peerComparison';
+import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
+import { declineContext } from '@/lib/data/declineHistory';
+import { earningsQualityNotes } from '@/lib/ratios/earningsQuality';
+import { buildTrajectory } from '@/lib/ratios/trajectory';
+import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { fetchRecentFilings } from '@/lib/providers/secFilings';
 import { secConfigured } from '@/lib/providers/secUserAgent';
 import { fetchEarningsCalls, transcriptsConfigured } from '@/lib/providers/equibles';
 import { createMarketDataService } from '@/lib/providers/marketData';
-import { formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
+import { formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import type { Lang } from '@/lib/i18n/docs';
 
 export const dynamic = 'force-dynamic';
 
-const SECTIONS = ['financials', 'news', 'filings', 'transcripts'] as const;
+const SECTIONS = ['analysis', 'financials', 'news', 'filings', 'transcripts'] as const;
 type ResearchSection = (typeof SECTIONS)[number];
 
 export async function generateMetadata({
@@ -36,10 +53,113 @@ export async function generateMetadata({
   return { title: `${decodeURIComponent(symbol).toUpperCase()} — ${t('title')}` };
 }
 
+const metricAt = (
+  statement:
+    | { periods: Array<{ endDate: string; metrics: Record<string, number | null | undefined> }> }
+    | null
+    | undefined,
+  index: number,
+  key: string,
+) => statement?.periods?.[index]?.metrics?.[key] ?? null;
+
+/**
+ * The analytical detail behind the verdict: the full ratio grid, the valuation
+ * range, the growth trajectory, the earnings-quality notes and the analyst
+ * estimates. All of it used to stack on the stock page; it lives here now, so
+ * the default view can stay the decision path.
+ *
+ * Fetched only when the Analysis tab is open, like the other tabs — the stock
+ * page has already done this work for its own render, and there is no reason to
+ * repeat it on a tab nobody clicked. The computation is exactly what the stock
+ * page used to run; only where it renders has changed.
+ */
+async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow) {
+  const signal = await getSignal(symbol);
+  if (!signal) return null;
+
+  const [ratios, docs, thresholdOverrides, peerRows, tRatio, tData, tValuation, tDecline, tQuality] =
+    await Promise.all([
+      getRatios(symbol, signal.as_of),
+      getDocTranslations(locale),
+      getThresholdOverrides(),
+      getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
+      getTranslations('ratio'),
+      getTranslations('data'),
+      getTranslations('valuationHistory'),
+      getTranslations('declineHistory'),
+      getTranslations('earningsQuality'),
+    ]);
+
+  const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
+
+  const peers = comparePeers(
+    new Map(PEER_METRICS.map((key) => [key, byKey.get(key)?.value ?? null])),
+    peerRows,
+  );
+
+  const valuation = summariseValuation(
+    peHistory(
+      (snapshot.price_history ?? []).map((p) => ({ date: p.date, close: p.close })),
+      (byKey.get('peg')?.history ?? []) as Array<{ period: string; value: number }>,
+    ),
+    byKey.get('pe')?.value ?? null,
+  );
+
+  const decline = declineContext(byKey.get('drawdown_5y')?.value ?? null);
+
+  const qualityYears = (snapshot.income_annual?.periods ?? []).map((period, i) => ({
+    endDate: period.endDate,
+    dilutedEps: metricAt(snapshot.income_annual, i, 'dilutedEps'),
+    dilutedShares: metricAt(snapshot.income_annual, i, 'dilutedShares'),
+    revenue: metricAt(snapshot.income_annual, i, 'revenue'),
+    freeCashFlow: metricAt(snapshot.cash_annual, i, 'freeCashFlow'),
+    operatingCashFlow: metricAt(snapshot.cash_annual, i, 'operatingCashFlow'),
+    capitalExpenditure: metricAt(snapshot.cash_annual, i, 'capitalExpenditure'),
+    stockBasedCompensation: metricAt(snapshot.cash_annual, i, 'stockBasedCompensation'),
+  }));
+  const qualityNotes = earningsQualityNotes(qualityYears);
+
+  const pegRow = byKey.get('peg');
+  const pegGrowth = (pegRow?.detail ?? {}) as {
+    epsCagr?: number | null;
+    endpointCagr?: number | null;
+  };
+  const trajectory = pegRow?.history?.length
+    ? buildTrajectory(pegRow.history, {
+        rate: pegGrowth.epsCagr ?? null,
+        endpointCagr: pegGrowth.endpointCagr ?? null,
+        bands: {
+          highGrowth: DEFAULT_THRESHOLDS.lynch.value.highGrowth,
+          averageGrowth: DEFAULT_THRESHOLDS.lynch.value.averageGrowth,
+        },
+      })
+    : null;
+
+  const lynch = docs.get(`lynch:${signal.lynch_category}`);
+
+  return {
+    signal,
+    byKey,
+    docs,
+    thresholdOverrides,
+    peers,
+    valuation,
+    decline,
+    qualityNotes,
+    trajectory,
+    lynchName: lynch?.name ?? null,
+    tRatio,
+    tData,
+    tValuation,
+    tDecline,
+    tQuality,
+  };
+}
+
 /**
  * Everything the default page deliberately leaves out.
  *
- * The ground rules keep the stock page to the verdict, the chart, the thesis
+ * The ground rules keep the stock page to the verdict, the chart, the checklist
  * and the review, and this is where the rest lives — one click away, never
  * shown by default. Density is the point here and only here.
  *
@@ -47,11 +167,11 @@ export async function generateMetadata({
  * parameters, so a particular view is addressable and the whole thing works
  * with JavaScript off, like the rest of the app's navigation.
  *
- * The four sections degrade independently and quietly. Statements come from
- * the stored snapshot and are always there; news, filings and transcripts
- * are third-party and each renders an explanation rather than an error when
- * its source has nothing — which for a non-US listing is the normal case for
- * two of the three.
+ * The tabs degrade independently and quietly. Analysis and statements come from
+ * the stored evaluation and are always there; news, filings and transcripts are
+ * third-party and each renders an explanation rather than an error when its
+ * source has nothing — which for a non-US listing is the normal case for two of
+ * the three.
  */
 export default async function ResearchPage({
   params,
@@ -70,7 +190,7 @@ export default async function ResearchPage({
 
   const section: ResearchSection = SECTIONS.includes(query.section as ResearchSection)
     ? (query.section as ResearchSection)
-    : 'financials';
+    : 'analysis';
   const statement: StatementKind = (['income', 'balance', 'cash'] as const).includes(
     query.statement as StatementKind,
   )
@@ -85,7 +205,9 @@ export default async function ResearchPage({
 
   // Only the section being looked at is fetched. Loading news, filings and
   // transcripts on every view would spend a third-party allowance of a
-  // hundred a day on tabs nobody opened.
+  // hundred a day on tabs nobody opened; the analysis tab is the same
+  // discipline applied to the database.
+  const analysis = section === 'analysis' ? await loadAnalysis(symbol, locale, snapshot) : null;
   const news = section === 'news' ? await createMarketDataService({}).getNews(symbol, 25) : [];
   const filings = section === 'filings' ? await fetchRecentFilings(symbol) : [];
   const calls = section === 'transcripts' && transcriptsConfigured()
@@ -122,6 +244,158 @@ export default async function ResearchPage({
             }))}
           />
         </div>
+
+        {section === 'analysis' && (
+          <div className="mt-5 [&>section:first-child]:mt-0">
+            {!analysis ? (
+              <Card tone="sunken">
+                <p className="text-sm text-ink-subtle">{t('noAnalysis')}</p>
+              </Card>
+            ) : (
+              <>
+                {analysis.valuation && (
+                  <Section>
+                    <SectionHeading>{analysis.tValuation('title')}</SectionHeading>
+                    <p className="-mt-1 mb-2 max-w-prose text-sm text-ink-subtle">
+                      {analysis.tValuation('intro')}
+                    </p>
+                    <Card>
+                      <ValuationRangeChart
+                        range={analysis.valuation}
+                        labels={{
+                          current: analysis.tValuation('current'),
+                          median: analysis.tValuation('median'),
+                          low: analysis.tValuation('low'),
+                          high: analysis.tValuation('high'),
+                          percentileCheap: analysis.tValuation.raw('percentileCheap') as string,
+                          percentileRich: analysis.tValuation.raw('percentileRich') as string,
+                          footnote: analysis.tValuation('footnote'),
+                        }}
+                      />
+                    </Card>
+                    {analysis.decline && (
+                      // Decline-severity, shrunk from a card to a single caveat
+                      // line. The market-level phrasing is built into the copy,
+                      // so it does not read as a claim about this one company.
+                      <p className="mt-2 max-w-prose text-xs text-ink-faint">
+                        {analysis.tDecline
+                          .raw(
+                            analysis.decline.severity === 'deep'
+                              ? `deep${analysis.decline.deeperInHistory}`
+                              : analysis.decline.severity,
+                          )
+                          .replace('{total}', String(analysis.decline.totalDeclines))
+                          .replace('{since}', String(1870))}
+                      </p>
+                    )}
+                  </Section>
+                )}
+
+                {analysis.trajectory && (
+                  <GrowthTrajectory
+                    trajectory={analysis.trajectory}
+                    bandName={analysis.lynchName}
+                    formatPercent={(value) => formatPercent(value, locale)}
+                    formatNumber={(value) => formatNumber(value, locale)}
+                    labels={{
+                      title: analysis.tRatio('trajectory.title'),
+                      intro: analysis.tRatio('trajectory.intro'),
+                      fitted: analysis.tRatio.raw('trajectory.fitted') as string,
+                      endpoint: analysis.tRatio('trajectory.endpoint'),
+                      dips: analysis.tRatio.raw('trajectory.dips') as string,
+                      steady: analysis.tRatio('trajectory.steady'),
+                      band: analysis.tRatio('trajectory.band'),
+                      eps: analysis.tRatio('trajectory.eps'),
+                      yoy: analysis.tRatio('trajectory.yoy'),
+                      curve: analysis.tRatio('trajectory.curve'),
+                      noFit: analysis.tRatio('trajectory.noFit'),
+                    }}
+                  />
+                )}
+
+                <Section>
+                  <SectionHeading>{analysis.tRatio('allRatios')}</SectionHeading>
+                  <RatioGrid
+                    keys={CARD_ORDER}
+                    byKey={analysis.byKey}
+                    signal={analysis.signal}
+                    docs={analysis.docs}
+                    snapshot={snapshot}
+                    thresholdOverrides={analysis.thresholdOverrides}
+                    peers={analysis.peers}
+                    locale={locale}
+                  />
+                </Section>
+
+                {analysis.qualityNotes.length > 0 && (
+                  <Section>
+                    <SectionHeading>{analysis.tQuality('heading')}</SectionHeading>
+                    <p className="-mt-1 mb-2 text-sm text-ink-subtle">
+                      {analysis.tQuality('intro')}
+                    </p>
+                    <Card tone="sunken">
+                      <ul className="space-y-2.5">
+                        {analysis.qualityNotes.map((note) => (
+                          <li key={note.key} className="text-sm leading-relaxed text-ink-muted">
+                            {/* `formatNumber` pads to two decimals, which turns
+                                "over 3 years" into "over 3.00 years" and 8.5%
+                                into 8.50%. These values are already rounded to
+                                the precision each one deserves, so the
+                                formatter's job here is only the separators. */}
+                            {Object.entries(note.values).reduce(
+                              (text, [key, value]) =>
+                                text.replace(
+                                  `{${key}}`,
+                                  new Intl.NumberFormat(locale, {
+                                    maximumFractionDigits: 2,
+                                  }).format(value),
+                                ),
+                              analysis.tQuality.raw(note.key) as string,
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </Card>
+                  </Section>
+                )}
+
+                {snapshot.estimates && (
+                  <Section>
+                    <SectionHeading>
+                      {locale === 'nl' ? 'Analistenverwachtingen' : 'Analyst estimates'}
+                    </SectionHeading>
+                    <Card className="text-sm">
+                      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <Stat
+                          label={locale === 'nl' ? 'Verwachte WPA' : 'Next-year EPS'}
+                          // Per-share money, quoted in the trading currency,
+                          // which for a company filing in another one is not the
+                          // currency the statements are in.
+                          value={formatCurrency(snapshot.estimates.nextYearEps, snapshot.currency, locale)}
+                        />
+                        <Stat
+                          label={locale === 'nl' ? 'Verwachte groei' : 'Expected growth'}
+                          value={formatPercent(snapshot.estimates.nextYearEpsGrowth, locale)}
+                        />
+                        <Stat
+                          label={locale === 'nl' ? 'Analisten' : 'Analysts'}
+                          value={snapshot.estimates.analystCount?.toString() ?? '—'}
+                        />
+                        <Stat
+                          label={locale === 'nl' ? 'Koersdoel' : 'Target price'}
+                          value={formatCurrency(snapshot.estimates.targetPrice, snapshot.currency, locale)}
+                        />
+                      </dl>
+                      <p className="mt-3 text-xs text-ink-faint">
+                        {analysis.tData('source')}: {snapshot.estimates_source}
+                      </p>
+                    </Card>
+                  </Section>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {section === 'financials' && (
           <Section className="mt-5">

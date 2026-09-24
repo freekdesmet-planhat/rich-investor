@@ -42,6 +42,9 @@
     "outside_focus": "Outside the four focus sectors"
   },
   "ratio": {
+    "headline": "Key ratios",
+    "allRatios": "All ratios",
+    "seeAll": "See all 20 in Full research",
     "explain": "What does this mean?",
     "target": "Target",
     "source": {
@@ -110,6 +113,10 @@
       "started": "now passes:",
       "stopped": "no longer passes:",
       "tooSoon": "Only one evaluation so far. The nightly scan builds this up from here."
+    },
+    "delta": {
+      "gained": "newly passing",
+      "lost": "newly failing"
     }
   },
   "data": {
@@ -583,6 +590,7 @@
     "intro": "Median of the {count} other {sector} names on your watchlist. Not a sector median — a watchlist is a selection, and it is selected on roughly these metrics.",
     "yours": "This one",
     "median": "Watchlist median",
+    "vsMedian": "vs. the others you follow",
     "difference": "Difference",
     "above": "{percent}% above",
     "below": "{percent}% below",
@@ -596,8 +604,10 @@
   },
   "research": {
     "title": "Full research",
+    "noAnalysis": "This company has not been evaluated yet, so there is no analysis to show.",
     "back": "Back to the analysis",
     "tab": {
+      "analysis": "Analysis",
       "financials": "Financials",
       "news": "News",
       "filings": "Filings",

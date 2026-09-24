@@ -222,6 +222,47 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-24: Decluttered the stock page back to the ground rule. Items 7-14
+  had each been built as its own full section — heading, intro paragraph,
+  card — and bolted onto the default view, so a dozen sections plus the
+  twenty-card ratio grid stacked on one page. Fixed as layout only; no
+  checklist logic, threshold or computed value was touched.
+  - **Stayed on the default view:** header, the "why" verdict card, the price
+    chart, the nine-condition checklist, AI thesis, qualitative review — plus
+    a new short row of five headline ratios (P/E, PEG, ROE, net margin, net
+    debt/EBITDA) with a "See all 20 in Full research →" link in place of the
+    full grid. Kept the position block here too (see judgement calls).
+  - **Moved into Full research, under a new first "Analysis" tab** (now the
+    default tab, where both the header "Full research →" link and the
+    "See all 20" link land): the full twenty-card ratio grid, the valuation-
+    range chart, the growth-trajectory panel, earnings-quality notes and
+    analyst estimates. The data-fetching and derived values are unchanged;
+    they are computed in research/page.tsx now instead of the stock page, and
+    only when the Analysis tab is open, like the other tabs.
+  - **Downgraded to inline signals rather than sections:** peer comparison is
+    now a one-line caption on the four ratio cards it covers (P/E, ROE, both
+    margins), on the headline row and in the full grid; decline-severity is a
+    single caveat line under the valuation-range chart; the condition trend
+    ("what changed since last time") folds into the checklist as a per-row
+    "↑ newly passing / ↓ newly failing" marker plus a "Since {date}:" caption,
+    instead of a disconnected block further down.
+  - **Judgement calls beyond the brief:** (1) The per-card render logic — PEG's
+    two bases, the market-cap currency pair, overridden targets — was extracted
+    into one shared `RatioGrid` component used by both the headline row and the
+    full grid, rather than copied into two files; copying it would have been
+    exactly the two-builders-one-saver split that caused the 09-21 suggestions
+    bug. (2) The peer caption reads "vs. the others you follow", not the "vs.
+    sector median" wording the brief used, because peerComparison.ts is
+    emphatic that this is a watchlist median and never a sector one — calling
+    it a sector median would be the one falsehood that module exists to avoid.
+    (3) The decline caveat renders the market-level severity sentence (which
+    already says "at market level"), dropping the recovery clause and the
+    separate index-vs-single-stock note, to hold it to one self-qualifying
+    sentence. (4) The position block stayed on the default view although the
+    brief's "stays" list did not name it: it is the user's own holding and the
+    thing the sell signals are about, not a dense analytical table. Verified in
+    a real browser across light and dark and EN/NL, both pages, no console
+    errors; full gate clean.
 - 2026-09-20: Brief drafted after a competitive gap analysis against Koyfin,
   Finviz, StockAnalysis.com, and Morningstar. Not started yet.
 - 2026-09-20: Before item 1 started, an audit of the live system found the

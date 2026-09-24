@@ -42,6 +42,9 @@
     "outside_focus": "Buiten de vier focussectoren"
   },
   "ratio": {
+    "headline": "Kerncijfers",
+    "allRatios": "Alle cijfers",
+    "seeAll": "Bekijk alle 20 in volledig onderzoek",
     "explain": "Wat betekent dit?",
     "target": "Doel",
     "source": {
@@ -110,6 +113,10 @@
       "started": "voldoet nu aan:",
       "stopped": "voldoet niet meer aan:",
       "tooSoon": "Nog maar één evaluatie. De nachtelijke scan bouwt dit vanaf nu op."
+    },
+    "delta": {
+      "gained": "nu behaald",
+      "lost": "nu niet meer"
     }
   },
   "data": {
@@ -583,6 +590,7 @@
     "intro": "Mediaan van de {count} andere namen in {sector} op je volglijst. Geen sectormediaan — een volglijst is een selectie, en juist op ongeveer deze maatstaven geselecteerd.",
     "yours": "Dit aandeel",
     "median": "Mediaan volglijst",
+    "vsMedian": "t.o.v. de anderen die je volgt",
     "difference": "Verschil",
     "above": "{percent}% hoger",
     "below": "{percent}% lager",
@@ -596,8 +604,10 @@
   },
   "research": {
     "title": "Volledig onderzoek",
+    "noAnalysis": "Dit bedrijf is nog niet geëvalueerd, dus er is geen analyse om te tonen.",
     "back": "Terug naar de analyse",
     "tab": {
+      "analysis": "Analyse",
       "financials": "Cijfers",
       "news": "Nieuws",
       "filings": "Documenten",
