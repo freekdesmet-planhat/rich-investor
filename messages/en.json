@@ -375,6 +375,11 @@
     "onWatchlist": "On your watchlist",
     "open": "Open analysis",
     "notAnalysed": "Not analysed yet",
+    "size": {
+      "large": "Large cap",
+      "mega": "Mega cap",
+      "checkedOnAnalysis": "Size checked on analysis"
+    },
     "unknownSymbol": "That ticker is not in the company universe.",
     "failed": "Could not add it. Try again."
   },

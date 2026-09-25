@@ -17,6 +17,14 @@ import { sanitiseOverrides } from '@/lib/ratios/editableThresholds';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
 import { dedupeByCompany, PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
+import {
+  isExcludedInstrument,
+  normaliseQuery,
+  passesSizeFloor,
+  SEARCHABLE_BANDS,
+  sizeLabelOf,
+  type SizeLabel,
+} from './searchFilters';
 import type { Lang } from '@/lib/i18n/config';
 
 export interface SignalRow {
@@ -732,63 +740,82 @@ export interface UniverseMatch {
   exchange: string | null;
   country: string | null;
   region: string | null;
+  /** Size label to show: large / mega, or "checked on analysis" for a rescued null band. */
+  sizeLabel: SizeLabel;
   /** Already on the watchlist. */
   onWatchlist: boolean;
   /** Has been evaluated, so /stock/<symbol> will render. */
   analysed: boolean;
 }
 
+interface UniverseRowMatch {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  country: string | null;
+  region: string | null;
+  market_cap_band: string | null;
+}
+
 /**
- * Finds tickers by symbol or company name.
+ * Finds companies by symbol or name, floored to the large-cap universe.
  *
- * Two things make the raw table unusable as a search index. It holds 102,285
- * rows with no index on `name`, so an unindexed substring match on a common
- * word took ~70 seconds (migration 0024 adds the trigram index that brings it
- * to ~140ms). And it lists every venue a company trades on, so "adobe" matches
- * ADB.BE, ADB.DE, ADB.DU and a dozen more lines of the same company — the
- * existing `dedupeByCompany` is what turns that back into one result per
- * business, and primary listings are preferred so the one that survives is the
- * one worth analysing.
+ * Three things had to be true for this to be usable, and none was:
+ *
+ *  - **The size floor is in the query.** V1 is large companies only, so the
+ *    Large/Mega bands are filtered in the database. Doing it after a fixed fetch
+ *    let a common name fill the window with micro caps and starve the one
+ *    company that mattered — the "KO returns no Coca-Cola" bug.
+ *  - **The exact ticker always survives.** A separate exact-symbol lookup runs
+ *    alongside the floored query and is merged in, so typing a ticker returns
+ *    that company even when a hundred names also match. It also carries the
+ *    null-band rescue: a recent IPO the static dataset has not classified is
+ *    shown on an exact-ticker match and labelled "size checked on analysis".
+ *  - **Names match the way people type them.** The query is diacritic-folded and
+ *    punctuation-collapsed against the `search_text` column (0038), so "hermes"
+ *    finds "Hermès" and "coca cola" finds "Coca-Cola".
+ *
+ * Instruments written on a company — warrants, rights, units, preferred series,
+ * structured products, exchange test tickers — are dropped outright, before the
+ * rescue, so an exact-ticker match on a warrant symbol cannot slip through.
  */
 export async function searchUniverse(query: string, limit = 10): Promise<UniverseMatch[]> {
-  const trimmed = query.trim();
-  if (trimmed.length < 2) return [];
-
-  // PostgREST's or= filter is comma-separated, so a comma in the input would be
-  // read as a filter separator rather than as text.
-  const safe = trimmed.replace(/[,()*]/g, ' ').trim();
-  if (safe.length < 2) return [];
+  const q = normaliseQuery(query);
+  if (!q) return [];
 
   const supabase = await client();
-  const { data } = await supabase
-    .from('universe')
-    .select('symbol,name,exchange,country,region')
-    // Symbols are stored uppercase, so an uppercased case-sensitive prefix can
-    // use the text_pattern_ops index (0025); ILIKE could not use any index and
-    // scanned the whole table. Names go through the trigram index (0024).
-    .or(`symbol.like.${safe.toUpperCase()}*,name.ilike.*${safe}*`)
-    // Over-fetch: duplicates collapse below, and the listing worth showing may
-    // not be in the first handful the index returns.
-    .limit(120)
-    .returns<Array<Omit<UniverseMatch, 'onWatchlist' | 'analysed'>>>();
+  const cols = 'symbol,name,exchange,country,region,market_cap_band';
 
-  const rows = data ?? [];
-  if (rows.length === 0) return [];
+  const [floored, exact] = await Promise.all([
+    // Name (folded) or symbol prefix, within the size bands. `*` is PostgREST's
+    // ILIKE wildcard; the folded pattern already spans spaces and hyphens.
+    supabase
+      .from('universe')
+      .select(cols)
+      .or(`search_text.ilike.${q.pattern},symbol.like.${q.symbol}*`)
+      .in('market_cap_band', SEARCHABLE_BANDS)
+      .limit(200)
+      .returns<UniverseRowMatch[]>(),
+    // The exact-ticker rescue, any band — the floor/valve below decides whether
+    // a Mid/Small exact match is dropped and a null-band one is kept.
+    supabase.from('universe').select(cols).eq('symbol', q.symbol).limit(1).returns<UniverseRowMatch[]>(),
+  ]);
 
-  // Venues the pipeline actually covers. This drops depositary receipts and
-  // structured products — "FNB ETN on ADOBEC NOV25" is not a company anyone
-  // wants to analyse — without hard-filtering on isPrimaryListing, which would
-  // discard ASML: it trades on NASDAQ (NMS) while the company is Dutch, so the
-  // exchange/country test says false for a perfectly real listing.
-  const onKnownVenue = rows.filter(
-    (r) => r.exchange && PRIMARY_EXCHANGE_CODES.includes(r.exchange.toUpperCase()),
-  );
-  const deduped = dedupeByCompany(onKnownVenue.length > 0 ? onKnownVenue : rows);
+  const merged = new Map<string, UniverseRowMatch>();
+  for (const r of [...(floored.data ?? []), ...(exact.data ?? [])]) merged.set(r.symbol, r);
+  if (merged.size === 0) return [];
 
-  const ranked = rankUniverseMatches(deduped, safe);
+  const kept = [...merged.values()].filter((r) => {
+    // Hard-drop wins over the exact-ticker rescue, so a warrant's own symbol
+    // does not resurrect it.
+    if (isExcludedInstrument(r.name, r.symbol)) return false;
+    return passesSizeFloor(r.market_cap_band, r.symbol === q.symbol);
+  });
+  if (kept.length === 0) return [];
 
-  const top = ranked.slice(0, limit);
-  const symbols = top.map((r) => r.symbol);
+  const deduped = dedupeByCompany(kept);
+  const ranked = rankUniverseMatches(deduped, q.folded).slice(0, limit);
+  const symbols = ranked.map((r) => r.symbol);
 
   const [onWatchlist, { data: analysed }] = await Promise.all([
     getWatchlistSymbols(),
@@ -796,8 +823,13 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
   ]);
   const analysedSet = new Set((analysed ?? []).map((r) => r.symbol));
 
-  return top.map((row) => ({
-    ...row,
+  return ranked.map((row) => ({
+    symbol: row.symbol,
+    name: row.name,
+    exchange: row.exchange,
+    country: row.country,
+    region: row.region,
+    sizeLabel: sizeLabelOf(row.market_cap_band),
     onWatchlist: onWatchlist.has(row.symbol),
     analysed: analysedSet.has(row.symbol),
   }));

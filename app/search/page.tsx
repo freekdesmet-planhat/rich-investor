@@ -83,6 +83,11 @@ export default async function SearchPage({
                     <span>
                       {[row.exchange, row.country].filter(Boolean).join(' · ') || '—'}
                     </span>
+                    {row.sizeLabel && (
+                      // Size, not a verdict: the ✓ belongs to the checklist,
+                      // which re-checks the real USD figure on analysis.
+                      <span className="text-ink-faint">{t(`size.${row.sizeLabel}`)}</span>
+                    )}
                     {row.analysed ? (
                       <Link
                         href={`/stock/${encodeURIComponent(row.symbol)}`}

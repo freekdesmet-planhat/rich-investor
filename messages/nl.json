@@ -375,6 +375,11 @@
     "onWatchlist": "Staat op je volglijst",
     "open": "Analyse openen",
     "notAnalysed": "Nog niet geanalyseerd",
+    "size": {
+      "large": "Large cap",
+      "mega": "Mega cap",
+      "checkedOnAnalysis": "Grootte gecontroleerd bij analyse"
+    },
     "unknownSymbol": "Die ticker staat niet in het bedrijvenuniversum.",
     "failed": "Toevoegen is niet gelukt. Probeer het opnieuw."
   },
