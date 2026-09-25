@@ -222,6 +222,28 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-25: The watchlist-headroom risk logged on 09-21 came true, and is now
+  fixed. The 02:00 nightly-scan timed out on 09-24 and 09-25 — killed at the
+  ~60s execution ceiling before it persisted anything — so every watchlist
+  figure froze at 09-23 while the separate 02:15 universe scan kept running.
+  Cause: EDGAR fundamentals rejoined the watchlist pass on 09-21 and pushed it
+  from ~40s into the high-40s/low-50s; ordinary provider-latency variance then
+  tipped it over 60s. (The 504 in net._http_response is a red herring — that is
+  pg_net's ~26s connection timeout and fires every night; the evidence is the
+  `cron_runs` rows: `timed_out`, null duration, null watchlist_evaluated.)
+  Fixed by slicing the watchlist across requests — the same move as splitting
+  the universe scan out. The route takes ?part=i&parts=n and refreshes only that
+  index-slice; the first slice also does the once-a-night macro refresh. Three
+  pg_cron schedules now (nightly-scan-p0/p1/p2 at 02:00/02:03/02:06), each ~14–19s
+  against the ceiling. The digest can no longer ride the pass (no slice sees the
+  whole watchlist), so it moved to its own schedule, daily-digest at 02:10, via
+  /api/cron/digest, which already assembles it from the stored signals and is
+  idempotent per recipient per day; per-ticker buy alerts still fire from each
+  slice. Verified on production: all three slices ran ≤19s and 32/32 watchlist
+  symbols now carry today's signal, so the frozen figures are current again.
+  This closes the 09-21 headroom risk. (Also: the 09-24 stock-page declutter,
+  commit 2bda7ec, had not been pushed yet and went live alongside this fix,
+  since it sat under it on main.)
 - 2026-09-24: Decluttered the stock page back to the ground rule. Items 7-14
   had each been built as its own full section — heading, intro paragraph,
   card — and bolted onto the default view, so a dozen sections plus the
