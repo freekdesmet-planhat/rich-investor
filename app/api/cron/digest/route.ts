@@ -15,7 +15,8 @@
  * is the whole boundary, and an unconfigured deployment is closed, not open.
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 import { sendDailyDigest, type DigestEntry } from '@/lib/pipeline/digest';
 import type { SignalStatus } from '@/lib/signal/buyWorthy';
@@ -40,13 +41,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
+  if (!env.hasSupabaseAdmin()) {
     return NextResponse.json({ error: 'supabase not configured' }, { status: 500 });
   }
 
-  const client = createClient(url, key, { auth: { persistSession: false } });
+  const client = createAdminClient();
 
   // Membership decides what the digest covers, the same way the watchlist page
   // does — a ticker taken off the list should stop being reported on.
@@ -109,7 +108,7 @@ export async function POST(request: NextRequest) {
     };
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
+  const baseUrl = env.siteUrl() ?? '';
 
   const outcomes = await sendDailyDigest(client, entries, asOf, {
     baseUrl,
@@ -146,13 +145,9 @@ export async function POST(request: NextRequest) {
 /** GET reports readiness without sending anything. */
 export async function GET(request: NextRequest) {
   return NextResponse.json({
-    ready: Boolean(
-      process.env.CRON_SECRET &&
-        process.env.SUPABASE_SERVICE_ROLE_KEY &&
-        process.env.RESEND_API_KEY,
-    ),
+    ready: env.hasCronSecret() && env.hasSupabaseAdmin() && env.hasResend(),
     authorised: isAuthorisedCron(request.headers),
-    canSendMail: Boolean(process.env.RESEND_API_KEY),
-    linksTo: process.env.NEXT_PUBLIC_SITE_URL ?? null,
+    canSendMail: env.hasResend(),
+    linksTo: env.siteUrl() ?? null,
   });
 }

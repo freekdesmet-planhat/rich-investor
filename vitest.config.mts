@@ -9,6 +9,14 @@ export default defineConfig({
     include: ['lib/**/*.test.ts', 'app/**/*.test.ts'],
   },
   resolve: {
-    alias: { '@': import.meta.dirname },
+    alias: {
+      '@': import.meta.dirname,
+      // Server-role modules guard themselves with `server-only`, which throws
+      // when bundled for the client. There is no client bundle under test, so
+      // it is stubbed to a no-op — otherwise importing a pure helper that
+      // happens to sit in a server-only module (e.g. allowedEmailsFromEnv)
+      // would fail the whole suite.
+      'server-only': `${import.meta.dirname}/test/serverOnlyStub.ts`,
+    },
   },
 });

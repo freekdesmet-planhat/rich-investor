@@ -1,5 +1,6 @@
 import 'server-only';
-import { createClient as serviceClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
 import {
   DEFAULT_WINDOW_DAYS,
   fetchInsiderActivity,
@@ -30,10 +31,8 @@ export interface CachedInsiderActivity extends InsiderActivity {
 }
 
 function admin() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return serviceClient(url, key, { auth: { persistSession: false } });
+  if (!env.hasSupabaseAdmin()) return null;
+  return createAdminClient();
 }
 
 interface Row {

@@ -26,7 +26,9 @@
  * the whole security boundary here.
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
 import { runDailyPipeline, SEED_SYMBOLS } from '@/lib/pipeline/runDaily';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 import { CronRunRecorder } from '@/lib/pipeline/cronRun';
@@ -47,13 +49,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
+  if (!env.hasSupabaseAdmin()) {
     return NextResponse.json({ error: 'supabase not configured' }, { status: 500 });
   }
 
-  const client = createClient(url, key, { auth: { persistSession: false } });
+  const client = createAdminClient();
 
   /**
    * `?notify=false` runs the pipeline without sending anything.
@@ -197,7 +197,7 @@ async function watchlistSymbols(client: SupabaseClient): Promise<string[]> {
 /** GET is a health check: it reports readiness without running anything. */
 export async function GET(request: NextRequest) {
   return NextResponse.json({
-    ready: Boolean(process.env.CRON_SECRET && process.env.SUPABASE_SERVICE_ROLE_KEY),
+    ready: env.hasCronSecret() && env.hasSupabaseAdmin(),
     authorised: isAuthorisedCron(request.headers),
   });
 }

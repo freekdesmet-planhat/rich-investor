@@ -20,20 +20,20 @@
  * policies read, so adding someone in the database alone is enough and does not
  * need a redeploy.
  */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
 
 export function allowedEmailsFromEnv(): string[] {
-  return (process.env.ALLOWED_EMAILS ?? '')
+  return (env.allowedEmails() ?? '')
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter((email) => email.includes('@'));
 }
 
 function adminClient(): SupabaseClient | null {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
+  if (!env.hasSupabaseAdmin()) return null;
+  return createAdminClient();
 }
 
 /**

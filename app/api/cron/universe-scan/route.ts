@@ -23,7 +23,9 @@
  * watchlist, so the two are never in flight together.
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
 import { runScan } from '@/lib/pipeline/scan';
 import { observedMsPerCandidate, scanBudget, RUN_CEILING_MS } from '@/lib/pipeline/scanBudget';
 import { mergeScanState, readScanStateFrom, type ScanState } from '@/lib/pipeline/scanState';
@@ -43,13 +45,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
+  if (!env.hasSupabaseAdmin()) {
     return NextResponse.json({ error: 'supabase not configured' }, { status: 500 });
   }
 
-  const client = createClient(url, key, { auth: { persistSession: false } });
+  const client = createAdminClient();
 
   const run = new CronRunRecorder('universe-scan');
   const started = run.startedAt.getTime();
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     ceilingMs: RUN_CEILING_MS,
     elapsedMs: Date.now() - started,
     msPerCandidate: state.msPerCandidate,
-    override: process.env.SCAN_BATCH_SIZE,
+    override: env.scanBatchSize(),
   });
   run.log(
     `scan budget: ${budget.limit} candidates (${Math.round(budget.remainingMs / 1000)}s of ` +
@@ -195,7 +195,7 @@ async function saveScanState(client: SupabaseClient, state: ScanState): Promise<
 /** GET is a health check: it reports readiness without running anything. */
 export async function GET(request: NextRequest) {
   return NextResponse.json({
-    ready: Boolean(process.env.CRON_SECRET && process.env.SUPABASE_SERVICE_ROLE_KEY),
+    ready: env.hasCronSecret() && env.hasSupabaseAdmin(),
     authorised: isAuthorisedCron(request.headers),
     ceilingSeconds: Math.round(RUN_CEILING_MS / 1000),
   });
