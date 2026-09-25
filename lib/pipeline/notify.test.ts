@@ -137,7 +137,10 @@ describe('buy-signal alerts', () => {
     // Each gets their own language, from the same generator as the UI.
     expect(mailer.sent[0].subject).toBe('ADYEN.AS is now buy-worthy');
     expect(mailer.sent[1].subject).toBe('ADYEN.AS is koopwaardig geworden');
-    expect(mailer.sent[1].text).toContain('koopwaardig');
+    // The subject carries the crossing's recency; the body is time-neutral now
+    // (it is the same text the stock page stores and shows days later), so the
+    // Dutch marker moved from "koopwaardig" to the body's own wording.
+    expect(mailer.sent[1].text).toContain('voorwaarden');
   });
 
   it('includes the full explanation, not just the ticker', async () => {

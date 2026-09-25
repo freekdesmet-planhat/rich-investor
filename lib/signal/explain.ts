@@ -208,10 +208,15 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
 
   // --- opening --------------------------------------------------------------
   if (signal.status === 'buy_worthy') {
+    // Time-neutral on purpose. This text is stored with the signal and shown
+    // again days later, so it must not claim "today" — a name that turned
+    // buy-worthy last week would still say it. The recency of a crossing lives
+    // in the email subject ("is now buy-worthy") and the "changed recently"
+    // view, both computed at read time, not baked into a stored sentence.
     parts.push({ section: 'verdict', text:
       lang === 'nl'
-        ? `${symbol} is vandaag koopwaardig geworden.`
-        : `${symbol} turned buy-worthy today.` });
+        ? `${symbol} voldoet aan alle ${signal.conditionsApplicable} van toepassing zijnde voorwaarden.`
+        : `${symbol} meets all ${signal.conditionsApplicable} applicable conditions.` });
   } else if (signal.status === 'almost') {
     parts.push({ section: 'verdict', text:
       lang === 'nl'
@@ -283,16 +288,30 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
           ? ` (gecorrigeerd voor settlementsaldi; het ruwe cijfer van ${pct(roaDetail.rawValue, lang)} wordt vertekend door geld dat voor klanten wordt aangehouden${roaDetail.isApproximation ? ', en de correctie is een benadering' : ''})`
           : ` (adjusted for settlement balances; the raw figure of ${pct(roaDetail.rawValue, lang)} is distorted by funds held on behalf of customers${roaDetail.isApproximation ? ', and the adjustment is an approximation' : ''})`;
     }
-    parts.push({ section: 'passes', text: `${sentence}.` });
+    // The section follows the condition's result, not a fixed slot. Filing a
+    // failing return under "what passes" — Heineken's 10% ROE — is the bug this
+    // fixes: a sentence's placement now states the same verdict as its ✓/✗.
+    parts.push({ section: returns.passed ? 'passes' : 'missing', text: `${sentence}.` });
   }
 
   // --- cash flow and debt ---------------------------------------------------
   const cashFlow = by('cash_flow');
   if (cashFlow?.applicable && cashFlow.value != null) {
-    parts.push({ section: 'passes', text:
-      lang === 'nl'
-        ? `De vrije kasstroom is positief en de operationele kasstroom dekt ${pct(cashFlow.value, lang)} van de nettowinst — een teken van zuivere boekhouding.`
-        : `Free cash flow is positive and operating cash flow covers ${pct(cashFlow.value, lang)} of net income — a sign of clean accounting.` });
+    // "A sign of clean accounting" is a claim about a condition that passed. On
+    // a failing one — SMCI's operating cash flow at −305% of net income — the
+    // same words contradicted the ✗ and the "still missing" line beneath them.
+    // The claim is now made only when the condition actually passes.
+    if (cashFlow.passed) {
+      parts.push({ section: 'passes', text:
+        lang === 'nl'
+          ? `De vrije kasstroom is positief en de operationele kasstroom dekt ${pct(cashFlow.value, lang)} van de nettowinst — een teken van zuivere boekhouding.`
+          : `Free cash flow is positive and operating cash flow covers ${pct(cashFlow.value, lang)} of net income — a sign of clean accounting.` });
+    } else {
+      parts.push({ section: 'missing', text:
+        lang === 'nl'
+          ? `De operationele kasstroom dekt ${pct(cashFlow.value, lang)} van de nettowinst, minder dan de voorwaarde vraagt.`
+          : `Operating cash flow covers ${pct(cashFlow.value, lang)} of net income, short of what the condition asks.` });
+    }
   }
 
   const debt = by('debt');
