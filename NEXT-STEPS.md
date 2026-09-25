@@ -272,6 +272,27 @@ browser-verified + full gate, like everything else. Audit item numbers in [ ].
 - **A11. Mobile filter overflow [15].** The watchlist sort/filter row overflows
   to 445px at 390px — fix that one now; the rest of mobile is item 2. Files:
   `app/page.tsx`.
+- **A12. Nightly scan skips Mega Cap.** The scan filters candidates to the
+  `Large Cap` band only, so mega caps are never suggested. Add Mega Cap — but
+  first report per-slice runtime headroom and scan throughput (names/night, and
+  how many nights a full pass of the 3,422 takes); adding names must not reopen
+  the 60s ceiling. Built together with A1c. Files: `lib/pipeline/scan.ts`,
+  `lib/data/queries.ts` (getScreeningProvenance).
+- **A1c. Stale size labels self-heal, and search shows the real cap.** ~10% of
+  "Large cap" labels are wrong (HelloFresh at $0.39bn), so a user adds a name
+  search calls Large cap and the checklist then fails it on size. No new
+  provider: wherever a pipeline already fetches a quote (watchlist, scan, adding
+  a stock), write the USD market cap back to `universe.market_cap_usd`; in
+  search use the real figure when present (show "$31.5B", apply the $10bn floor
+  to it) and fall back to the band only when absent; do a one-off quote fetch for
+  the ~30 null-band valve rescues so they're findable by name. Over one scan
+  cycle the stale labels correct themselves. Built with A12 (both touch the
+  scan). Files: `lib/pipeline/evaluateSymbol.ts`/`runDaily.ts`/`scan.ts`,
+  `lib/data/searchFilters.ts`, `lib/data/queries.ts`, `app/search/page.tsx`.
+
+Order (2026-09-25): A11 → A9 → (A12 + A1c together, headroom/throughput report
+first). Deploy policy: push after each verified item with a production smoke
+test, not batched — see the Log for why batching bit us on 09-24.
 
 ### B. Folded into the shipped items above (audit refinements)
 
@@ -310,6 +331,14 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-25: Deploy policy set — push after each verified item with a
+  production smoke test, not batched. Batching is what put the stock-page
+  declutter (2bda7ec) live unplanned under the 09-24 nightly fix, and left the DB
+  on migration 0038 while the code that uses it sat unpushed. Also decided A1c
+  (stale "Large cap" labels self-heal: pipelines write the real USD cap back to
+  the universe, search shows and floors on the real figure, band is the
+  fallback) and A12 (add Mega Cap to the scan) — built together, both touch the
+  scan, headroom/throughput report first. Order from here: A11 → A9 → A12 + A1c.
 - 2026-09-25: A1 (search) pre-build investigation, per the decision to floor
   search on the `Large Cap` + `Mega Cap` bands.
   - **Band edge, checked against real USD caps** (195 names that carry both a
