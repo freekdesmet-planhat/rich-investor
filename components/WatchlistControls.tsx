@@ -176,8 +176,15 @@ export function WatchlistControls({
         </div>
 
         {/* A GET form, so the text filter lands in the URL like the rest. The
-            other options ride along as hidden fields or they would be lost. */}
-        <form method="GET" action="/" className="flex min-w-0 flex-1 items-center gap-2">
+            other options ride along as hidden fields or they would be lost.
+            Full width on a phone so the Apply button drops to its own line
+            instead of being pushed past the edge (it took the page to 445px at
+            390px); it shares the row again from sm up. */}
+        <form
+          method="GET"
+          action="/"
+          className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1"
+        >
           {view.status !== 'all' && <input type="hidden" name="status" value={view.status} />}
           {view.sort !== 'sector' && <input type="hidden" name="sort" value={view.sort} />}
           {view.review !== 'any' && <input type="hidden" name="review" value={view.review} />}
