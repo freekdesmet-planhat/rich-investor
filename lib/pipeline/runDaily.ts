@@ -14,19 +14,16 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createFxRates } from '@/lib/providers/fx';
 import { createMarketDataService } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
-import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/engine';
-import { checkInvariants, formatViolations, type InvariantViolation } from '@/lib/ratios/invariants';
+import { formatViolations, type InvariantViolation } from '@/lib/ratios/invariants';
 import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
-import { evaluateSignal, type SignalStatus } from '@/lib/signal/buyWorthy';
-import { explainSignal, explainSections } from '@/lib/signal/explain';
+import type { SignalStatus } from '@/lib/signal/buyWorthy';
 import { readThresholdOverrides } from './thresholdStore';
-import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
+import { evaluateSymbol } from './evaluateSymbol';
 import { refreshMacroContext } from '@/lib/macro/store';
 import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
 import { sendDailyDigest, type DigestEntry, type DigestOutcome } from './digest';
 import {
   DEFAULT_SECTOR_RULES,
-  resolveFocusSector,
   type FocusSector,
   type SectorRule,
 } from '@/lib/sectors/mapping';
@@ -95,12 +92,6 @@ interface UniverseRow {
   name: string | null;
   sector: string | null;
   industry: string | null;
-}
-
-/** Banks and insurers, whose ratios mean something different (section 6.6). */
-function isFinancialInstitution(sector: string | null, industry: string | null): boolean {
-  if (sector !== 'Financials') return false;
-  return /bank|insurance|thrift/i.test(industry ?? '');
 }
 
 export interface PipelineResult {
@@ -214,118 +205,55 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     }
 
     const meta = universe.get(symbol);
-    const resolved = resolveFocusSector(rules, {
-      symbol,
-      sector: meta?.sector ?? null,
-      industry: meta?.industry ?? null,
-    });
-
-    const ctx = buildContext(bundle, {
-      focusSector: resolved.focusSector,
-      isFinancial: isFinancialInstitution(meta?.sector ?? null, meta?.industry ?? null),
-      isPaymentProcessor: resolved.isPaymentProcessor,
-      thresholds,
-      fx,
-    });
-
-    const lynch = classifyLynch(ctx, { industry: meta?.industry ?? null, thresholds });
-    const ratios = computeAllRatios(ctx, pegCategoryFor(lynch.category));
-
-    // Invariants run before the signal is built, so a broken number never
-    // reaches a buy decision without being reported first.
-    const violations = checkInvariants(ctx, ratios);
-    if (violations.length > 0) {
-      log(`INVARIANT VIOLATION for ${symbol}:\n${formatViolations(violations)}`);
-      allViolations.push(...violations);
-    }
-
-    const signal = evaluateSignal(ctx, ratios, lynch.category);
-
-    // Built once and used twice: the joined prose for the email and the
-    // suggestion cards, the tagged sentences for the page.
-    const explainInput = {
+    const result = evaluateSymbol({
       symbol,
       name: meta?.name ?? bundle.quote?.name ?? null,
-      signal,
-      ratios,
-    };
-    const explanation = explainSignal(explainInput);
+      sector: meta?.sector ?? null,
+      industry: meta?.industry ?? null,
+      bundle,
+      rules,
+      thresholds,
+      fx,
+      asOf,
+      previousStatus: previousStatus.get(symbol) ?? null,
+    });
 
-    const previous = previousStatus.get(symbol) ?? null;
-    const becameBuyWorthy = signal.status === 'buy_worthy' && previous !== 'buy_worthy';
+    if (result.violations.length > 0) {
+      log(`INVARIANT VIOLATION for ${symbol}:\n${formatViolations(result.violations)}`);
+      allViolations.push(...result.violations);
+    }
 
-    if (becameBuyWorthy) {
+    if (result.becameBuyWorthy) {
       toNotify.push({
         symbol,
-        name: meta?.name ?? bundle.quote?.name ?? null,
+        name: result.name,
         asOf,
-        signal,
-        ratios,
+        signal: result.signal,
+        ratios: result.ratios,
       });
     }
 
-    for (const result of Object.values(ratios) as RatioResult[]) {
-      const detail = result.detail as { isAdjusted?: boolean; rawValue?: number | null };
-      ratioRows.push({
-        symbol,
-        as_of: asOf,
-        ratio_key: result.key,
-        value: result.value,
-        unit: result.unit,
-        color: result.color,
-        target_label: result.targetLabel,
-        target_source: result.targetSource,
-        thresholds: result.thresholds,
-        currency: result.currency,
-        history: result.history,
-        not_applicable: result.notApplicable,
-        unavailable_reason: result.unavailableReason,
-        detail: result.detail,
-        is_adjusted: detail.isAdjusted ?? false,
-        raw_value: detail.rawValue ?? null,
-      });
-    }
-
-    signalRows.push({
-      symbol,
-      as_of: asOf,
-      status: signal.status,
-      lynch_category: lynch.category,
-      focus_sector: resolved.focusSector,
-      conditions_met: signal.conditionsMet,
-      conditions_total: 9,
-      conditions_applicable: signal.conditionsApplicable,
-      checklist: signal.conditions,
-      why_en: explanation.en,
-      why_nl: explanation.nl,
-      // The same sentences, still grouped. The prose above stays the source
-      // for the email; this is what lets the page lead with a verdict.
-      why_parts: explainSections(explainInput),
-      ratio_snapshot: signal.ratioSnapshot,
-      thresholds_used: thresholds,
-      peg_basis: signal.pegBasis,
-      became_buy_worthy: becameBuyWorthy,
-      previous_status: previous,
-    });
+    ratioRows.push(...result.ratioRows);
+    signalRows.push(result.signalRow);
 
     rows.push({
       symbol,
-      name: meta?.name ?? bundle.quote?.name ?? null,
-      status: signal.status,
-      previousStatus: previous,
-      becameBuyWorthy,
-      conditionsMet: signal.conditionsMet,
-      conditionsApplicable: signal.conditionsApplicable,
-      missing: signal.missing,
+      name: result.name,
+      status: result.signal.status,
+      previousStatus: result.previousStatus,
+      becameBuyWorthy: result.becameBuyWorthy,
+      conditionsMet: result.signal.conditionsMet,
+      conditionsApplicable: result.signal.conditionsApplicable,
+      missing: result.signal.missing,
       nextEarningsDate: bundle.quote?.nextEarningsDate ?? null,
-      pegBasis: signal.pegBasis,
-      focusSector: resolved.focusSector,
-      lynchCategory: lynch.category,
-      whyEn: explanation.en,
-      whyNl: explanation.nl,
+      pegBasis: result.signal.pegBasis,
+      focusSector: result.focusSector,
+      lynchCategory: result.lynchCategory,
+      whyEn: result.explanation.en,
+      whyNl: result.explanation.nl,
       isStale: bundle.isStale,
       errors: bundle.errors,
-      violations,
+      violations: result.violations,
     });
   }
 

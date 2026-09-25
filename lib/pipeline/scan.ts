@@ -23,11 +23,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createFxRates } from '@/lib/providers/fx';
 import { createMarketDataService } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
-import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/engine';
-import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
-import { evaluateSignal } from '@/lib/signal/buyWorthy';
-import { explainSignal, explainSections } from '@/lib/signal/explain';
-import { classifyLynch, pegCategoryFor } from '@/lib/signal/lynch';
+import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
+import { readThresholdOverrides } from './thresholdStore';
+import { evaluateSymbol } from './evaluateSymbol';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -322,6 +320,15 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   }
   await fx.load(pairs);
 
+  // The household's thresholds, resolved exactly as the nightly watchlist does.
+  // The scan used to judge every candidate against the app defaults, so a
+  // customised threshold changed what you watched but not what was suggested;
+  // now both paths run on the same numbers.
+  const stored = await readThresholdOverrides(client);
+  const thresholds = Object.keys(stored ?? {}).length > 0
+    ? mergeThresholds(stored as Record<string, unknown>)
+    : DEFAULT_THRESHOLDS;
+
   const rows: Record<string, unknown>[] = [];
   // A suggested candidate's stock page reads signal_history and ratios, so the
   // scan persists both for the names it raises — see the note by the upserts.
@@ -335,104 +342,51 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     if (!bundle || bundle.quote?.price == null) continue;
     evaluated++;
 
-    const focus = resolveFocusSector(rules, {
+    // The one evaluation path both pipelines run — same maths, same thresholds,
+    // same row shapes. See evaluateSymbol.ts.
+    const result = evaluateSymbol({
       symbol: candidate.symbol,
+      name: candidate.name,
       sector: candidate.sector,
       industry: candidate.industry,
-    });
-
-    const ctx = buildContext(bundle, {
-      focusSector: focus.focusSector,
-      isPaymentProcessor: focus.isPaymentProcessor,
-      thresholds: DEFAULT_THRESHOLDS,
+      bundle,
+      rules,
+      thresholds,
       fx,
+      asOf: today,
+      // A scanned candidate has no watchlist history to compare against.
+      previousStatus: null,
     });
-
-    const lynch = classifyLynch(ctx, { industry: candidate.industry });
-    const ratios = computeAllRatios(ctx, pegCategoryFor(lynch.category));
-    const signal = evaluateSignal(ctx, ratios, lynch.category);
 
     summary.push({
       symbol: candidate.symbol,
-      status: signal.status,
-      conditionsMet: signal.conditionsMet,
+      status: result.signal.status,
+      conditionsMet: result.signal.conditionsMet,
     });
 
     // Only genuinely interesting names become suggestions. Everything else is
     // simply not raised — the feed is for things worth a decision.
-    if (signal.status !== 'buy_worthy' && signal.status !== 'almost') continue;
-
-    const explainInput = {
-      symbol: candidate.symbol,
-      name: candidate.name,
-      signal,
-      ratios,
-    };
-    const why = explainSignal(explainInput);
+    if (result.signal.status !== 'buy_worthy' && result.signal.status !== 'almost') continue;
 
     rows.push({
       user_id: null,
       symbol: candidate.symbol,
       name: candidate.name,
-      focus_sector: focus.focusSector,
+      focus_sector: result.focusSector,
       state: 'pending',
-      status: signal.status,
-      why_en: why.en,
-      why_nl: why.nl,
-      ratio_snapshot: signal.ratioSnapshot,
+      status: result.signal.status,
+      why_en: result.explanation.en,
+      why_nl: result.explanation.nl,
+      ratio_snapshot: result.signal.ratioSnapshot,
       suggested_at: today,
     });
 
-    // Persist the evaluation the scan just computed, for the suggested names
-    // only. The stock page the feed links to resolves a symbol through
-    // signal_history and ratios; without these it 404s, however good the
-    // suggestion card looks. The rows match runDailyPipeline's shape exactly —
-    // that they were built in two places, and only one of them saved them, is
-    // what left every suggestion unreachable.
-    for (const result of Object.values(ratios) as RatioResult[]) {
-      const detail = result.detail as { isAdjusted?: boolean; rawValue?: number | null };
-      ratioRows.push({
-        symbol: candidate.symbol,
-        as_of: today,
-        ratio_key: result.key,
-        value: result.value,
-        unit: result.unit,
-        color: result.color,
-        target_label: result.targetLabel,
-        target_source: result.targetSource,
-        thresholds: result.thresholds,
-        currency: result.currency,
-        history: result.history,
-        not_applicable: result.notApplicable,
-        unavailable_reason: result.unavailableReason,
-        detail: result.detail,
-        is_adjusted: detail.isAdjusted ?? false,
-        raw_value: detail.rawValue ?? null,
-      });
-    }
-
-    signalRows.push({
-      symbol: candidate.symbol,
-      as_of: today,
-      status: signal.status,
-      lynch_category: lynch.category,
-      focus_sector: focus.focusSector,
-      conditions_met: signal.conditionsMet,
-      conditions_total: 9,
-      conditions_applicable: signal.conditionsApplicable,
-      checklist: signal.conditions,
-      why_en: why.en,
-      why_nl: why.nl,
-      why_parts: explainSections(explainInput),
-      ratio_snapshot: signal.ratioSnapshot,
-      thresholds_used: DEFAULT_THRESHOLDS,
-      peg_basis: signal.pegBasis,
-      // A scanned candidate has no watchlist history to compare against, so the
-      // "changed since yesterday" fields stay at their base values — they are
-      // the nightly watchlist path's to set once the name is actually watched.
-      became_buy_worthy: false,
-      previous_status: null,
-    });
+    // Persist the evaluation for the suggested names only. The stock page the
+    // feed links to resolves a symbol through signal_history and ratios; without
+    // these it 404s, however good the suggestion card looks. The rows are built
+    // by the same shared builder the watchlist uses, so they cannot drift.
+    ratioRows.push(...result.ratioRows);
+    signalRows.push(result.signalRow);
   }
 
   if (rows.length > 0) {
