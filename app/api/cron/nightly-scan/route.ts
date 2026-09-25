@@ -1,14 +1,21 @@
 /**
  * The nightly job (build step 7 automation, step 14 scheduling).
  *
- * Market context, then the watchlist, then the buy-signal emails. Triggered by
- * Supabase's pg_cron at 02:00 UTC — comfortably after the US close, which is
- * the point of scheduling it at night at all.
+ * Market context, then a slice of the watchlist, then the per-ticker buy
+ * alerts. Triggered by Supabase's pg_cron a few minutes after the US close is
+ * long past — the point of scheduling it at night at all.
  *
- * The universe scan used to be the fourth thing it did, on whatever time was
- * left. It has its own request and its own schedule now, because there was
- * never any time left: this plan kills a request at roughly sixty seconds and
- * the watchlist spends about forty of them. See app/api/cron/universe-scan.
+ * It runs in slices now, not in one pass. The watchlist crept from ~40s toward
+ * the ~60s execution ceiling once EDGAR fundamentals came back into it, and on
+ * 09-24 and 09-25 it crossed the line and was killed before it wrote anything,
+ * freezing every watchlist figure. So the list is cut into `parts` index-slices
+ * (see the `part`/`parts` query params), each its own pg_cron schedule a few
+ * minutes apart, each comfortably under the ceiling. The universe scan already
+ * has its own request for the same reason — see app/api/cron/universe-scan.
+ *
+ * The daily digest is no longer sent from here: no single slice sees the whole
+ * watchlist, so it cannot summarise it. /api/cron/digest assembles it from the
+ * stored signals on its own schedule, after the slices have run.
  *
  * Protected by a shared secret rather than a session: the caller is a database
  * job, not a person. The secret is compared in constant time, and a request
@@ -59,6 +66,18 @@ export async function POST(request: NextRequest) {
    */
   const skipNotifications = request.nextUrl.searchParams.get('notify') === 'false';
 
+  /**
+   * The watchlist runs in `parts` index-slices, one request each, because a
+   * single request that fetches all of it now crosses the ~60s execution
+   * ceiling and is killed before it persists — see RUN_CEILING_MS in
+   * scanBudget.ts and the 09-24/09-25 timeouts in the Log. Each slice is a
+   * separate pg_cron schedule a few minutes apart, so none of them approaches
+   * the ceiling. `part` is 0-based; the defaults run the whole list in one
+   * request, which is what a by-hand call with no params still does.
+   */
+  const parts = Math.max(1, Number(request.nextUrl.searchParams.get('parts')) || 1);
+  const part = Math.min(parts - 1, Math.max(0, Number(request.nextUrl.searchParams.get('part')) || 0));
+
   // Everything the run learns about itself goes here and is written to
   // `cron_runs` on every exit path below, including the failing ones. The log
   // array is the recorder's, so a line pushed anywhere reaches the table.
@@ -85,16 +104,32 @@ export async function POST(request: NextRequest) {
   let watchlist;
   const watchlistStarted = Date.now();
   try {
-    const symbols = await watchlistSymbols(client);
+    // Deterministic order, so slicing by index is stable from one request to
+    // the next and every name lands in exactly one slice.
+    const allSymbols = (await watchlistSymbols(client)).slice().sort();
+    const size = Math.ceil(allSymbols.length / parts);
+    const symbols = allSymbols.slice(part * size, (part + 1) * size);
+    run.log(
+      `watchlist part ${part + 1}/${parts}: ${symbols.length} of ${allSymbols.length} ` +
+        `(${symbols[0] ?? '—'}…${symbols[symbols.length - 1] ?? '—'})`,
+    );
     watchlist = await runDailyPipeline({
       client,
       symbols,
       skipNotifications,
+      // The digest summarises the whole watchlist, which no single slice sees,
+      // so it is left to /api/cron/digest to assemble from the stored signals
+      // once every slice has run. Per-ticker buy alerts still go out here.
+      skipDigest: true,
+      // Market-wide context is a once-a-night job, not a once-a-slice one.
+      skipMacro: part > 0,
       onProgress: (message) => run.log(message),
     });
     run.succeeded('watchlist', Date.now() - watchlistStarted, {
       count: watchlist.rows.length,
       detail: {
+        part: part + 1,
+        parts,
         buyWorthy: watchlist.rows.filter((row) => row.status === 'buy_worthy').length,
         violations: watchlist.rows.flatMap((row) => row.violations).length,
         // Recorded, so a hand-run night is never read later as one where the
@@ -132,6 +167,8 @@ export async function POST(request: NextRequest) {
     ok: true,
     status: run.status,
     skipNotifications,
+    part: part + 1,
+    parts,
     telemetry,
     durationSeconds: Math.round((Date.now() - started) / 1000),
     watchlist: {

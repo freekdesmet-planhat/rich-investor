@@ -40,6 +40,17 @@ export interface PipelineOptions {
   skipEstimates?: boolean;
   /** Set for a dry run: computes and stores, but sends no alerts. */
   skipNotifications?: boolean;
+  /**
+   * Skip only the daily digest, while still sending per-ticker buy alerts.
+   *
+   * The watchlist runs in index-slices across several requests now, to stay
+   * under the execution ceiling, and no single slice sees the whole watchlist —
+   * so the digest, which summarises all of it, cannot be built from one slice.
+   * It is sent once afterwards by /api/cron/digest, which assembles it from the
+   * stored signals. Each slice sets this so it does its own alerts and leaves
+   * the digest to that step.
+   */
+  skipDigest?: boolean;
   /** Skip the market-wide refresh; the per-ticker work does not depend on it. */
   skipMacro?: boolean;
   onProgress?: (message: string) => void;
@@ -106,6 +117,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     thresholdOverrides,
     skipEstimates = false,
     skipNotifications = false,
+    skipDigest = false,
     skipMacro = false,
     onProgress,
   } = options;
@@ -354,7 +366,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
   // out after the per-ticker alerts and reports on everything evaluated. It
   // decides for itself whether the day was worth an email.
   let digest: DigestOutcome[] = [];
-  if (!skipNotifications) {
+  if (!skipNotifications && !skipDigest) {
     const entries: DigestEntry[] = rows.map((row) => ({
       symbol: row.symbol,
       name: row.name,
