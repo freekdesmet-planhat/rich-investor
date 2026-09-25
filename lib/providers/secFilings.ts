@@ -11,11 +11,7 @@
  * filings a person would actually open.
  */
 
-import { secConfigured, secHeaders } from './secUserAgent';
-
-const SUBMISSIONS = 'https://data.sec.gov/submissions/CIK';
-const TICKER_FILE = 'https://www.sec.gov/files/company_tickers.json';
-const ARCHIVES = 'https://www.sec.gov/Archives/edgar/data';
+import { getCik, paddedCik, secFetch, SEC_ARCHIVES, SEC_SUBMISSIONS } from './sec/edgarClient';
 
 /** Worth opening. Everything else is noise at this level of detail. */
 const INTERESTING_FORMS = new Set([
@@ -34,45 +30,26 @@ export interface Filing {
   url: string;
 }
 
-let tickerMap: Map<string, number> | null = null;
-
-async function secFetch(url: string): Promise<Response> {
-  return fetch(url, {
-    headers: secHeaders(),
-    signal: AbortSignal.timeout(12_000),
-    next: { revalidate: 3_600 },
-  });
-}
-
 /**
  * Recent filings, newest first.
  *
  * Returns an empty list rather than throwing for a company EDGAR does not
- * index — every non-US listing on the watchlist, which is a third of it.
- * The tab renders an explanation instead of an error.
+ * index — every non-US listing on the watchlist, which is a third of it — and
+ * for an unconfigured User-Agent, which getCik reports as null. The tab renders
+ * an explanation instead of an error; a ticker-file failure throws inside
+ * getCik and the catch below turns it into the same empty list.
  */
 export async function fetchRecentFilings(symbol: string, limit = 25): Promise<Filing[]> {
   if (symbol.includes('.')) return [];
-  // No contact address configured means EDGAR will refuse the ticker file,
-  // so there is nothing to be gained by asking.
-  if (!secConfigured()) return [];
 
   try {
-    if (!tickerMap) {
-      const response = await secFetch(TICKER_FILE);
-      if (!response.ok) return [];
-      const raw = (await response.json()) as Record<string, { cik_str: number; ticker: string }>;
-      tickerMap = new Map(
-        Object.values(raw)
-          .filter((e) => e?.ticker)
-          .map((e) => [e.ticker.toUpperCase(), e.cik_str]),
-      );
-    }
+    const cik = await getCik(symbol);
+    if (cik === null) return [];
 
-    const cik = tickerMap.get(symbol.toUpperCase());
-    if (cik === undefined) return [];
-
-    const response = await secFetch(`${SUBMISSIONS}${String(cik).padStart(10, '0')}.json`);
+    const response = await secFetch(`${SEC_SUBMISSIONS}${paddedCik(cik)}.json`, {
+      timeoutMs: 12_000,
+      revalidateSeconds: 3_600,
+    });
     if (!response.ok) return [];
 
     const recent = (
@@ -97,7 +74,7 @@ export async function fetchRecentFilings(symbol: string, limit = 25): Promise<Fi
         form: recent.form[i],
         filedOn: recent.filingDate[i],
         reportFor: recent.reportDate[i] || null,
-        url: `${ARCHIVES}/${cik}/${bare}/${recent.primaryDocument[i]}`,
+        url: `${SEC_ARCHIVES}/${cik}/${bare}/${recent.primaryDocument[i]}`,
       });
     }
     return filings;

@@ -23,18 +23,14 @@ import {
   type FinancialStatement,
   type FundamentalsProvider,
   type MetricName,
-  ProviderError,
   type StatementFrequency,
   type StatementKind,
   type StatementPeriod,
 } from './types';
-import { secConfigured, secHeaders } from './secUserAgent';
+import { secConfigured } from './secUserAgent';
+import { getCik, paddedCik, secFetch, SEC_COMPANY_FACTS } from './sec/edgarClient';
 
-const TICKER_FILE = 'https://www.sec.gov/files/company_tickers.json';
-const COMPANY_FACTS = 'https://data.sec.gov/api/xbrl/companyfacts/CIK';
-
-/** The SEC asks for no more than 10 requests/second. */
-const MIN_REQUEST_INTERVAL_MS = 120;
+/** Company-facts JSON runs to several megabytes; give it a full minute. */
 const REQUEST_TIMEOUT_MS = 60_000;
 
 /**
@@ -206,49 +202,13 @@ interface CompanyFacts {
 }
 
 // ---------------------------------------------------------------------------
-// Throttled fetch
-// ---------------------------------------------------------------------------
-
-let lastRequest = 0;
-
-async function secFetch(url: string): Promise<Response> {
-  const wait = lastRequest + MIN_REQUEST_INTERVAL_MS - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastRequest = Date.now();
-
-  return fetch(url, {
-    headers: secHeaders(),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
 export class SecEdgarProvider implements FundamentalsProvider {
   readonly name = 'sec-edgar';
 
-  private tickerMap: Map<string, number> | null = null;
   private readonly factsCache = new Map<string, CompanyFacts | null>();
-
-  /** Ticker -> CIK, loaded once. Exact match only; see the note at the top. */
-  private async getTickerMap(): Promise<Map<string, number>> {
-    if (this.tickerMap) return this.tickerMap;
-
-    const response = await secFetch(TICKER_FILE);
-    if (!response.ok) {
-      throw new ProviderError(`SEC ticker file: HTTP ${response.status}`, this.name);
-    }
-    const raw = (await response.json()) as Record<string, { cik_str: number; ticker: string }>;
-
-    const map = new Map<string, number>();
-    for (const entry of Object.values(raw)) {
-      if (entry?.ticker) map.set(entry.ticker.toUpperCase(), entry.cik_str);
-    }
-    this.tickerMap = map;
-    return map;
-  }
 
   async covers(symbol: string): Promise<boolean> {
     // A suffixed symbol is a non-US listing; EDGAR indexes US listings only,
@@ -257,21 +217,22 @@ export class SecEdgarProvider implements FundamentalsProvider {
     // Without a contact address EDGAR refuses the ticker file, so this
     // provider cannot cover anything and the chain moves on.
     if (!secConfigured()) return false;
-    return (await this.getTickerMap()).has(symbol.toUpperCase());
+    return (await getCik(symbol)) !== null;
   }
 
   private async getFacts(symbol: string): Promise<CompanyFacts | null> {
     const key = symbol.toUpperCase();
     if (this.factsCache.has(key)) return this.factsCache.get(key) ?? null;
 
-    const cik = (await this.getTickerMap()).get(key);
-    if (cik === undefined) {
+    const cik = await getCik(key);
+    if (cik === null) {
       this.factsCache.set(key, null);
       return null;
     }
 
-    const padded = String(cik).padStart(10, '0');
-    const response = await secFetch(`${COMPANY_FACTS}${padded}.json`);
+    const response = await secFetch(`${SEC_COMPANY_FACTS}${paddedCik(cik)}.json`, {
+      timeoutMs: REQUEST_TIMEOUT_MS,
+    });
 
     // A filer with no XBRL facts (e.g. an ADR of a non-filing issuer) 404s.
     if (!response.ok) {

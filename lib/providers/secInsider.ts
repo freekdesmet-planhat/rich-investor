@@ -17,14 +17,10 @@
  */
 import { parseForm4, summariseInsiderActivity, type Form4Transaction, type InsiderSummary } from './form4';
 
-import { secConfigured, secHeaders } from './secUserAgent';
+import { getCik, paddedCik, secFetch, SEC_ARCHIVES, SEC_SUBMISSIONS } from './sec/edgarClient';
+import { secConfigured } from './secUserAgent';
 
-const TICKER_FILE = 'https://www.sec.gov/files/company_tickers.json';
-const SUBMISSIONS = 'https://data.sec.gov/submissions/CIK';
-const ARCHIVES = 'https://www.sec.gov/Archives/edgar/data';
-
-/** The SEC asks for no more than ten requests a second. This is well under. */
-const MIN_REQUEST_INTERVAL_MS = 120;
+/** Abort a submissions or Form 4 request after this long. */
 const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
@@ -39,47 +35,6 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_FILINGS = 40;
 
 export const DEFAULT_WINDOW_DAYS = 90;
-
-let lastRequest = 0;
-
-async function secFetch(url: string): Promise<Response> {
-  const wait = lastRequest + MIN_REQUEST_INTERVAL_MS - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastRequest = Date.now();
-
-  return fetch(url, {
-    headers: secHeaders(),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-}
-
-let tickerMap: Map<string, number> | null = null;
-
-/**
- * Ticker to CIK.
- *
- * Its own copy rather than the ratio provider's, because that one is a
- * private field on a class this module has no reason to instantiate. Both
- * load the same 1MB file once per process.
- */
-async function getCik(symbol: string): Promise<number | null> {
-  // A suffixed symbol is a non-US listing. EDGAR indexes US filers only, and
-  // the bare ticker almost always belongs to a different company — ASML.AS
-  // would resolve to nothing, but MC.PA's "MC" is a US issuer entirely.
-  if (symbol.includes('.')) return null;
-
-  if (!tickerMap) {
-    const response = await secFetch(TICKER_FILE);
-    if (!response.ok) throw new Error(`SEC ticker file: HTTP ${response.status}`);
-    const raw = (await response.json()) as Record<string, { cik_str: number; ticker: string }>;
-    tickerMap = new Map(
-      Object.values(raw)
-        .filter((e) => e?.ticker)
-        .map((e) => [e.ticker.toUpperCase(), e.cik_str]),
-    );
-  }
-  return tickerMap.get(symbol.toUpperCase()) ?? null;
-}
 
 interface Submissions {
   filings: {
@@ -132,7 +87,9 @@ export async function fetchInsiderActivity(
   const cik = await getCik(symbol);
   if (cik === null) return empty();
 
-  const response = await secFetch(`${SUBMISSIONS}${String(cik).padStart(10, '0')}.json`);
+  const response = await secFetch(`${SEC_SUBMISSIONS}${paddedCik(cik)}.json`, {
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  });
   if (!response.ok) throw new Error(`SEC submissions for ${symbol}: HTTP ${response.status}`);
 
   const recent = ((await response.json()) as Submissions).filings.recent;
@@ -164,7 +121,9 @@ export async function fetchInsiderActivity(
       // catch skips it, and the company looks like one with no insider
       // activity rather than one the code could not read.
       const name = filing.document.replace(/^.*\//, '');
-      const doc = await secFetch(`${ARCHIVES}/${cik}/${bare}/${name}`);
+      const doc = await secFetch(`${SEC_ARCHIVES}/${cik}/${bare}/${name}`, {
+        timeoutMs: REQUEST_TIMEOUT_MS,
+      });
       if (!doc.ok) continue;
       transactions.push(...parseForm4(await doc.text()).transactions);
       filingsRead++;
