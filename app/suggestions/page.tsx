@@ -43,7 +43,7 @@ export default async function SuggestionsPage({
 }) {
   const params = await searchParams;
   const tab: SuggestionTab = isSuggestionTab(params.tab) ? params.tab : 'pending';
-  const sort: SuggestionSort = isSuggestionSort(params.sort) ? params.sort : 'newest';
+  const sort: SuggestionSort = isSuggestionSort(params.sort) ? params.sort : 'status';
 
   const locale = (await getLocale()) as Lang;
   const [t, tSector] = await Promise.all([

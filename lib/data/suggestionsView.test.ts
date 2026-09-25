@@ -107,15 +107,21 @@ describe('dismissalDaysLeft', () => {
 });
 
 describe('suggestionHref', () => {
-  const view = { tab: 'pending', sort: 'newest' } as const;
+  // 'status' (closest to buyable) is the default now, so it is the sort kept out
+  // of the URL; a non-default like 'newest' appears.
+  const view = { tab: 'pending', sort: 'status' } as const;
 
   it('keeps the defaults out of the URL', () => {
     expect(suggestionHref(view, { tab: 'pending' })).toBe('/suggestions');
-    expect(suggestionHref(view, { sort: 'newest' })).toBe('/suggestions');
+    expect(suggestionHref(view, { sort: 'status' })).toBe('/suggestions');
+  });
+
+  it('carries a non-default sort into the URL', () => {
+    expect(suggestionHref(view, { sort: 'newest' })).toContain('sort=newest');
   });
 
   it('carries the rest of the view when one part changes', () => {
-    const href = suggestionHref({ tab: 'rejected', sort: 'newest' }, { sort: 'symbol' });
+    const href = suggestionHref({ tab: 'rejected', sort: 'status' }, { sort: 'symbol' });
     expect(href).toContain('tab=rejected');
     expect(href).toContain('sort=symbol');
   });

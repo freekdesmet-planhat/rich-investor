@@ -19,7 +19,7 @@ export type SuggestionTab = 'pending' | 'rejected' | 'accepted';
 export type SuggestionSort = 'newest' | 'status' | 'symbol';
 
 export const SUGGESTION_TABS: SuggestionTab[] = ['pending', 'rejected', 'accepted'];
-export const SUGGESTION_SORTS: SuggestionSort[] = ['newest', 'status', 'symbol'];
+export const SUGGESTION_SORTS: SuggestionSort[] = ['status', 'newest', 'symbol'];
 
 export const isSuggestionTab = (value: unknown): value is SuggestionTab =>
   typeof value === 'string' && (SUGGESTION_TABS as string[]).includes(value);
@@ -56,9 +56,9 @@ const STATUS_RANK = { buy_worthy: 0, almost: 1, watching: 2 } as const;
 /**
  * Orders a tab's rows.
  *
- * Newest first by default, because a suggestion is news. Sorting by status
- * exists because four cards all badged "almost there" tell you nothing about
- * which to read first, and the badge is the only thing that could.
+ * Closest to buyable first by default (buy-worthy above almost-there), so a
+ * 9-of-9 is never buried under newer, weaker cards. Newest and ticker remain as
+ * explicit choices.
  */
 export function sortSuggestions<T extends ViewableSuggestion>(
   rows: T[],
@@ -105,7 +105,7 @@ export function suggestionHref(
   const next = { ...current, ...change };
   const params = new URLSearchParams();
   if (next.tab !== 'pending') params.set('tab', next.tab);
-  if (next.sort !== 'newest') params.set('sort', next.sort);
+  if (next.sort !== 'status') params.set('sort', next.sort);
   const qs = params.toString();
   return qs ? `/suggestions?${qs}` : '/suggestions';
 }
