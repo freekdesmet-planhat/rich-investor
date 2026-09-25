@@ -310,6 +310,29 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-25: A1 (search) pre-build investigation, per the decision to floor
+  search on the `Large Cap` + `Mega Cap` bands.
+  - **Band edge, checked against real USD caps** (195 names that carry both a
+    stored `daily_snapshots.market_cap_usd` and a universe band): the lowest cap
+    labelled Large Cap is HFG.DE at **$0.39bn** (HelloFresh — a badly stale
+    label; it was a genuine large cap in 2021 and has since collapsed). No Mid
+    Cap names have a stored USD cap, because the scan only evaluates the Large
+    Cap band, so there is no data on the Mid/Large boundary from below. **19 of
+    195 (~10%) Large-Cap labels are under $10bn today** — stale, as expected for
+    a static dataset. The band is a coarse pre-filter only; the checklist's
+    real-USD `market_cap` condition stays the authority and fails these on the
+    actual number. Good enough to floor search on.
+  - **Null-band US-primary rows (232).** Overwhelmingly not companies: warrants
+    (`-WT`), SPAC units (`-UN`/`U`), preferred shares (`-P*`), rights
+    (`-RI/-RW`), and NASDAQ test tickers (`ZJZZT ZVZZT ZXZZT ZWZZT ATEST NTEST
+    CTEST MTEST PTEST-*`). But a real-large-cap subset would be wrongly hidden by
+    the floor and is exactly what addition-2's exact-ticker safety valve exists
+    to rescue: **AZO, BX, HON, COF, OKE, JLL, VOD, EEFT, EXPO, FWONA, FWONK, RBA,
+    STNE, SNEX, CABO, STEP, SHO, SITE, MOFG, PGC, OGS, HAE, TDS, IRS, OMF, OLP,
+    KINS, LEVL, WSR, PS, SRI, VERI** (~30). Consequence for A1: the hard-drop
+    (warrants/units/rights/preferred/structured/test tickers) must run **before**
+    the null-band safety valve and must also match symbol suffixes, since these
+    rows frequently have null names.
 - 2026-09-25: Took in an outside UX audit (`Claude outputs/ux-audit-2026-09-25.md`,
   37 items, run against production before the three unpushed architecture commits).
   Verified every Group A finding against current code and folded the accepted ones
