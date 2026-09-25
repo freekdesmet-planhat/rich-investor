@@ -17,6 +17,8 @@
  * exact-ticker rescue below is what surfaces a recent IPO the static dataset has
  * not classified yet.
  */
+import { isPrimaryListing } from '@/lib/pipeline/scanQuery';
+
 export const SEARCHABLE_BANDS = ['Large Cap', 'Mega Cap'] as const;
 
 /** The label shown per result. Never a ✓ — the ✓ belongs to the checklist. */
@@ -102,4 +104,71 @@ export function passesSizeFloor(band: string | null, isExactSymbol: boolean): bo
   if ((SEARCHABLE_BANDS as readonly string[]).includes(band ?? '')) return true;
   if (band == null && isExactSymbol) return true;
   return false;
+}
+
+// --- one row per company, home listing first ------------------------------
+
+/** Readable venue names for the "Also listed on …" line. */
+const VENUE_LABEL: Record<string, string> = {
+  NMS: 'Nasdaq', NGM: 'Nasdaq', NYQ: 'NYSE', ASE: 'NYSE American', PCX: 'NYSE Arca',
+  AMS: 'Amsterdam', PAR: 'Paris', GER: 'XETRA', FRA: 'Frankfurt', EBS: 'Zurich',
+  MIL: 'Milan', MCE: 'Madrid', STO: 'Stockholm', CPH: 'Copenhagen', HEL: 'Helsinki',
+  OSL: 'Oslo', BRU: 'Brussels', LIS: 'Lisbon', VIE: 'Vienna', LSE: 'London', ISE: 'Dublin',
+  MEX: 'Mexico', SAO: 'São Paulo', TOR: 'Toronto', LSN: 'London',
+};
+
+/** Among equally-home venues, the main board over its secondary duplicates. */
+const VENUE_PRIORITY: Record<string, number> = {
+  NMS: 0, NYQ: 0, NGM: 1, ASE: 2, PCX: 3,
+  AMS: 0, PAR: 0, EBS: 0, GER: 0, MIL: 0, MCE: 0, STO: 0,
+  CPH: 0, HEL: 0, OSL: 0, BRU: 0, LIS: 0, VIE: 0, LSE: 0, ISE: 0,
+  FRA: 5,
+};
+
+interface Listing {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  country: string | null;
+}
+
+/**
+ * Collapses a company's many venue listings into one row.
+ *
+ * "apple" returned nineteen Apple Inc rows and "asml" put the Nasdaq line above
+ * Amsterdam. Grouping is by folded name and country, and the representative is
+ * the home-country listing (the exchange in the company's own country), so a
+ * Dutch company shows its Amsterdam line, not its US one — the listing a
+ * European reader actually holds. The rest become "Also listed on …".
+ */
+export function collapseCompanies<T extends Listing>(rows: T[]): (T & { alsoListedOn: string[] })[] {
+  const venue = (e: string | null) => (e ?? '').toUpperCase();
+  const groups = new Map<string, T[]>();
+  for (const r of rows) {
+    const key = `${foldText(r.name ?? r.symbol).trim()}|${(r.country ?? '').toLowerCase()}`;
+    const g = groups.get(key);
+    if (g) g.push(r);
+    else groups.set(key, [r]);
+  }
+
+  const out: (T & { alsoListedOn: string[] })[] = [];
+  for (const listings of groups.values()) {
+    const sorted = [...listings].sort((a, b) => {
+      const homeA = isPrimaryListing(a.exchange, a.country) ? 0 : 1;
+      const homeB = isPrimaryListing(b.exchange, b.country) ? 0 : 1;
+      if (homeA !== homeB) return homeA - homeB;
+      const prioA = VENUE_PRIORITY[venue(a.exchange)] ?? 9;
+      const prioB = VENUE_PRIORITY[venue(b.exchange)] ?? 9;
+      if (prioA !== prioB) return prioA - prioB;
+      return a.symbol.length - b.symbol.length;
+    });
+    const [rep, ...others] = sorted;
+    const alsoListedOn = [
+      ...new Set(
+        others.map((l) => VENUE_LABEL[venue(l.exchange)] ?? l.exchange).filter((v): v is string => Boolean(v)),
+      ),
+    ];
+    out.push({ ...rep, alsoListedOn });
+  }
+  return out;
 }

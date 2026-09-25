@@ -375,6 +375,7 @@
     "onWatchlist": "Staat op je volglijst",
     "open": "Analyse openen",
     "notAnalysed": "Nog niet geanalyseerd",
+    "alsoListedOn": "Ook op {venues}",
     "size": {
       "large": "Large cap",
       "mega": "Mega cap",

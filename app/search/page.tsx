@@ -99,6 +99,11 @@ export default async function SearchPage({
                       <span className="text-ink-faint">{t('notAnalysed')}</span>
                     )}
                   </p>
+                  {row.alsoListedOn.length > 0 && (
+                    <p className="text-ink-faint mt-0.5 truncate text-xs">
+                      {t('alsoListedOn', { venues: row.alsoListedOn.slice(0, 3).join(', ') })}
+                    </p>
+                  )}
                 </div>
 
                 <AddToWatchlist

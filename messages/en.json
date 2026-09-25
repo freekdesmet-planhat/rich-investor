@@ -375,6 +375,7 @@
     "onWatchlist": "On your watchlist",
     "open": "Open analysis",
     "notAnalysed": "Not analysed yet",
+    "alsoListedOn": "Also on {venues}",
     "size": {
       "large": "Large cap",
       "mega": "Mega cap",

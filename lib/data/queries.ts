@@ -15,9 +15,10 @@ import type { WhyPart } from '@/lib/signal/explain';
 import type { Position } from './position';
 import { sanitiseOverrides } from '@/lib/ratios/editableThresholds';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
-import { dedupeByCompany, PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
+import { PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
 import {
+  collapseCompanies,
   isExcludedInstrument,
   normaliseQuery,
   passesSizeFloor,
@@ -742,6 +743,8 @@ export interface UniverseMatch {
   region: string | null;
   /** Size label to show: large / mega, or "checked on analysis" for a rescued null band. */
   sizeLabel: SizeLabel;
+  /** Readable venues the same company also trades on, for "Also listed on …". */
+  alsoListedOn: string[];
   /** Already on the watchlist. */
   onWatchlist: boolean;
   /** Has been evaluated, so /stock/<symbol> will render. */
@@ -813,8 +816,8 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
   });
   if (kept.length === 0) return [];
 
-  const deduped = dedupeByCompany(kept);
-  const ranked = rankUniverseMatches(deduped, q.folded).slice(0, limit);
+  const collapsed = collapseCompanies(kept);
+  const ranked = rankUniverseMatches(collapsed, q.folded).slice(0, limit);
   const symbols = ranked.map((r) => r.symbol);
 
   const [onWatchlist, { data: analysed }] = await Promise.all([
@@ -830,6 +833,7 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
     country: row.country,
     region: row.region,
     sizeLabel: sizeLabelOf(row.market_cap_band),
+    alsoListedOn: row.alsoListedOn,
     onWatchlist: onWatchlist.has(row.symbol),
     analysed: analysedSet.has(row.symbol),
   }));
