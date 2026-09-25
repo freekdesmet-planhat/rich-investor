@@ -209,6 +209,94 @@ share, or stock-based comp/dilution is unusually high relative to peers,
 surface a short note. Same rule as item 13: informational only, doesn't
 touch the locked verdict logic.
 
+## Audit fixes (from ux-audit-2026-09-25)
+
+Bug and copy fixes from the outside UX audit (`Claude outputs/ux-audit-2026-09-25.md`),
+each verified against current code. Built one at a time, EN/NL + light/dark +
+browser-verified + full gate, like everything else. Audit item numbers in [ ].
+
+### A. Fix now — no design decision
+
+- **A1. Search [5].** Filter to Large/Mega market-cap bands (`market_cap_usd` is
+  null for all 102k universe rows, so the "≥ $10bn" floor is by `market_cap_band`);
+  guarantee the exact ticker and symbol-prefix matches survive the fetch (today
+  120 mixed rows are ranked in memory, so name-substring matches bury `KO` →
+  Coca-Cola); normalise spaces and hyphens ("coca cola" = "Coca-Cola"); primary
+  listing first (ranking already does exact/prefix/derivative/primary); show the
+  band per row. Files: `lib/data/queries.ts` (searchUniverse), `lib/data/rankMatches.ts`,
+  `app/search/page.tsx`, messages. **Flag: no dollar market cap available** — the
+  column is null everywhere, so results show the band, not "$31.5B".
+- **A2. Narrative from state [6].** In `lib/signal/explain.ts` the returns and
+  cash-flow sentences are pushed as "passes" regardless of the condition's result
+  (Heineken's ROE fail under "What passes"; SMCI's −305% as "clean accounting"),
+  and "turned buy-worthy today" is unconditional. Build every sentence from the
+  condition's pass/fail/unknown state; thread `becameBuyWorthy` through
+  `ExplainInput` for the "today" line. Vitest case per condition × state. Files:
+  `lib/signal/explain.ts`, `lib/pipeline/evaluateSymbol.ts`, `explain.test.ts`.
+- **A3. Copy/typo batch [20,21,22,23,24,31,37 + account].** "requiredr";
+  percentile reads backwards ("lower than on 95% of days"); ICU plurals for
+  "1 condition more/fewer" (EN+NL); de-duplicate the two temporary/structural
+  "check" sentences and the "Read the full reasoning" re-print (`WhyBlock`); show
+  only the pass mark on checklist metrics [24]; NL section-8 table [31]; language
+  control as text not flag [37]; delete the NOTIFY_EMAILS account line; growth
+  labels direction-aware ("at or above"); "these four" → correct count. Files:
+  `explain.ts`, `messages/*`, `WhyBlock.tsx`, `RatioGrid.tsx`, `LanguageSwitcher.tsx`.
+  **Note [26]** (market cap "$4214.7B") looks already fixed — `formatBillions`
+  scales to T; verify in browser.
+- **A4. Data sanity layer [10].** Outliers (ROE > 100%, YoY change beyond ±60%,
+  negative cash conversion, unknown PEG) render grey "Can't judge reliably"
+  instead of pass/fail; hide the SEC Form 4 insider block for non-US filers; fix
+  the Rollins → luxury_consumer mapping at the rule level. Files: `lib/ratios/*`,
+  `lib/sectors/mapping.ts`, `components/review/InsiderActivity.tsx`, stock/research
+  pages. **Note:** Adyen's 8.9B → 1.9B revenue is a gross/net source mix — the grey
+  flag hides it; statement-source consistency is a deeper follow-up.
+- **A5. Freshness [11].** Per stock: price close date + exchange, financial
+  period, "Just analysed" for fresh runs; stop deriving "17h ago" from the as-of
+  date at midnight. Files: `components/DataFreshness.tsx`, stock page, queries.
+  **Flag: confirm price close date/exchange are available** to display per stock.
+- **A6. Remove flow [14].** `RemoveFromWatchlist` already has in-place undo; the
+  real bug is the stock page not refreshing its "on the watchlist" state after
+  removal. Verify the watchlist-row remove too. Files: `RemoveFromWatchlist.tsx`,
+  stock page.
+- **A7. AI summary [17].** Hide the thesis once its signal changed (regenerate
+  prompt, not stale text with a warning); add "no superlatives, numbers must
+  match the figures" to the prompt. Files: `AiThesisCard.tsx`, `lib/ai/thesis.ts`.
+- **A8. News + research tabs [18,29].** Date every news item, hide analyst
+  rating / price-target headlines by default; hide Filings/Transcripts tabs for
+  non-US listings. Files: `app/stock/[symbol]/research/page.tsx`.
+- **A9. Suggestions [19].** Default sort by conditions met. Files:
+  `app/suggestions/page.tsx`, `lib/suggestions`.
+- **A10. Stock header + holdings inputs [27,28].** Verdict/tradability on their
+  own rows so a long tradability line can't break the header; theme the "I own
+  this" inputs. Files: stock page header, `components/PositionBlock.tsx`.
+- **A11. Mobile filter overflow [15].** The watchlist sort/filter row overflows
+  to 445px at 390px — fix that one now; the rest of mobile is item 2. Files:
+  `app/page.tsx`.
+
+### B. Folded into the shipped items above (audit refinements)
+
+- **Item 1/3 (design):** verdict weight + values on checklist rows [7], four
+  colour roles [35], 12px labels / unlabelled sparklines [36] — extend
+  `docs/design-notes.md` first.
+- **Item 2 (navigation):** mobile bottom tab bar, 44px tap targets, "Remove" out
+  of the verdict area on mobile [§7].
+- **Item 4 (rebrand copy):** NL brand "Rijke Belegger" [30]; jargon rewrites
+  ("logarithmic-waterfall maths", "high-conviction entry points") [§2.3, §8] —
+  handle alongside the NL calques in A3, since they are the same lines in
+  `explain.ts`.
+- **Item 5 (onboarding):** [13] plus a final "pick three companies you know"
+  step that analyses them on the spot.
+- **Item 12 (methodology):** the "Why only four sectors?" explainer naming the
+  four [§5].
+
+### Blocked on a decision (do not build until answered)
+
+Landing + demo pages [1], data-source inventory [2], billing/legal [3], rename
+"Buy-worthy" [4], stock-page order + review gating [7,12], home layout [8],
+status rule [9], editable condition 9 [16], "vs. the others you follow" [25],
+market-crash comparison under the P/E chart [34], sector-rule presentation,
+price-trigger + alert.
+
 ## Working style
 
 Work through these one at a time. After each one, report what was built,
@@ -222,6 +310,24 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-25: Took in an outside UX audit (`Claude outputs/ux-audit-2026-09-25.md`,
+  37 items, run against production before the three unpushed architecture commits).
+  Verified every Group A finding against current code and folded the accepted ones
+  into the build order under "Audit fixes" rather than a second list; Group B items
+  are annotated onto the shipped items they refine, and the "Needs my decision" set
+  is parked there unbuilt. Verification highlights: most Group A findings still
+  reproduce; a couple are already moot (market cap now scales to T via
+  formatBillions; RemoveFromWatchlist already has undo — the live bug is the stock
+  page not refreshing after removal). Two data limitations found and flagged, not
+  worked around: `market_cap_usd` is null across all 102k universe rows (only
+  `market_cap_band` is populated), so search can filter and label by band but
+  cannot show a dollar market cap without a provider field we do not collect; and
+  the "KO" / "coca cola" search miss is a fetch-order bug (120 mixed rows ranked in
+  memory bury the exact ticker) plus missing hyphen/space normalisation, not a
+  ranking bug. Freshness shows "17h ago" on a fresh stock because it measures from
+  the as-of date at midnight, not the analysis timestamp. No code built yet —
+  holding for the decision answers and the two data-limitation confirmations before
+  starting Group A one item at a time.
 - 2026-09-25: The watchlist-headroom risk logged on 09-21 came true, and is now
   fixed. The 02:00 nightly-scan timed out on 09-24 and 09-25 — killed at the
   ~60s execution ceiling before it persisted anything — so every watchlist
