@@ -9,6 +9,7 @@ import { AiThesisCard } from '@/components/AiThesisCard';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
 import { StockFreshness } from '@/components/StockFreshness';
+import { PriceAlertToggle } from '@/components/PriceAlertToggle';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { Card, Chip, Section, SectionHeading } from '@/components/ui/Surface';
@@ -16,6 +17,7 @@ import { RatioGrid, HEADLINE_RATIOS } from '@/components/RatioGrid';
 import { createClient } from '@/lib/supabase/server';
 import {
   getListingExchange,
+  getPriceAlert,
   getPosition,
   getRatios,
   getReviews,
@@ -30,6 +32,7 @@ import {
 import type { Lang } from '@/lib/i18n/config';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
 import { buildStockFreshness } from '@/lib/data/stockFreshness';
+import { priceTriggerOf } from '@/lib/data/priceTrigger';
 import { isOverridden, RATIO_THRESHOLD } from '@/lib/ratios/editableThresholds';
 import { dataQualityOf } from '@/lib/data/dataQuality';
 import { DataQualityNotice } from '@/components/DataQualityNotice';
@@ -71,7 +74,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, tMethod, listingExchange] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, tMethod, listingExchange, priceAlertOn] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -97,9 +100,11 @@ export default async function StockPage({
     getTranslations('research'),
     getTranslations('methodology'),
     getListingExchange(symbol),
+    getPriceAlert(symbol),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
+  const tPriceAlert = await getTranslations('priceAlert');
   const onWatchlist = (await getWatchlistSymbols()).has(symbol);
 
   // The two facts the old "Updated 17h ago · As of <date>" line got wrong: how
@@ -176,6 +181,11 @@ export default async function StockPage({
       .map((c) => c.key),
   );
   const anyRuleChanged = changedRuleKeys.size > 0;
+
+  // When the 50% decline is the one condition still in the way, the price it
+  // passes at is a single number worth naming — and worth an opt-in nightly
+  // alert (launch item 10). Only meaningful for a name on the watchlist.
+  const priceTrigger = onWatchlist ? priceTriggerOf(signal.checklist) : null;
 
   // Every checklist row now shows its measured value, not just the requirement
   // (launch item 8): "Decline from the 5-year high  -68%" beside "at least 50%".
@@ -530,6 +540,24 @@ export default async function StockPage({
               );
             })}
           </ul>
+
+          {/* The entry price and its opt-in nightly alert, when the decline is the
+              one condition still open (launch item 10). */}
+          {priceTrigger && (
+            <PriceAlertToggle
+              symbol={symbol}
+              on={priceAlertOn}
+              labels={{
+                passes: tPriceAlert('passesBelow', {
+                  price: formatCurrency(priceTrigger.trigger, snapshot?.currency ?? null, locale),
+                }),
+                checkedNightly: tPriceAlert('checkedNightly'),
+                subscribe: tPriceAlert('subscribe'),
+                subscribed: tPriceAlert('subscribed'),
+                turnOff: tPriceAlert('turnOff'),
+              }}
+            />
+          )}
         </Section>
 
         {/* --- price chart ------------------------------------------------- */}

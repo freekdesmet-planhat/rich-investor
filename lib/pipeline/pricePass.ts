@@ -37,6 +37,8 @@ import { applyScanScreen, SCAN_BANDS, SCAN_REGIONS } from './scan';
 import { scanVenueFilter } from './scanQuery';
 import { keepDistinctCompanies } from '@/lib/data/searchFilters';
 import { isDueTonight } from './rotation';
+import { sendPriceAlerts, type PriceAlert } from './priceAlerts';
+import { priceTriggerOf } from '@/lib/data/priceTrigger';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -62,6 +64,8 @@ export interface PricePassOptions {
   batchSize?: number;
   /** Include the Mid Cap rotation (upward correction). On by default. */
   includeMid?: boolean;
+  /** Skip the opt-in price-trigger emails (tests). */
+  skipNotifications?: boolean;
   onProgress?: (message: string) => void;
 }
 
@@ -270,6 +274,19 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
   }
   log(`${highs.size} of the cohort carry a stored five-year high (trigger-eligible)`);
 
+  // Names subscribed to a price-trigger email (launch item 10): only these can
+  // alert, and there are usually a handful, so this is a cheap read.
+  const subscribed = new Map<string, string | null>();
+  {
+    const { data } = await client
+      .from('watchlist_items')
+      .select('symbol,name')
+      .eq('price_alert', true)
+      .returns<Array<{ symbol: string; name: string | null }>>();
+    for (const r of data ?? []) subscribed.set(r.symbol, r.name);
+  }
+  const alertCandidates: PriceAlert[] = [];
+
   // --- quote, batch by batch -----------------------------------------------
   const fx = createFxRates();
   const queue: ScanQueueEntry[] = [];
@@ -320,6 +337,18 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
       if (crossed != null) {
         queue.push({ symbol: q.symbol, reason: `crossed ${Math.round(crossed * 100)}%`, drawdown: curr });
       }
+      // Crossing the 50% entry level is what a price-trigger subscriber asked to
+      // hear about (launch item 10).
+      if (crossed === -0.5 && subscribed.has(q.symbol)) {
+        alertCandidates.push({
+          symbol: q.symbol,
+          name: subscribed.get(q.symbol) ?? null,
+          asOf: today,
+          price: q.price,
+          trigger: stored.high * 0.5,
+          currency: q.currency,
+        });
+      }
     }
   }
 
@@ -327,6 +356,30 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
   if (queue.length > 0) {
     await enqueueForScan(client, queue);
     log(`queued ${queue.length} for priority evaluation: ${queuedSymbols.join(', ')}`);
+  }
+
+  // Price-trigger emails (launch item 10). Only for subscribed names that crossed
+  // the 50% line, and only where the last stored evaluation shows the decline was
+  // the one condition still open — so "the last condition it was missing" is true.
+  // Not on a throttled run: a stand-down is not evidence a price moved.
+  if (!options.skipNotifications && !throttled && alertCandidates.length > 0) {
+    type SigRow = { symbol: string; checklist: Parameters<typeof priceTriggerOf>[0]; as_of: string };
+    const { data: sigs } = await client
+      .from('signal_history')
+      .select('symbol,checklist,as_of')
+      .in('symbol', alertCandidates.map((a) => a.symbol))
+      .order('as_of', { ascending: false })
+      .returns<SigRow[]>();
+    const latest = new Map<string, SigRow>();
+    for (const r of sigs ?? []) if (!latest.has(r.symbol)) latest.set(r.symbol, r);
+    const toSend = alertCandidates.filter((a) => {
+      const sig = latest.get(a.symbol);
+      return sig != null && priceTriggerOf(sig.checklist) != null;
+    });
+    if (toSend.length > 0) {
+      await sendPriceAlerts(client, toSend, { onProgress: log });
+      log(`price alerts for ${toSend.length}: ${toSend.map((a) => a.symbol).join(', ')}`);
+    }
   }
 
   // Retire dead tickers (0043): advance the no-quote streak for cohort names that

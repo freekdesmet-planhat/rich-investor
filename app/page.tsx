@@ -20,6 +20,8 @@ import {
 } from '@/lib/data/queries';
 import { movers, within, type Trend } from '@/lib/data/trend';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
+import { priceTriggerOf } from '@/lib/data/priceTrigger';
+import { formatCurrency } from '@/lib/i18n/format';
 import {
   filterEntries,
   growthCounts,
@@ -88,7 +90,7 @@ export default async function WatchlistPage({
       params.sector && (SECTOR_ORDER as string[]).includes(params.sector) ? params.sector : 'any',
   };
 
-  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch, tReview, tAnalyse] = await Promise.all([
+  const [tStatus, tSector, tNav, tData, tWatchlist, tSearch, tReview, tAnalyse, tPriceAlert] = await Promise.all([
     getTranslations('status'),
     getTranslations('sector'),
     getTranslations('nav'),
@@ -97,6 +99,7 @@ export default async function WatchlistPage({
     getTranslations('search'),
     getTranslations('review'),
     getTranslations('analyse'),
+    getTranslations('priceAlert'),
   ]);
 
   // Membership decides what is listed. The signal only decides what a row says:
@@ -401,6 +404,18 @@ export default async function WatchlistPage({
                       <RemoveFromWatchlist symbol={entry.symbol} member labels={removeLabels} compact />
                     </div>
                     <p className="text-near mt-1 text-sm">{rowLabels.missingOne(entry)}</p>
+                    {/* When the decline is the one condition left, name the price it
+                        passes at (launch item 10). */}
+                    {(() => {
+                      const t = priceTriggerOf(entry.signal!.checklist);
+                      return t ? (
+                        <p className="text-ink mt-0.5 text-sm font-medium">
+                          {tPriceAlert('passesBelow', {
+                            price: formatCurrency(t.trigger, entry.currency, locale),
+                          })}
+                        </p>
+                      ) : null;
+                    })()}
                     <p className="text-ink-subtle mt-0.5 text-xs tabular-nums">
                       {rowLabels.conditionsMet(
                         entry.signal!.conditions_met,

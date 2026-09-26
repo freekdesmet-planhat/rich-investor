@@ -665,5 +665,14 @@
     "transcriptPartial": "Showing the first part of this call.",
     "openCall": "Read",
     "figuresIn": "Figures in {currency}, as reported."
+  },
+  "priceAlert": {
+    "passesBelow": "Passes below {price}",
+    "checkedNightly": "checked every night",
+    "subscribe": "Email me when it does",
+    "subscribed": "You’ll be emailed the night it does",
+    "turnOff": "Turn off",
+    "emailSubject": "{symbol} passed your entry level",
+    "emailBody": "{name} ({symbol}) closed at {price}, below the {threshold} entry level of {trigger} — the last condition it was missing. Open the app to run your review."
   }
 }

@@ -665,5 +665,14 @@
     "transcriptPartial": "Dit is het eerste deel van dit gesprek.",
     "openCall": "Lezen",
     "figuresIn": "Bedragen in {currency}, zoals gerapporteerd."
+  },
+  "priceAlert": {
+    "passesBelow": "Slaagt onder {price}",
+    "checkedNightly": "elke nacht gecontroleerd",
+    "subscribe": "Mail mij zodra dat gebeurt",
+    "subscribed": "Je krijgt een mail de nacht dat het gebeurt",
+    "turnOff": "Uitzetten",
+    "emailSubject": "{symbol} is onder jouw instapniveau gezakt",
+    "emailBody": "{name} ({symbol}) sloot op {price}, onder het instapniveau van {trigger} ({threshold} daling) — de laatste voorwaarde die nog ontbrak. Open de app om je beoordeling te doen."
   }
 }

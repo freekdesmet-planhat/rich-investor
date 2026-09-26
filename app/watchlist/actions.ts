@@ -176,3 +176,35 @@ export async function restoreToWatchlist(
   const result = await addToWatchlist(prev, formData);
   return result.status === 'added' ? { ...result, status: 'restored' } : result;
 }
+
+/**
+ * Turns the per-stock price-trigger email on or off (launch item 10).
+ *
+ * The flag lives on the shared watchlist row, so this is a single update. The
+ * nightly price pass reads it and emails the household the night the price
+ * crosses the entry level. Revalidates the stock page and the home page so the
+ * toggle reflects its new state on the next view.
+ */
+export async function togglePriceAlert(
+  _prev: WatchlistActionState,
+  formData: FormData,
+): Promise<WatchlistActionState> {
+  const symbol = String(formData.get('symbol') ?? '').trim().toUpperCase();
+  const on = String(formData.get('on') ?? '') === 'true';
+  if (!symbol) return { status: 'error', message: 'missing_symbol' };
+
+  try {
+    const { supabase } = await requireUser();
+    const { error } = await supabase
+      .from('watchlist_items')
+      .update({ price_alert: on })
+      .eq('symbol', symbol);
+    if (error) return { status: 'error', message: error.message };
+
+    revalidatePath('/');
+    revalidatePath(`/stock/${symbol}`);
+    return { status: on ? 'added' : 'removed', symbol };
+  } catch (error) {
+    return { status: 'error', message: (error as Error).message };
+  }
+}

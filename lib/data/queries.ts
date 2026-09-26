@@ -386,6 +386,10 @@ export interface WatchlistEntry {
   focus_sector: FocusSector;
   outside_focus: boolean;
   added_via: string;
+  /** Whether a per-stock price-trigger email is subscribed (launch item 10). */
+  price_alert: boolean;
+  /** The trading currency, for formatting the entry-price trigger on the card. */
+  currency: string | null;
   /** Null until the nightly job has evaluated it. */
   signal: SignalRow | null;
 }
@@ -405,8 +409,8 @@ export async function getWatchlist(): Promise<WatchlistEntry[]> {
 
   const { data: items, error } = await supabase
     .from('watchlist_items')
-    .select('symbol,name,focus_sector,outside_focus,added_via')
-    .returns<Omit<WatchlistEntry, 'signal'>[]>();
+    .select('symbol,name,focus_sector,outside_focus,added_via,price_alert')
+    .returns<Array<Omit<WatchlistEntry, 'signal' | 'currency'>>>();
   if (error) throw new Error(error.message);
 
   const symbols = (items ?? []).map((i) => i.symbol);
@@ -419,12 +423,27 @@ export async function getWatchlist(): Promise<WatchlistEntry[]> {
     .order('as_of', { ascending: false })
     .returns<SignalRow[]>();
 
+  // The trading currency, for the entry-price trigger shown on the card — from
+  // the newest snapshot per symbol (launch item 10).
+  const { data: snaps } = await supabase
+    .from('daily_snapshots')
+    .select('symbol,currency')
+    .in('symbol', symbols)
+    .order('as_of', { ascending: false })
+    .returns<Array<{ symbol: string; currency: string | null }>>();
+  const currency = new Map<string, string | null>();
+  for (const s of snaps ?? []) if (!currency.has(s.symbol)) currency.set(s.symbol, s.currency);
+
   const newest = new Map<string, SignalRow>();
   for (const row of signals ?? []) if (!newest.has(row.symbol)) newest.set(row.symbol, row);
 
   const rank = { buy_worthy: 0, almost: 1, watching: 2 } as const;
   return (items ?? [])
-    .map((item) => ({ ...item, signal: newest.get(item.symbol) ?? null }))
+    .map((item) => ({
+      ...item,
+      currency: currency.get(item.symbol) ?? null,
+      signal: newest.get(item.symbol) ?? null,
+    }))
     .sort((a, b) => {
       // Anything not yet evaluated sorts last: it has nothing to say yet.
       if (!a.signal || !b.signal) return (a.signal ? 0 : 1) - (b.signal ? 0 : 1);
@@ -880,4 +899,14 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
     onWatchlist: onWatchlist.has(row.symbol),
     analysed: analysedSet.has(row.symbol),
   }));
+}
+
+/** Whether the per-stock price-trigger email is on for a symbol (launch item 10). */
+export async function getPriceAlert(symbol: string): Promise<boolean> {
+  const { data } = await (await client())
+    .from('watchlist_items')
+    .select('price_alert')
+    .eq('symbol', symbol)
+    .maybeSingle<{ price_alert: boolean }>();
+  return data?.price_alert ?? false;
 }
