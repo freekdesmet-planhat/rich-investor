@@ -436,6 +436,19 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Pre-traffic safety items shipped and prod-verified. **1** — landing +
+  demo pages carry `noindex` and robots.txt is `Disallow: /` until `PUBLIC_INDEXING`
+  (default false) is set; the demos show finance-query data whose display licence is
+  unsettled. (Also fixed the middleware to let /robots.txt + /sitemap.xml through.)
+  **2** — waitlist gated behind `WAITLIST_OPEN` (default false): landing shows
+  "Opening soon", `joinWaitlist` refuses to write, no email collected under a
+  placeholder notice. Confirmed the waitlist table is empty — nothing was collected
+  since item 11 went live. **3** — one-off E2E of the price-trigger email
+  (`npm run test:price-alert`, not in cron): sent EN ("ASML.AS passed your entry
+  level") and NL ("ASML.AS is onder jouw instapniveau gezakt") to the test account
+  via Resend (not simulated), and confirmed the (recipient, kind, symbol, as_of)
+  index blocks a second send; test rows cleaned up. `PUBLIC_INDEXING`/`WAITLIST_OPEN`
+  are set on Netlify to flip each on when ready.
 - 2026-09-26: Launch bigger items (8–11) shipped, one commit each, all prod-verified
   EN+NL / light+dark / mobile. **8** — stock page reordered to the decision path
   (verdict → checklist → chart → Why → ratios/AI → review): a nine-dot VerdictRing
