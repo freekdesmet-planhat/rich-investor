@@ -72,6 +72,8 @@ export interface PricePassResult {
   requests: number;
   /** True when the provider rate-limited us and the pass stood down early. */
   throttled: boolean;
+  /** Cohort names that returned no quote this run (streak advanced toward retire). */
+  retired: number;
 }
 
 interface StoredHigh {
@@ -187,6 +189,7 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
       .select('symbol')
       .in('region', SCAN_REGIONS)
       .in('market_cap_band', SCAN_BANDS)
+      .eq('inactive', false)
       .or(primaryListingFilter()),
   );
   const nonFocusDue = allLargeMega.filter(
@@ -201,6 +204,7 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
             .select('symbol')
             .in('region', SCAN_REGIONS)
             .in('market_cap_band', ['Mid Cap'])
+            .eq('inactive', false)
             .or(primaryListingFilter()),
         )
       ).filter((s) => isDueTonight(s, today, LABEL_ROTATION_MID))
@@ -248,6 +252,9 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
   let requests = 0;
   let throttled = false;
 
+  // Which cohort names actually returned a price, so dead tickers can be retired.
+  const quotedSymbols = new Set<string>();
+
   const chunks: string[][] = [];
   for (let i = 0; i < cohort.length; i += batchSize) chunks.push(cohort.slice(i, i + batchSize));
 
@@ -265,6 +272,7 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
       log(`batch ${requests} failed (continuing): ${(error as Error).message}`);
       continue;
     }
+    for (const q of quotes) if (q.price != null) quotedSymbols.add(q.symbol);
     priced += quotes.length;
 
     // Load any new currency→USD rates this batch needs, then write caps in USD.
@@ -294,7 +302,20 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
     await enqueueForScan(client, queue);
     log(`queued ${queue.length} for priority evaluation: ${queuedSymbols.join(', ')}`);
   }
+
+  // Retire dead tickers (0043): advance the no-quote streak for cohort names that
+  // returned nothing, reset the ones that quoted. Skip when the provider was
+  // throttling us — a stand-down is not a dead company. Only names we actually
+  // attempted (reached in a batch before any break) are judged.
+  let retired = 0;
+  if (!throttled) {
+    const attempted = chunks.slice(0, requests).flat();
+    const missed = attempted.filter((s) => !quotedSymbols.has(s));
+    await client.rpc('mark_quote_results', { p_quoted: [...quotedSymbols], p_missed: missed });
+    retired = missed.length;
+    if (missed.length > 0) log(`no quote for ${missed.length} name(s); streaks advanced`);
+  }
   log(`priced ${priced}, wrote ${capsWritten} caps, ${requests} requests`);
 
-  return { cohort: cohort.length, priced, capsWritten, queued: queuedSymbols, requests, throttled };
+  return { cohort: cohort.length, priced, capsWritten, queued: queuedSymbols, requests, throttled, retired };
 }

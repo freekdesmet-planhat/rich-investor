@@ -70,11 +70,22 @@ const NAME_EXCLUDE =
   /\b(warrants?|rights?|units?|subscription receipts?|optionsschein|turbos?|mini[-\s]?futures?|knock[-\s]?outs?|certificates?|etp|etn|etf)\b|leverage shares|\b\d+x\b/i;
 
 /**
- * Preferred shares, matched narrowly. "Preferred" alone is a company word
- * ("Preferred Bank"); a preferred *security* names the security.
+ * Preferred shares and fractional depositary interests, matched narrowly.
+ * "Preferred" alone is a company word ("Preferred Bank"); a preferred *security*
+ * names the security. "Depositary shares ... representing a 1/Nth interest" is a
+ * fractional preferred (GOOGM, MCHPP), distinct from an "American Depositary
+ * Share" ADR, which is how a US audience holds a foreign company and is kept.
  */
 const PREFERRED_NAME =
-  /\bpreferred (stock|shares?|securit|series|depositary)\b|\bpfd\b|\b(cumulative|redeemable) preferred\b/i;
+  /\bpreferred (stock|shares?|securit|series|depositary)\b|\bpfd\b|\b(cumulative|redeemable) preferred\b|\bperpetual (stock|preferred)\b|depositary shares?\s+(each\s+)?representing/i;
+
+/**
+ * Reviewed non-common-stock tickers whose name and symbol carry no marker a
+ * pattern can catch — a bare-named preferred (SLM's SLMBP) or warrant (SoFi's
+ * SOFIW), or an issuer's preferred series that reuses the company name (Strategy's
+ * STRD/STRK). From the 2026-09-26 focus-universe review; extend as more surface.
+ */
+const KNOWN_NON_COMMON = new Set(['SLMBP', 'SOFIW', 'STRD', 'STRK']);
 
 /**
  * Symbol suffixes for warrants (-WT), when-issued (-WI), rights (-RI/-RW/-RT),
@@ -91,6 +102,7 @@ export function isExcludedInstrument(name: string | null, symbol: string): boole
   const n = name ?? '';
   if (NAME_EXCLUDE.test(n) || PREFERRED_NAME.test(n)) return true;
   if (SYMBOL_EXCLUDE.test(symbol) || TEST_TICKER.test(symbol)) return true;
+  if (KNOWN_NON_COMMON.has(symbol.toUpperCase())) return true;
   return false;
 }
 
@@ -146,19 +158,47 @@ interface Listing {
 }
 
 /**
- * Collapses a company's many venue listings into one row.
+ * When two share classes of one company both survive, the ticker to keep.
+ *
+ * The grouping below folds share classes of a company together (FOX/FOXA,
+ * GOOG/GOOGL), and the representative is otherwise the shorter symbol — which
+ * would pick GOOG over GOOGL. GOOGL is the one people follow (and is on the
+ * watchlist), so it wins its group. Extend as other class pairs come up.
+ */
+const PREFERRED_TICKERS = new Set(['GOOGL']);
+
+/**
+ * The grouping key: a company is its folded name with the share-class and
+ * boilerplate stripped, plus its country. "Fox Corporation Class B Common Stock"
+ * and "…Class A Common Stock" both reduce to "fox corporation", so the classes
+ * group; "Alphabet Inc. Class C Capital Stock" and "…Class A Common Stock" both
+ * reduce to "alphabet inc". Country keeps two same-named companies in different
+ * markets apart.
+ */
+function companyKey(name: string | null, symbol: string, country: string | null): string {
+  const base = foldText(name ?? symbol)
+    .replace(/\b(class|series|cl)\s+[a-z0-9]+\b/g, ' ')
+    .replace(/\b(common|capital|ordinary|registered|bearer)\s+(stock|shares?)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return `${base || foldText(symbol)}|${(country ?? '').toLowerCase()}`;
+}
+
+/**
+ * Collapses a company's many venue listings and share classes into one row.
  *
  * "apple" returned nineteen Apple Inc rows and "asml" put the Nasdaq line above
- * Amsterdam. Grouping is by folded name and country, and the representative is
- * the home-country listing (the exchange in the company's own country), so a
- * Dutch company shows its Amsterdam line, not its US one — the listing a
- * European reader actually holds. The rest become "Also listed on …".
+ * Amsterdam. Grouping is by company (name with class/boilerplate stripped) and
+ * country, and the representative is the home-country listing (the exchange in the
+ * company's own country), so a Dutch company shows its Amsterdam line, not its US
+ * one. Among equal venues a preferred ticker (GOOGL) wins, else the shorter
+ * symbol. The rest become "Also listed on …".
  */
 export function collapseCompanies<T extends Listing>(rows: T[]): (T & { alsoListedOn: string[] })[] {
   const venue = (e: string | null) => (e ?? '').toUpperCase();
   const groups = new Map<string, T[]>();
   for (const r of rows) {
-    const key = `${foldText(r.name ?? r.symbol).trim()}|${(r.country ?? '').toLowerCase()}`;
+    const key = companyKey(r.name, r.symbol, r.country);
     const g = groups.get(key);
     if (g) g.push(r);
     else groups.set(key, [r]);
@@ -173,6 +213,9 @@ export function collapseCompanies<T extends Listing>(rows: T[]): (T & { alsoList
       const prioA = VENUE_PRIORITY[venue(a.exchange)] ?? 9;
       const prioB = VENUE_PRIORITY[venue(b.exchange)] ?? 9;
       if (prioA !== prioB) return prioA - prioB;
+      const prefA = PREFERRED_TICKERS.has(a.symbol.toUpperCase()) ? 0 : 1;
+      const prefB = PREFERRED_TICKERS.has(b.symbol.toUpperCase()) ? 0 : 1;
+      if (prefA !== prefB) return prefA - prefB;
       return a.symbol.length - b.symbol.length;
     });
     const [rep, ...others] = sorted;
@@ -184,4 +227,15 @@ export function collapseCompanies<T extends Listing>(rows: T[]): (T & { alsoList
     out.push({ ...rep, alsoListedOn });
   }
   return out;
+}
+
+/**
+ * The one place both search and the scan reduce a raw universe page to distinct
+ * companies: drop the instruments (warrants, preferreds, depositary fractions,
+ * test tickers), then collapse each company's venues and share classes to one
+ * representative. Sharing it is what keeps the scan's domain and the search
+ * results agreeing on what counts as a company.
+ */
+export function keepDistinctCompanies<T extends Listing>(rows: T[]): (T & { alsoListedOn: string[] })[] {
+  return collapseCompanies(rows.filter((r) => !isExcludedInstrument(r.name, r.symbol)));
 }

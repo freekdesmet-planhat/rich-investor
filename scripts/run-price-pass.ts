@@ -31,7 +31,7 @@ async function main() {
     `  cohort ${result.cohort}, priced ${result.priced}, ` +
       `${result.requests} requests, ${result.capsWritten} caps written`,
   );
-  console.log(`  throttled: ${result.throttled}`);
+  console.log(`  throttled: ${result.throttled}, no-quote (streak advanced): ${result.retired}`);
   if (result.queued.length > 0) {
     console.log(`  queued ${result.queued.length}: ${result.queued.join(', ')}`);
   } else {

@@ -10,15 +10,16 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
-import { DEFAULT_SECTOR_RULES, type FocusSector, type SectorRule } from '@/lib/sectors/mapping';
+import { DEFAULT_SECTOR_RULES, resolveFocusSector, type FocusSector, type SectorRule } from '@/lib/sectors/mapping';
 import type { WhyPart } from '@/lib/signal/explain';
 import type { Position } from './position';
 import { sanitiseOverrides } from '@/lib/ratios/editableThresholds';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
-import { applyScanScreen } from '@/lib/pipeline/scan';
+import { applyScanScreen, isPrimaryListing } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
 import {
   collapseCompanies,
+  keepDistinctCompanies,
   isExcludedInstrument,
   LARGE_CAP_FLOOR_USD,
   normaliseQuery,
@@ -569,11 +570,20 @@ export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
       }))
     : DEFAULT_SECTOR_RULES;
 
-  const [screened, universe, latest] = await Promise.all([
+  const [domain, universe, latest] = await Promise.all([
     applyScanScreen(
-      supabase.from('universe').select('symbol', { count: 'exact', head: true }),
+      supabase.from('universe').select('symbol,name,sector,industry,exchange,country'),
       rules,
-    ),
+    ).returns<
+      Array<{
+        symbol: string;
+        name: string | null;
+        sector: string | null;
+        industry: string | null;
+        exchange: string | null;
+        country: string | null;
+      }>
+    >(),
     supabase.from('universe').select('symbol', { count: 'exact', head: true }),
     supabase
       .from('suggestions')
@@ -583,8 +593,20 @@ export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
       .maybeSingle<{ suggested_at: string }>(),
   ]);
 
+  // The figure the page shows is distinct companies, reduced exactly as the scan
+  // reduces its own domain (A4): the SQL screen returns a superset, so the exact
+  // focus resolution and the instrument/venue collapse run here too. Otherwise
+  // the count includes a company's Frankfurt copy and a fistful of preferreds.
+  const eligible = (domain.data ?? []).filter(
+    (r) =>
+      isPrimaryListing(r.exchange, r.country) &&
+      resolveFocusSector(rules, { symbol: r.symbol, sector: r.sector, industry: r.industry })
+        .focusSector !== 'outside_focus',
+  );
+  const screened = keepDistinctCompanies(eligible).length;
+
   return {
-    screened: screened.count ?? null,
+    screened,
     universe: universe.count ?? null,
     lastSuggestedAt: latest.data?.suggested_at ?? null,
   };
@@ -831,13 +853,21 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
     supabase
       .from('universe')
       .select(cols)
+      .eq('inactive', false)
       .or(`search_text.ilike.${q.pattern},symbol.like.${q.symbol}*`)
       .or(`market_cap_band.in.("Large Cap","Mega Cap"),market_cap_usd.gte.${LARGE_CAP_FLOOR_USD}`)
       .limit(200)
       .returns<UniverseRowMatch[]>(),
     // The exact-ticker rescue, any band — the floor/valve below decides whether
-    // a Mid/Small exact match is dropped and a null-band one is kept.
-    supabase.from('universe').select(cols).eq('symbol', q.symbol).limit(1).returns<UniverseRowMatch[]>(),
+    // a Mid/Small exact match is dropped and a null-band one is kept. Retired
+    // tickers stay out.
+    supabase
+      .from('universe')
+      .select(cols)
+      .eq('inactive', false)
+      .eq('symbol', q.symbol)
+      .limit(1)
+      .returns<UniverseRowMatch[]>(),
   ]);
 
   const merged = new Map<string, UniverseRowMatch>();

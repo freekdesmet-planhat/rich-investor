@@ -28,6 +28,7 @@ import { readThresholdOverrides } from './thresholdStore';
 import { evaluateSymbol } from './evaluateSymbol';
 import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
 import { clearFromScanQueue } from './scanQueue';
+import { keepDistinctCompanies } from '@/lib/data/searchFilters';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -71,6 +72,7 @@ export const SCAN_BANDS = ['Large Cap', 'Mega Cap'];
 interface FilterOps {
   in(column: string, values: readonly string[]): FilterOps;
   or(filters: string): FilterOps;
+  eq(column: string, value: boolean): FilterOps;
 }
 
 export function applyScanScreen<Q>(
@@ -81,6 +83,8 @@ export function applyScanScreen<Q>(
   let q = (query as unknown as FilterOps)
     .in('region', options.regions ?? SCAN_REGIONS)
     .in('market_cap_band', options.bands ?? SCAN_BANDS)
+    // Retired tickers (0043) are out of the domain entirely.
+    .eq('inactive', false)
     .or(primaryListingFilter());
   const focus = focusSectorFilter(rules);
   if (focus != null) q = q.or(focus);
@@ -352,9 +356,10 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
       }
       eligible.push(row);
     }
-    // De-duplicate before applying the limit, so the batch is `limit` companies
-    // rather than `limit` listings of rather fewer companies.
-    cursorCandidates.push(...dedupeByCompany(eligible).slice(0, limit));
+    // Drop instruments and collapse venues/share classes before the limit, using
+    // the same reducer as search (A4), so the batch is `limit` real companies —
+    // not warrants, preferreds or a company's Frankfurt copy of its XETRA line.
+    cursorCandidates.push(...keepDistinctCompanies(eligible).slice(0, limit));
   }
 
   // Priority names first, then the cursor walk; a name in both appears once.

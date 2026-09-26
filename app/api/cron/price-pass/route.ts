@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         requests: result.requests,
         queued: result.queued,
         throttled: result.throttled,
+        retired: result.retired,
       },
     });
 
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
         requests: result.requests,
         queued: result.queued,
         throttled: result.throttled,
+        retired: result.retired,
       },
       telemetry,
       log: run.logLines,
