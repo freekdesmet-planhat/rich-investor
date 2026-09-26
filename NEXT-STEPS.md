@@ -364,6 +364,16 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A10 (stock header + holdings inputs) shipped and visually verified on
+  prod (dark mode). 27: identity (ticker + price) and the verdict pill now share one
+  bounded top row; the chips, the tradability line and the research link drop below
+  full-width, so a long tradability line (GOOGL) can no longer push the verdict out
+  of the header — verified GOOGL: ticker and pill both at y=121. 28: the "I own this"
+  fields dropped their hard-coded `bg-white` for a themed FIELD style, and
+  `color-scheme` is now set per theme in globals.css, so the native date picker and
+  scrollbars follow dark mode — verified date input bg rgb(2,6,23), root
+  color-scheme dark. Files: stock page header, `components/PositionBlock.tsx`,
+  `app/globals.css`. **This completes Group A (A4→A3→A7→A8→A5→A6→A10).**
 - 2026-09-26: A6 (remove flow) shipped and browser-verified on prod. Add/remove
   now also `revalidatePath('/stock/<symbol>')`, so the stock page no longer keeps a
   stale "on the watchlist" state after a removal elsewhere. That revalidation
