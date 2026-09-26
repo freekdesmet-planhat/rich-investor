@@ -195,6 +195,19 @@ export async function getSnapshot(symbol: string): Promise<SnapshotRow | null> {
   return data ?? null;
 }
 
+/**
+ * The exchange a listing trades on, for deciding US-only features (SEC filings and
+ * transcripts are hidden for a non-US listing — audit 29).
+ */
+export async function getListingExchange(symbol: string): Promise<string | null> {
+  const { data } = await (await client())
+    .from('universe')
+    .select('exchange')
+    .eq('symbol', symbol)
+    .maybeSingle<{ exchange: string | null }>();
+  return data?.exchange ?? null;
+}
+
 export async function getCompanyNames(symbols: string[]): Promise<Map<string, string>> {
   if (symbols.length === 0) return new Map();
   const { data } = await (await client())

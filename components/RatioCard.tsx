@@ -224,7 +224,10 @@ export function RatioCard({
 
           {history.length > 1 && (
             <p className="mt-3 text-xs text-ink-faint">
-              {labels.fiveYears}: {history.map((p) => p.period.slice(0, 4)).join(' · ')}
+              {/* The count is derived, not fixed at five — the window often holds four
+                  annual points, and "5 years: 2022 · 2023 · 2024 · 2025" was wrong. */}
+              {labels.fiveYears.replace('{count}', String(history.length))}:{' '}
+              {history.map((p) => p.period.slice(0, 4)).join(' · ')}
             </p>
           )}
 

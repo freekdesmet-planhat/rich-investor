@@ -11,6 +11,7 @@ import { RatioGrid, CARD_ORDER } from '@/components/RatioGrid';
 import { ValuationRangeChart } from '@/components/ValuationRangeChart';
 import { GrowthTrajectory } from '@/components/GrowthTrajectory';
 import {
+  getListingExchange,
   getRatios,
   getSectorPeerRatios,
   getSignal,
@@ -19,6 +20,8 @@ import {
   getTranslations as getDocTranslations,
   type SnapshotRow,
 } from '@/lib/data/queries';
+import { US_PRIMARY_VENUES } from '@/lib/pipeline/scanQuery';
+import { isAnalystRatingHeadline } from '@/lib/data/newsFilter';
 import {
   buildStatementTable,
   STATEMENT_ROWS,
@@ -184,13 +187,26 @@ export default async function ResearchPage({
   const symbol = decodeURIComponent(raw).toUpperCase();
 
   const locale = (await getLocale()) as Lang;
-  const [t, snapshot] = await Promise.all([getTranslations('research'), getSnapshot(symbol)]);
+  const [t, snapshot, exchange] = await Promise.all([
+    getTranslations('research'),
+    getSnapshot(symbol),
+    getListingExchange(symbol),
+  ]);
 
   if (!snapshot) notFound();
 
-  const section: ResearchSection = SECTIONS.includes(query.section as ResearchSection)
+  // SEC filings and Equibles transcripts are US-only; for a non-US listing those
+  // two tabs are always empty, so they are hidden rather than shown blank (audit 29).
+  const isUsListing = exchange != null && US_PRIMARY_VENUES.includes(exchange);
+  const visibleSections = SECTIONS.filter(
+    (key) => isUsListing || (key !== 'filings' && key !== 'transcripts'),
+  );
+
+  const requested = SECTIONS.includes(query.section as ResearchSection)
     ? (query.section as ResearchSection)
     : 'analysis';
+  // A direct URL to a hidden tab falls back to the analysis tab.
+  const section: ResearchSection = visibleSections.includes(requested) ? requested : 'analysis';
   const statement: StatementKind = (['income', 'balance', 'cash'] as const).includes(
     query.statement as StatementKind,
   )
@@ -208,7 +224,14 @@ export default async function ResearchPage({
   // hundred a day on tabs nobody opened; the analysis tab is the same
   // discipline applied to the database.
   const analysis = section === 'analysis' ? await loadAnalysis(symbol, locale, snapshot) : null;
-  const news = section === 'news' ? await createMarketDataService({}).getNews(symbol, 25) : [];
+  // Rating and price-target headlines are hidden — a rating is a recommendation
+  // this app does not surface (audit 18); the company's own news stays.
+  const news =
+    section === 'news'
+      ? (await createMarketDataService({}).getNews(symbol, 25)).filter(
+          (item) => !isAnalystRatingHeadline(item.title),
+        )
+      : [];
   const filings = section === 'filings' ? await fetchRecentFilings(symbol) : [];
   const calls = section === 'transcripts' && transcriptsConfigured()
     ? await fetchEarningsCalls(symbol)
@@ -237,7 +260,7 @@ export default async function ResearchPage({
         <div className="mt-4 border-b border-line pb-3">
           <TabStrip
             label={t('title')}
-            tabs={SECTIONS.map((key) => ({
+            tabs={visibleSections.map((key) => ({
               href: href({ section: key }),
               label: t(`tab.${key}`),
               active: key === section,
@@ -365,7 +388,10 @@ export default async function ResearchPage({
                       {locale === 'nl' ? 'Analistenverwachtingen' : 'Analyst estimates'}
                     </SectionHeading>
                     <Card className="text-sm">
-                      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {/* No analyst price target: a target is a recommendation, which
+                          this app deliberately does not make (audit 18). The forward
+                          EPS and growth stay — the PEG condition is built from them. */}
+                      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         <Stat
                           label={locale === 'nl' ? 'Verwachte WPA' : 'Next-year EPS'}
                           // Per-share money, quoted in the trading currency,
@@ -380,10 +406,6 @@ export default async function ResearchPage({
                         <Stat
                           label={locale === 'nl' ? 'Analisten' : 'Analysts'}
                           value={snapshot.estimates.analystCount?.toString() ?? '—'}
-                        />
-                        <Stat
-                          label={locale === 'nl' ? 'Koersdoel' : 'Target price'}
-                          value={formatCurrency(snapshot.estimates.targetPrice, snapshot.currency, locale)}
                         />
                       </dl>
                       <p className="mt-3 text-xs text-ink-faint">

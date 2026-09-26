@@ -53,7 +53,7 @@
       "app_default": "standaardinstelling",
       "your_setting": "eigen instelling"
     },
-    "fiveYears": "Afgelopen 5 jaar",
+    "fiveYears": "Afgelopen {count} jaar",
     "unavailable": {
       "missing_data": "Geen gegevens beschikbaar",
       "not_applicable": "Niet van toepassing op dit bedrijf",

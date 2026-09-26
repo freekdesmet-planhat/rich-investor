@@ -53,7 +53,7 @@
       "app_default": "app default",
       "your_setting": "your setting"
     },
-    "fiveYears": "Last 5 years",
+    "fiveYears": "Last {count} years",
     "unavailable": {
       "missing_data": "No data available",
       "not_applicable": "Not applicable to this company",

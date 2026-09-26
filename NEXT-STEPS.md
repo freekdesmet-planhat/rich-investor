@@ -364,6 +364,14 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A8 (news + research tabs) shipped. News items are dated (kept), and
+  analyst rating / price-target headlines are hidden (`isAnalystRatingHeadline`) — a
+  rating is a recommendation this app does not surface. The analyst **price target**
+  is dropped from the estimates block (forward EPS/growth/analyst-count stay, since
+  the PEG is built from them). Filings and Transcripts tabs are hidden for a non-US
+  listing (US-venue check; a direct URL to a hidden tab falls back to Analysis). The
+  ratio-card history label is now "Last {count} years" / "Afgelopen {count} jaar",
+  derived from the years actually shown (the folded-in fix).
 - 2026-09-26: Parked for the **item 4 copy pass** (thesis vocabulary, not done yet):
   1. The summary should use the app's own words. The UI says "voorwaarde" and names
      each condition; the summary says "criteria", "regel", "norm", "grens". Pass the
