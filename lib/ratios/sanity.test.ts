@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applySanity, revenueInconsistent } from './sanity';
+import { applySanity, revenueInconsistent, equityTooThin } from './sanity';
 import type { RatioResult, RatioKey } from './engine';
 
 function ratio(key: RatioKey, value: number | null, color: RatioResult['color'] = 'green'): RatioResult {
@@ -20,17 +20,11 @@ function ratio(key: RatioKey, value: number | null, color: RatioResult['color'] 
 }
 
 describe('data sanity layer', () => {
-  it('demotes an ROE above 100% to grey unreliable, keeping the raw value', () => {
-    const out = applySanity({ roe: ratio('roe', 4.43) });
-    expect(out.roe.value).toBeNull();
-    expect(out.roe.color).toBe('gray');
-    expect(out.roe.unavailableReason).toBe('unreliable');
-    expect((out.roe.detail as { rawValue?: number }).rawValue).toBe(4.43);
-  });
-
-  it('leaves a high-but-real ROE alone', () => {
-    const out = applySanity({ roe: ratio('roe', 0.6) });
-    expect(out.roe.value).toBe(0.6);
+  it('does not size-demote ROE (a real 149% on healthy equity stands)', () => {
+    // ROE is judged on its equity denominator in the engine, not on the ratio's
+    // size, so applySanity leaves any ROE value untouched.
+    const out = applySanity({ roe: ratio('roe', 1.49) });
+    expect(out.roe.value).toBe(1.49);
     expect(out.roe.color).toBe('green');
   });
 
@@ -77,5 +71,21 @@ describe('revenue / gross-profit consistency', () => {
   it('is null-safe', () => {
     expect(revenueInconsistent(null, 0.2)).toBe(false);
     expect(revenueInconsistent(0.9, null)).toBe(false);
+  });
+});
+
+describe('ROE equity floor', () => {
+  it('flags negative equity (Starbucks)', () => {
+    expect(equityTooThin(-8_000_000_000, 30_000_000_000)).toBe(true);
+  });
+  it('flags equity under 5% of assets (GoDaddy-thin)', () => {
+    expect(equityTooThin(200_000_000, 8_000_000_000)).toBe(true);
+  });
+  it('leaves healthy equity alone (Apple: equity well above 5%)', () => {
+    expect(equityTooThin(60_000_000_000, 350_000_000_000)).toBe(false);
+  });
+  it('is null-safe and does not flag on missing assets', () => {
+    expect(equityTooThin(null, 100)).toBe(false);
+    expect(equityTooThin(5_000_000_000, null)).toBe(false);
   });
 });

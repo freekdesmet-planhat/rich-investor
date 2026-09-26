@@ -19,9 +19,6 @@
  */
 import type { RatioResult, RatioKey } from './engine';
 
-/** Above this, a return ratio is denominator noise, not a real figure (ROE 443%). */
-const RETURN_OUTLIER = 1.0; // 100%
-
 interface SanityRule {
   /** True when the value is outside any plausible range and cannot be judged. */
   outlier: (value: number) => boolean;
@@ -29,18 +26,39 @@ interface SanityRule {
   reason: string;
 }
 
-// Single-value outliers only: a figure so far outside any plausible range for a
-// real large company that it must be denominator noise or a sign flip. Growth is
-// NOT size-tested here — a real grower can double revenue in a year (Nvidia) — it
-// is tested for internal inconsistency instead (revenueInconsistent, applied in
-// the engine where the gross-profit series is at hand).
+// Single-value outliers only. ROE is NOT size-tested — a real ROE can top 100%
+// when buybacks shrink equity (Apple, Mastercard), and the ROA>10% half of the
+// condition already stops that from carrying a weak business. ROE is instead
+// tested on whether its denominator is even readable (equityTooThin, applied in
+// the engine where the balance sheet is at hand). Growth likewise is tested for
+// internal inconsistency, not size (revenueInconsistent).
 const RULES: Partial<Record<RatioKey, SanityRule>> = {
-  roe: { outlier: (v) => Math.abs(v) > RETURN_OUTLIER, reason: 'roe_out_of_range' },
-  roa: { outlier: (v) => Math.abs(v) > RETURN_OUTLIER, reason: 'roa_out_of_range' },
   // A negative cash-conversion ratio (OCF below zero against positive net income)
   // is a sign flip on a one-off far more often than a readable signal at this size.
   earnings_quality: { outlier: (v) => v < 0, reason: 'cash_conversion_negative' },
 };
+
+/** Equity floor below which ROE is denominator noise rather than a real figure. */
+const EQUITY_FLOOR_OF_ASSETS = 0.05; // 5% of total assets
+
+/**
+ * Whether a year's shareholders' equity is too thin to read an ROE from.
+ *
+ * ROE = net income / equity, so a negative or sliver-thin equity base makes the
+ * ratio meaningless however arithmetically large it comes out (GoDaddy's 443% off
+ * near-zero equity, Starbucks' negative equity). The test is the denominator, not
+ * the result: a real 149% ROE on healthy equity (Apple) is left to stand, and the
+ * ROA half of the condition guards against a buyback-inflated ROE flattering a weak
+ * business.
+ */
+export function equityTooThin(equity: number | null, assets: number | null): boolean {
+  if (equity == null || !Number.isFinite(equity)) return false;
+  if (equity < 0) return true;
+  if (assets != null && Number.isFinite(assets) && assets > 0) {
+    return equity < EQUITY_FLOOR_OF_ASSETS * assets;
+  }
+  return false;
+}
 
 /** The revenue move worth scrutinising; below this, a divergence is just noise. */
 const REVENUE_MOVE_FLOOR = 0.6; // ±60%

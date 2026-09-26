@@ -208,12 +208,12 @@ export function evaluateSignal(
   const roe = ratios.roe;
   const roa = ratios.roa;
   const roaDetail = roa.detail as { isAdjusted?: boolean; rawValue?: number | null };
-  // An out-of-range ROE/ROA (e.g. 443% off a sliver of equity) is demoted to grey
-  // by the sanity layer. The condition stays applicable and is NOT met — a
-  // condition we can't verify must never make a stock easier to pass — so the
-  // stock is capped at "almost there" and the status line names it (A4).
-  const returnsUnjudged =
-    roe.unavailableReason === 'unreliable' || roa.unavailableReason === 'unreliable';
+  // ROE demoted to grey by the sanity layer (its equity base was negative or a
+  // sliver of assets, so the ratio can't be read). The condition stays applicable
+  // and is NOT met — a condition we can't verify must never make a stock easier to
+  // pass — so the stock is capped at "almost there" and the status line names it.
+  // ROA is never demoted, and its > 10% half still guards a buyback-inflated ROE (A4).
+  const returnsUnjudged = roe.unavailableReason === 'unreliable';
   conditions.push({
     key: 'returns',
     ...ALWAYS,

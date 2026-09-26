@@ -33,7 +33,7 @@ import {
 } from './fundamentals';
 import { DEFAULT_THRESHOLDS, type Thresholds } from './thresholds';
 import { capCurrency, priceDivisor, identityFx, type FxRates } from '@/lib/providers/fx';
-import { demote, revenueInconsistent } from './sanity';
+import { demote, equityTooThin, revenueInconsistent } from './sanity';
 import type { SymbolBundle } from '@/lib/providers/marketData';
 import type { FocusSector } from '@/lib/sectors/mapping';
 
@@ -110,6 +110,8 @@ export interface RatioContext {
    * company's own currency as well as in the USD the $10bn rule is stated in.
    */
   quoteToUsd: number | null;
+  /** When false, the engine's outlier demotions (A4) are skipped. Default true. */
+  sanity: boolean;
   thresholds: Thresholds;
   bundle: SymbolBundle;
 }
@@ -163,6 +165,7 @@ export function buildContext(
     isPaymentProcessor?: boolean;
     thresholds?: Thresholds;
     fx?: FxRates;
+    sanity?: boolean;
   } = {},
 ): RatioContext {
   const {
@@ -171,6 +174,7 @@ export function buildContext(
     isPaymentProcessor = false,
     thresholds = DEFAULT_THRESHOLDS,
     fx = identityFx,
+    sanity = true,
   } = options;
 
   const quoteCurrency = bundle.quote?.currency ?? null;
@@ -210,6 +214,7 @@ export function buildContext(
     quoteCurrency,
     fxApplied,
     quoteToUsd: toUsd,
+    sanity,
     thresholds,
     bundle,
   };
@@ -654,7 +659,7 @@ export function computeRoe(ctx: RatioContext): RatioResult {
         ? 'orange'
         : 'red';
 
-  return {
+  const result: RatioResult = {
     key: 'roe',
     value: current,
     unit: 'percent',
@@ -668,6 +673,22 @@ export function computeRoe(ctx: RatioContext): RatioResult {
     unavailableReason: null,
     detail: { qualifyingYears, yearsAvailable, meetsConsistency },
   };
+
+  // Sanity (A4): ROE can't be read if its denominator was negative or a sliver of
+  // assets in any year the condition uses. Checked on the balance sheet here, not
+  // on the ratio's size — a real high ROE on healthy equity is left to stand.
+  if (!ctx.sanity) return result;
+  const equity = new Map(annualSeries(balance.annual, 'stockholdersEquity').map((p) => [p.period, p.value]));
+  const assets = new Map(annualSeries(balance.annual, 'totalAssets').map((p) => [p.period, p.value]));
+  const windowPeriods = new Set(history.map((p) => p.period));
+  const latestPeriod = [...equity.keys()].sort().at(-1);
+  if (latestPeriod) windowPeriods.add(latestPeriod);
+  const thin = [...windowPeriods].some((pr) =>
+    equityTooThin(equity.get(pr) ?? null, assets.get(pr) ?? null),
+  );
+  if (thin) return demote(result, 'equity_too_thin');
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -935,7 +956,7 @@ export function computeEpsGrowth(ctx: RatioContext, d: Derived): RatioResult {
 
 export function computeRevenueGrowth(ctx: RatioContext, d: Derived): RatioResult {
   const result = growthRatio('revenue_growth', d.revenueSeries, ctx.thresholds.revenueGrowth);
-  if (result.value == null) return result;
+  if (result.value == null || !ctx.sanity) return result;
 
   // Internal-consistency sanity (A4): a big revenue move whose gross profit does
   // not follow is a gross/net source mix, not a real change, and can't be judged.
