@@ -364,6 +364,27 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A4 (data sanity layer) built.
+  - **Sanity layer** (`lib/ratios/sanity.ts`): out-of-range values are demoted to
+    grey "can't judge reliably" before the signal and stored rows are built — ROE/ROA
+    above 100% (the 443%-that-passes bug), a YoY change beyond ±60% (Adyen's −79%
+    gross/net source mix), a negative cash conversion (the −305% "clean accounting").
+    Raw figure kept in `detail.rawValue`. The `returns` and `cash_flow` conditions
+    become non-applicable (not a false pass/fail) when their driver is demoted.
+  - **Insider block hidden for non-US filers**: secInsider returns `usFiler`; the
+    block renders nothing when false, instead of "No reported insider trades" — a
+    false all-clear for a company that files no Form 4. Cached via a new
+    `insider_activity.us_filer` column (0042).
+  - **GBp in the ratio engine**: market cap now converts on the major-unit rate
+    (`capCurrency`, shared with the price pass), so a UK name gets its cap and size
+    condition instead of failing on missing data. Price-based ratios stay grey for a
+    pence quote (honest, not wrong) — full pence handling is a separate follow-up.
+  - **Rollins mapping**: `symbolRule('ROL', 'outside_focus')` overrides
+    FinanceDatabase's misfiling of it under Hotels/Restaurants/Leisure. Verified BKNG
+    (real hospitality) still resolves luxury_consumer.
+  - **Verified already-fixed** against current code: the PEG "unknown, above the 1.0
+    ceiling" sentence (explain.ts now gives proper unknown-cause clauses). Adyen's
+    gross/net revenue source mix remains a deeper follow-up (the grey flag hides it).
 - 2026-09-26: A12b follow-ups.
   - **Missing caps diagnosed.** Of 473 priced, 100 got no cap: 54 no market-cap
     in the response (secondary classes GOOGM/DISCB, preferreds, delisted), 30 no

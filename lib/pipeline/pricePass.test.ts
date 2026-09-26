@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { crossedThreshold, CROSS_THRESHOLDS, capCurrency } from './pricePass';
+import { crossedThreshold, CROSS_THRESHOLDS } from './pricePass';
+import { capCurrency } from '@/lib/providers/fx';
 
 describe('market-cap currency', () => {
   it('resolves the GBp/GBX pence alias to GBP (cap is already in pounds)', () => {

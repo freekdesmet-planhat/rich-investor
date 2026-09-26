@@ -19,6 +19,7 @@
  * persists only the names it raises. Nothing here reads or writes the database.
  */
 import { buildContext, computeAllRatios, type RatioResult } from '@/lib/ratios/engine';
+import { applySanity } from '@/lib/ratios/sanity';
 import { checkInvariants, type InvariantViolation } from '@/lib/ratios/invariants';
 import { evaluateSignal, type SignalResult, type SignalStatus } from '@/lib/signal/buyWorthy';
 import { explainSignal, explainSections } from '@/lib/signal/explain';
@@ -173,7 +174,11 @@ export function evaluateSymbol(input: EvaluateSymbolInput): EvaluatedSymbol {
   });
 
   const lynch = classifyLynch(ctx, { industry, thresholds });
-  const ratios = computeAllRatios(ctx, pegCategoryFor(lynch.category));
+  // Demote out-of-range values (ROE 443%, a −79% source-mix revenue drop, a
+  // negative cash conversion) to grey "can't judge reliably" before the signal
+  // and the stored rows are built, so nothing downstream asserts a meaningless
+  // number (A4).
+  const ratios = applySanity(computeAllRatios(ctx, pegCategoryFor(lynch.category)));
 
   // Invariants run before the signal is built, so a broken number never reaches
   // a buy decision without being reported first. The caller decides whether to

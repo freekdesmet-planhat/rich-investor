@@ -43,6 +43,7 @@ interface Row {
   transactions: InsiderActivity['transactions'];
   filings_read: number;
   error: string | null;
+  us_filer: boolean | null;
 }
 
 const toActivity = (row: Row): CachedInsiderActivity => ({
@@ -52,6 +53,8 @@ const toActivity = (row: Row): CachedInsiderActivity => ({
   transactions: row.transactions ?? [],
   filingsRead: row.filings_read,
   truncated: false,
+  // Default a legacy null to shown; only an explicit non-US filer is hidden.
+  usFiler: row.us_filer ?? true,
   fetchedAt: row.fetched_at,
   error: row.error,
 });
@@ -73,7 +76,7 @@ export async function getInsiderActivity(
 
   const { data } = await client
     .from('insider_activity')
-    .select('symbol,fetched_at,window_days,summary,transactions,filings_read,error')
+    .select('symbol,fetched_at,window_days,summary,transactions,filings_read,error,us_filer')
     .eq('symbol', symbol)
     .maybeSingle<Row>();
 
@@ -91,6 +94,7 @@ export async function getInsiderActivity(
         summary: activity.summary,
         transactions: activity.transactions,
         filings_read: activity.filingsRead,
+        us_filer: activity.usFiler,
         error: null,
       },
       { onConflict: 'symbol' },
@@ -106,6 +110,10 @@ export async function getInsiderActivity(
         summary: {},
         transactions: [],
         filings_read: 0,
+        // A failure here is a US filer whose fetch broke (a non-US filer returns
+        // an empty answer and never throws), so keep the block shown as
+        // "unavailable" rather than hiding it.
+        us_filer: true,
         error: message,
       },
       { onConflict: 'symbol' },

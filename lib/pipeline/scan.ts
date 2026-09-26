@@ -20,7 +20,7 @@
  * last left off.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createFxRates } from '@/lib/providers/fx';
+import { createFxRates, capCurrency } from '@/lib/providers/fx';
 import { createMarketDataService } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
 import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
@@ -420,6 +420,8 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     if (!quote) continue;
     if (bundle.filingCurrency) pairs.push([quote, bundle.filingCurrency]);
     pairs.push([quote, 'USD']);
+    // The cap converts on the major-unit rate (GBp cap is in GBP), so load it too.
+    pairs.push([capCurrency(quote), 'USD']);
   }
   await fx.load(pairs);
 

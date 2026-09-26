@@ -195,12 +195,18 @@ export function evaluateSignal(
   const roe = ratios.roe;
   const roa = ratios.roa;
   const roaDetail = roa.detail as { isAdjusted?: boolean; rawValue?: number | null };
+  // An out-of-range ROE/ROA (e.g. 443% off a sliver of equity) is demoted to grey
+  // by the sanity layer and can't be judged, so the condition doesn't apply rather
+  // than passing on a meaningless number (A4).
+  const returnsReliable =
+    roe.unavailableReason !== 'unreliable' && roa.unavailableReason !== 'unreliable';
   conditions.push({
     key: 'returns',
-    ...ALWAYS,
-    passed: roe.color === 'green' && roa.color === 'green',
+    applicable: returnsReliable,
+    passed: returnsReliable && roe.color === 'green' && roa.color === 'green',
     value: roe.value,
     target: 'ROE > 15% and ROA > 10%',
+    notApplicableReason: returnsReliable ? undefined : 'unreliable',
     detail: {
       roe: roe.value,
       roa: roa.value,
@@ -217,14 +223,23 @@ export function evaluateSignal(
   const quality = ratios.earnings_quality;
   const fcfPositive = pFcf.unavailableReason !== 'negative_base' && pFcf.value != null;
   const qualityOk = quality.value != null && quality.value >= 0.7;
+  // A negative cash-conversion ratio is demoted to grey by the sanity layer (a
+  // sign flip on a one-off, not a readable signal), so the condition can't be
+  // judged rather than being called clean or failed on a nonsense number (A4).
+  const qualityReliable = quality.unavailableReason !== 'unreliable';
+  const cashFlowApplicable = !ctx.isFinancial && qualityReliable;
 
   conditions.push({
     key: 'cash_flow',
-    applicable: !ctx.isFinancial,
-    passed: !ctx.isFinancial && fcfPositive && qualityOk,
+    applicable: cashFlowApplicable,
+    passed: cashFlowApplicable && fcfPositive && qualityOk,
     value: quality.value,
     target: 'free cash flow positive, operating cash flow ≥ 70% of net income',
-    notApplicableReason: ctx.isFinancial ? 'financial_institution' : undefined,
+    notApplicableReason: ctx.isFinancial
+      ? 'financial_institution'
+      : !qualityReliable
+        ? 'unreliable'
+        : undefined,
     detail: { fcfPositive, qualityOk, ocfOverNetIncome: quality.value },
   });
 

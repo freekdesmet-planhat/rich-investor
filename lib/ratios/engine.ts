@@ -32,7 +32,7 @@ import {
   type SeriesPoint,
 } from './fundamentals';
 import { DEFAULT_THRESHOLDS, type Thresholds } from './thresholds';
-import { identityFx, type FxRates } from '@/lib/providers/fx';
+import { capCurrency, identityFx, type FxRates } from '@/lib/providers/fx';
 import type { SymbolBundle } from '@/lib/providers/marketData';
 import type { FocusSector } from '@/lib/sectors/mapping';
 
@@ -188,7 +188,14 @@ export function buildContext(
 
   // The $10bn floor (5.19) is stated in USD, so it needs its own conversion.
   const toUsd = quoteCurrency ? fx.rate(quoteCurrency, 'USD') : null;
-  const marketCapUsd = rawMarketCap != null && toUsd != null ? rawMarketCap * toUsd : null;
+  // The market cap is reported in the major unit even where the price is quoted
+  // in a minor one (LSE: price in GBp pence, cap in GBP), so it converts on the
+  // major-unit rate. Without this every UK name lost its cap and failed the size
+  // condition on missing data (A4). Price-based ratios keep `toUsd`, which stays
+  // null for a pence quote — they render grey rather than a wrong number, which
+  // is the honest state until a full pence pass.
+  const capToUsd = fx.rate(capCurrency(quoteCurrency), 'USD');
+  const marketCapUsd = rawMarketCap != null && capToUsd != null ? rawMarketCap * capToUsd : null;
 
   return {
     symbol: bundle.symbol,

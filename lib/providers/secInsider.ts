@@ -56,6 +56,13 @@ export interface InsiderActivity {
   filingsRead: number;
   /** True when MAX_FILINGS cut the window short. */
   truncated: boolean;
+  /**
+   * True only for a US filer we could resolve to a CIK. False for a non-US filer
+   * (no CIK, so no Form 4 exists) or an unconfigured deployment — the block is
+   * hidden then rather than showing "no reported insider trades", which for a
+   * company that never files Form 4 is a false all-clear (A4).
+   */
+  usFiler: boolean;
 }
 
 /**
@@ -71,13 +78,14 @@ export async function fetchInsiderActivity(
   windowDays = DEFAULT_WINDOW_DAYS,
   now: Date = new Date(),
 ): Promise<InsiderActivity> {
-  const empty = (): InsiderActivity => ({
+  const empty = (usFiler = false): InsiderActivity => ({
     symbol,
     windowDays,
     summary: summariseInsiderActivity([]),
     transactions: [],
     filingsRead: 0,
     truncated: false,
+    usFiler,
   });
 
   // Unconfigured is an empty answer, not an error: the block renders its
@@ -141,5 +149,6 @@ export async function fetchInsiderActivity(
     transactions,
     filingsRead,
     truncated,
+    usFiler: true,
   };
 }

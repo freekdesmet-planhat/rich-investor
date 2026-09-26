@@ -60,7 +60,8 @@
       "negative_growth": "De winst groeit niet, dus een PEG zegt niets",
       "series_break": "Trend onderdrukt: het bedrijf rapporteert iets anders dan voorheen",
       "no_fx_rate": "Geen wisselkoers beschikbaar om de valuta's op elkaar af te stemmen",
-      "no_dividend": "Keert geen dividend uit"
+      "no_dividend": "Keert geen dividend uit",
+      "unreliable": "Niet betrouwbaar te beoordelen"
     },
     "adjusted": {
       "label": "gecorrigeerd",

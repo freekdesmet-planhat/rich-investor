@@ -50,6 +50,8 @@ interface Payload {
   summary: Summary;
   filingsRead: number;
   error: string | null;
+  /** False for a non-US filer (no Form 4 exists) — the block is hidden then. */
+  usFiler?: boolean;
 }
 
 export function InsiderActivity({
@@ -91,6 +93,11 @@ export function InsiderActivity({
 
   const summary = data?.summary;
   const hasAnything = summary && (summary.buys > 0 || summary.sells > 0);
+
+  // Form 4 is a US filing. For a non-US filer there is nothing to report and
+  // "no reported insider trades" would be a false all-clear, so the block is
+  // hidden entirely once we know the answer arrived (A4).
+  if (state === 'ready' && data && data.usFiler === false) return null;
 
   return (
     <div className="mt-2 rounded-lg border border-line bg-surface-sunken px-3 py-2 text-xs">

@@ -60,7 +60,8 @@
       "negative_growth": "Earnings are not growing, so a PEG would say nothing",
       "series_break": "Trend suppressed: the company changed what it reports",
       "no_fx_rate": "No exchange rate available to reconcile the currencies",
-      "no_dividend": "Pays no dividend"
+      "no_dividend": "Pays no dividend",
+      "unreliable": "Can't judge reliably"
     },
     "adjusted": {
       "label": "adjusted",

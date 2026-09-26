@@ -199,6 +199,13 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
     'FinanceDatabase files EssilorLuxottica under Health Care, but the book ' +
       'treats it as a luxury-goods company (Ray-Ban, Oakley).',
   ),
+  symbolRule(
+    'ROL',
+    'outside_focus',
+    'FinanceDatabase misfiles Rollins under "Hotels, Restaurants & Leisure", so ' +
+      'the industry rule swept a pest-control (commercial services) company into ' +
+      'luxury_consumer. It is outside the four focus sectors.',
+  ),
 ];
 
 /**

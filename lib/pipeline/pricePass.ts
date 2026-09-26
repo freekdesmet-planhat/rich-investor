@@ -30,7 +30,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { financeQueryProvider } from '@/lib/providers/financeQuery';
 import { ProviderError } from '@/lib/providers/types';
-import { createFxRates } from '@/lib/providers/fx';
+import { createFxRates, capCurrency } from '@/lib/providers/fx';
 import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
 import { enqueueForScan, type ScanQueueEntry } from './scanQueue';
 import { applyScanScreen, SCAN_BANDS, SCAN_REGIONS } from './scan';
@@ -95,22 +95,6 @@ export function crossedThreshold(prev: number, curr: number): number | null {
     if (prev > t && curr <= t) crossed = t;
   }
   return crossed;
-}
-
-/**
- * The currency a market cap is denominated in, resolving minor-unit aliases.
- *
- * finance-query (like Yahoo) quotes some venues in a minor unit — the LSE price
- * is in GBp (pence) — but reports the *market cap* in the major unit (GBP). Left
- * as-is, `GBp` has no USD rate and every London large cap loses its cap: the
- * first hand-run dropped 16 names this way, AstraZeneca and Shell among them. The
- * cap value is already in pounds, so only the rate lookup needs the alias mapped;
- * no division. (Prices are never converted here — the decline is a ratio in the
- * quote currency, so pence cancels.)
- */
-export function capCurrency(currency: string | null): string {
-  if (currency === 'GBp' || currency === 'GBX') return 'GBP';
-  return currency ?? 'USD';
 }
 
 function chunkList<T>(items: T[], size: number): T[][] {

@@ -19,6 +19,21 @@ export interface FxRates {
   rate(from: string, to: string): number | null;
 }
 
+/**
+ * The currency a *market cap* is denominated in, resolving minor-unit aliases.
+ *
+ * finance-query (like Yahoo) quotes some venues in a minor unit — the LSE price
+ * is in GBp (pence) — but reports the market cap in the major unit (GBP). Left
+ * as-is, `GBp` has no USD rate and every London name loses its cap. The cap value
+ * is already in pounds, so only the rate lookup needs the alias mapped; there is
+ * no division. Prices are a different matter — a GBp *price* really is in pence —
+ * so this is used only for cap conversion, never for price.
+ */
+export function capCurrency(currency: string | null): string {
+  if (currency === 'GBp' || currency === 'GBX') return 'GBP';
+  return currency ?? 'USD';
+}
+
 /** A rate table that converts nothing; every pair resolves to 1 when equal. */
 export const identityFx: FxRates = {
   rate: (from, to) => (from === to ? 1 : null),

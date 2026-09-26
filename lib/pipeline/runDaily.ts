@@ -11,7 +11,7 @@
  * figures change (section 7).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createFxRates } from '@/lib/providers/fx';
+import { createFxRates, capCurrency } from '@/lib/providers/fx';
 import { createMarketDataService } from '@/lib/providers/marketData';
 import { createSupabaseCache } from '@/lib/providers/supabaseCache';
 import { formatViolations, type InvariantViolation } from '@/lib/ratios/invariants';
@@ -181,6 +181,9 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     if (!quote) continue;
     if (bundle.filingCurrency) pairs.push([quote, bundle.filingCurrency]);
     pairs.push([quote, 'USD']);
+    // The market cap converts on the major-unit rate (GBp cap is in GBP), so its
+    // pair must be loaded too or every UK name loses its cap (A4).
+    pairs.push([capCurrency(quote), 'USD']);
   }
   const fx = createFxRates();
   await fx.load(pairs);
