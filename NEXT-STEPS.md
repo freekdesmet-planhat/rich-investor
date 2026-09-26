@@ -364,6 +364,29 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A4 decisions round (ROE rule, universe cleanup, sector fixes).
+  - **ROE judged on equity, not a 100% cap.** Demote ROE only when equity is
+    negative or under 5% of assets in a window year (GDDY 3%, SBUX negative stay
+    unjudged); AAPL/MA/NVDA (149/241/117%) get their pass back. Before/after audit:
+    nothing newly buy-worthy. APP is `watching 7/9` in every variant — its ROE
+    isn't demoted (healthy equity) but `returns` fails on 5y consistency and
+    lynch_category fails; ROE was never its binding constraint.
+  - **Universe cleanup.** One shared `keepDistinctCompanies` (instrument filter +
+    venue/share-class collapse) now runs in the scan as in search; dead tickers
+    retire via a no-quote streak (0043). Domain: 293 raw rows -> 254 distinct.
+  - **Sector fixes.** 10 wrongly-in-focus + 3 bank-charter names to outside_focus,
+    10 relabels — via symbolRule, synced to the DB with scripts/sync-sector-rules.ts
+    (the pipeline reads sector_mapping, not the code default). Domain: 254 -> **241**.
+  - **Missing names (item 4, explained, not changed):** ACN/SPOT/ARM are in focus
+    but excluded by the primary-listing pairing (US-listed, foreign-domiciled —
+    NYQ/Ireland, NYQ/Luxembourg, NMS/UK); the capital-markets group (SPGI, MCO, ICE,
+    CME, MSCI, LSEG.L, DB1.DE, BLK, BX) is out because "Capital Markets" isn't in
+    the financial focus industries (confirmed: only Consumer Finance + Diversified
+    Financial Services) — a parked decision; GPN is misfiled "Professional
+    Services"; FI (Fiserv) isn't in the universe (still listed as FISV); ENX.PA/
+    WISE.L are null-band. Pending: **A-scan-alerts** (fire the buy-worthy email on
+    scan finds too, deduped) after A3; **item 6** residual provider-gap count after
+    the cleanup settles.
 - 2026-09-26: A4 verification pass — two silent-verdict-change fixes.
   - **Grey never makes a stock easier to pass.** The first cut marked a demoted
     condition non-applicable, which *removed* it from the count — a stock with a
