@@ -114,6 +114,10 @@ export async function addToWatchlist(
 
     revalidatePath('/');
     revalidatePath('/search');
+    // The stock page renders its "on the watchlist" control from server state,
+    // so without this it kept showing the old state after an add or remove
+    // (audit 14). Restore routes through here, so it is covered too.
+    revalidatePath(`/stock/${row.symbol}`);
     return { status: 'added', symbol: row.symbol, name: row.name };
   } catch (error) {
     return { status: 'error', message: (error as Error).message };
@@ -150,6 +154,9 @@ export async function removeFromWatchlist(
 
     revalidatePath('/');
     revalidatePath('/search');
+    // The stock page's "on the watchlist" control is server-rendered; without
+    // this it kept saying the ticker was still on the list after removal (audit 14).
+    revalidatePath(`/stock/${symbol}`);
     return { status: 'removed', symbol, name: existing?.name ?? null };
   } catch (error) {
     return { status: 'error', message: (error as Error).message };
