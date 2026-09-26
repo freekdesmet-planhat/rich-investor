@@ -364,6 +364,23 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A4 sector follow-ups round 2.
+  - RELX (REL.L), Wolters Kluwer (WKL.AS), Informa (INF.L) pinned in as
+    entertainment_media (publishing/information, like NYT and S&P/Moody's). Tradeweb
+    (TW) in as financial_services_non_bank (marketplace operator); HOOD/IBKR stay out.
+  - FER (Ferrovial) out — its Nasdaq row is mislabeled "Electronic Equipment/IT"; it
+    is toll-road/construction infrastructure (FER.MC is correctly Transportation
+    Infrastructure, already out).
+  - **Listing rule generalised.** `scanVenueFilter` now admits any US-venue listing
+    plus any European-venue listing of a non-US-domiciled company — so a Swiss name's
+    Paris line (STMicroelectronics) is available — while still excluding US names'
+    thin foreign cross-listings. The collapse prefers, in order: home-country line;
+    then, among equal-priority venues with no home line, the home-region (EUR)
+    currency; so STM → STM.PA (EUR), ASML → ASML.AS, but ACN/NXPI keep their NYSE/
+    Nasdaq primary over a thin Frankfurt/Vienna EUR line. Vienna/XETRA/Milan demoted
+    as cross-listing hubs (they still win as a home venue on the home tier).
+  - Domain now **249 distinct companies**; unique symbols, no company duplicates; no
+    watchlist/suggestion verdict changes.
 - 2026-09-26: A4 parked-sector decisions + follow-ups.
   - **Telecom/cable out, per name** (no industry rule for "Diversified Telecom",
     which also holds Alphabet/Meta/NYT/Omnicom). Removed that industry rule; carriers,

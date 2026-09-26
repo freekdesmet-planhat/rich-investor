@@ -153,6 +153,7 @@ interface UniRow {
   country: string | null;
   sector: string | null;
   industry: string | null;
+  currency: string | null;
 }
 
 /** A universe query builder, narrowed to the calls the pager makes. */
@@ -183,7 +184,7 @@ async function allRows(build: () => RowQuery): Promise<UniRow[]> {
   return out;
 }
 
-const COHORT_COLS = 'symbol,name,exchange,country,sector,industry';
+const COHORT_COLS = 'symbol,name,exchange,country,sector,industry,currency';
 
 export async function runPricePass(options: PricePassOptions): Promise<PricePassResult> {
   const { client, batchSize = PRICE_BATCH_SIZE, includeMid = true } = options;

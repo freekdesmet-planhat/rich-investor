@@ -7,12 +7,57 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  collapseCompanies,
   foldText,
   isExcludedInstrument,
   normaliseQuery,
   passesSizeFloor,
   sizeLabelOf,
 } from './searchFilters';
+
+interface L {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  country: string | null;
+  currency?: string | null;
+}
+const rep = (rows: L[]) => collapseCompanies(rows).map((r) => r.symbol);
+
+describe('company collapse: representative listing', () => {
+  it('keeps the home-country line for a dual listing (ASML.AS over ASML)', () => {
+    const out = rep([
+      { symbol: 'ASML', name: 'ASML Holding N.V.', exchange: 'NMS', country: 'Netherlands', currency: 'USD' },
+      { symbol: 'ASML.AS', name: 'ASML Holding N.V.', exchange: 'AMS', country: 'Netherlands', currency: 'EUR' },
+    ]);
+    expect(out).toEqual(['ASML.AS']);
+  });
+
+  it('with no home line, prefers the EUR line between equal-priority venues (STM.PA over NYSE)', () => {
+    const out = rep([
+      { symbol: 'STM', name: 'STMicroelectronics N.V.', exchange: 'NYQ', country: 'Switzerland', currency: 'USD' },
+      { symbol: 'STM.PA', name: 'STMicroelectronics N.V.', exchange: 'PAR', country: 'Switzerland', currency: 'EUR' },
+    ]);
+    expect(out).toEqual(['STM.PA']);
+  });
+
+  it('does not let a thin EUR cross-listing beat a primary US line (ACN keeps NYSE)', () => {
+    const out = rep([
+      { symbol: 'ACN', name: 'Accenture plc', exchange: 'NYQ', country: 'Ireland', currency: 'USD' },
+      { symbol: 'ACN.F', name: 'Accenture plc', exchange: 'FRA', country: 'Ireland', currency: 'EUR' },
+      { symbol: 'ACNW.VI', name: 'Accenture plc', exchange: 'VIE', country: 'Ireland', currency: 'EUR' },
+    ]);
+    expect(out).toEqual(['ACN']);
+  });
+
+  it('collapses share classes and keeps GOOGL', () => {
+    const out = rep([
+      { symbol: 'GOOG', name: 'Alphabet Inc. Class C Capital Stock', exchange: 'NMS', country: 'United States', currency: 'USD' },
+      { symbol: 'GOOGL', name: 'Alphabet Inc. Class A Common Stock', exchange: 'NMS', country: 'United States', currency: 'USD' },
+    ]);
+    expect(out).toEqual(['GOOGL']);
+  });
+});
 
 describe('query folding', () => {
   it('folds diacritics so "hermes" can match "Hermès"', () => {

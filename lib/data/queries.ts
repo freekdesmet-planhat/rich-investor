@@ -572,7 +572,7 @@ export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
 
   const [domain, universe, latest] = await Promise.all([
     applyScanScreen(
-      supabase.from('universe').select('symbol,name,sector,industry,exchange,country'),
+      supabase.from('universe').select('symbol,name,sector,industry,exchange,country,currency'),
       rules,
     ).returns<
       Array<{
@@ -582,6 +582,7 @@ export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
         industry: string | null;
         exchange: string | null;
         country: string | null;
+        currency: string | null;
       }>
     >(),
     supabase.from('universe').select('symbol', { count: 'exact', head: true }),
@@ -812,6 +813,7 @@ interface UniverseRowMatch {
   region: string | null;
   market_cap_band: string | null;
   market_cap_usd: number | null;
+  currency: string | null;
 }
 
 /**
@@ -841,7 +843,7 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
   if (!q) return [];
 
   const supabase = await client();
-  const cols = 'symbol,name,exchange,country,region,market_cap_band,market_cap_usd';
+  const cols = 'symbol,name,exchange,country,region,market_cap_band,market_cap_usd,currency';
 
   const [floored, exact] = await Promise.all([
     // Name (folded) or symbol prefix, within the size floor. A row clears the

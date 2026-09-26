@@ -113,17 +113,27 @@ export function primaryListingFilter(
 export const US_PRIMARY_VENUES = ['NMS', 'NYQ', 'NGM', 'ASE', 'PCX'];
 
 /**
- * Which listings the scan admits: a home-country primary (as before), OR any
- * listing on a main US exchange. The second arm brings in a company domiciled
- * abroad but listed only in the US (Accenture, Spotify, Arm, NXP), whose venue
- * never matches its home country. It deliberately does NOT admit foreign venues
- * for a US-domiciled company — a US name's thin London/Frankfurt/Vienna line has a
- * real home listing to collapse onto, and admitting it leaked those cross-listings
- * (and re-surfaced names their symbol rule had excluded). The home listing still
- * wins a dual listing, because the collapse sorts home-country first (2026-09-26).
+ * Which listings the scan admits, in two arms:
+ *   - any listing on a main US exchange (a company domiciled abroad but listed in
+ *     the US — Accenture, Spotify, Arm, NXP — has no home-country line, and this
+ *     keeps its US line);
+ *   - any listing on a primary European venue whose company is NOT US-domiciled
+ *     (a European company's home or in-region line — including a Swiss name's Paris
+ *     listing, STMicroelectronics, when it has no Zurich line).
+ *
+ * The second arm's `country != United States` is what stops a US name's thin
+ * London/Frankfurt/Vienna cross-listing from entering: that line has a real US
+ * home to collapse onto, and admitting it leaked cross-listings (re-surfacing names
+ * a symbol rule had excluded, via Rollins' Frankfurt line). The collapse then keeps
+ * the home line for a dual listing, and prefers the home-region (EUR) line over a
+ * US line when there is no home listing (2026-09-26).
  */
 export function scanVenueFilter(): string {
-  return `exchange.in.(${US_PRIMARY_VENUES.join(',')}),${primaryListingFilter()}`;
+  const euVenues = Object.keys(PRIMARY_EXCHANGES).filter((v) => !US_PRIMARY_VENUES.includes(v));
+  return (
+    `exchange.in.(${US_PRIMARY_VENUES.join(',')}),` +
+    `and(exchange.in.(${euVenues.join(',')}),country.neq.${quoteFilterValue('United States')})`
+  );
 }
 
 export interface FocusPrefilter {

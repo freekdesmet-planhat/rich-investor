@@ -288,6 +288,18 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
   // --- Per-name fixes (2026-09-26) --------------------------------------------
   symbolRule('GPN', 'financial_services_non_bank', 'Global Payments — a payment processor, misfiled under Professional Services.'),
   symbolRule('WISE.L', 'financial_services_non_bank', 'Wise — cross-border payments (null industry in the dataset).'),
+
+  // --- 2026-09-26 follow-up decisions -----------------------------------------
+  // Publishing / professional-information businesses, in like NYT and the data
+  // providers (S&P Global, Moody's).
+  symbolRule('REL.L', 'entertainment_media', 'RELX — scientific/legal publishing and data.'),
+  symbolRule('WKL.AS', 'entertainment_media', 'Wolters Kluwer — professional information and publishing.'),
+  symbolRule('INF.L', 'entertainment_media', 'Informa — B2B events and academic publishing.'),
+  // Tradeweb works like an exchange (electronic marketplace operator).
+  symbolRule('TW', 'financial_services_non_bank', 'Tradeweb — electronic marketplace operator, like an exchange.'),
+  // Ferrovial's Nasdaq (Dutch-domiciled) row is mislabeled "Electronic Equipment /
+  // IT"; it is toll-road and construction infrastructure. Out.
+  symbolRule('FER', 'outside_focus', 'Ferrovial — toll roads / construction infrastructure, mislabeled as IT.'),
 ];
 
 /**

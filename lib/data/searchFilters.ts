@@ -142,12 +142,21 @@ const VENUE_LABEL: Record<string, string> = {
   MEX: 'Mexico', SAO: 'São Paulo', TOR: 'Toronto', LSN: 'London',
 };
 
-/** Among equally-home venues, the main board over its secondary duplicates. */
+/**
+ * Among equally-home venues, the main board over its secondary duplicates. This
+ * ranking also settles which cross-listing wins for a company with no home line:
+ * the Euronext/main boards (PAR/AMS…) rank above a cross-listing on XETRA (GER) or
+ * Milan, so a foreign name's true primary EU line is picked over a German
+ * secondary. A company home on any of these still wins on the home tier first, so
+ * demoting GER/MIL here only affects their use as someone else's cross-listing.
+ */
 const VENUE_PRIORITY: Record<string, number> = {
   NMS: 0, NYQ: 0, NGM: 1, ASE: 2, PCX: 3,
-  AMS: 0, PAR: 0, EBS: 0, GER: 0, MIL: 0, MCE: 0, STO: 0,
-  CPH: 0, HEL: 0, OSL: 0, BRU: 0, LIS: 0, VIE: 0, LSE: 0, ISE: 0,
-  FRA: 5,
+  AMS: 0, PAR: 0, EBS: 0, MCE: 0, STO: 0,
+  CPH: 0, HEL: 0, OSL: 0, BRU: 0, LIS: 0, LSE: 0, ISE: 0,
+  // Cross-listing hubs: fine as a home venue (that wins on the home tier), but
+  // demoted here so a non-domestic company's thin line there never wins.
+  MIL: 1, VIE: 4, GER: 4, FRA: 5,
 };
 
 interface Listing {
@@ -155,6 +164,8 @@ interface Listing {
   name: string | null;
   exchange: string | null;
   country: string | null;
+  /** Trading currency, when known — used to prefer a home-region (EUR) line. */
+  currency?: string | null;
 }
 
 /**
@@ -206,6 +217,8 @@ export function collapseCompanies<T extends Listing>(rows: T[]): (T & { alsoList
 
   const out: (T & { alsoListedOn: string[] })[] = [];
   for (const listings of groups.values()) {
+    const hasHome = listings.some((l) => isPrimaryListing(l.exchange, l.country));
+    const eur = (l: T) => ((l.currency ?? '').toUpperCase() === 'EUR' ? 0 : 1);
     const sorted = [...listings].sort((a, b) => {
       const homeA = isPrimaryListing(a.exchange, a.country) ? 0 : 1;
       const homeB = isPrimaryListing(b.exchange, b.country) ? 0 : 1;
@@ -213,10 +226,17 @@ export function collapseCompanies<T extends Listing>(rows: T[]): (T & { alsoList
       const prioA = VENUE_PRIORITY[venue(a.exchange)] ?? 9;
       const prioB = VENUE_PRIORITY[venue(b.exchange)] ?? 9;
       if (prioA !== prioB) return prioA - prioB;
+      // Between two equal-priority venues and no home line, prefer the home-region
+      // currency — a EUR line for a European audience. This picks STMicroelectronics'
+      // Euronext Paris line (EUR) over its NYSE line, both top-tier venues; it does
+      // NOT override venue priority, so Accenture keeps its NYSE line over a thin
+      // Frankfurt cross-listing (2026-09-26).
+      if (!hasHome && eur(a) !== eur(b)) return eur(a) - eur(b);
       const prefA = PREFERRED_TICKERS.has(a.symbol.toUpperCase()) ? 0 : 1;
       const prefB = PREFERRED_TICKERS.has(b.symbol.toUpperCase()) ? 0 : 1;
       if (prefA !== prefB) return prefA - prefB;
-      return a.symbol.length - b.symbol.length;
+      if (a.symbol.length !== b.symbol.length) return a.symbol.length - b.symbol.length;
+      return a.symbol.localeCompare(b.symbol);
     });
     const [rep, ...others] = sorted;
     const alsoListedOn = [

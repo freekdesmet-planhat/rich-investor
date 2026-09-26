@@ -200,6 +200,7 @@ interface UniverseRow {
   industry: string | null;
   exchange: string | null;
   country: string | null;
+  currency: string | null;
 }
 
 export async function runScan(options: ScanOptions): Promise<ScanResult> {
@@ -289,7 +290,7 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   if (prioritySymbols.length > 0) {
     const { data: priorityRows, error: priorityError } = await client
       .from('universe')
-      .select('symbol,name,sector,industry,exchange,country')
+      .select('symbol,name,sector,industry,exchange,country,currency')
       .in('symbol', prioritySymbols)
       .returns<UniverseRow[]>();
     if (priorityError) throw new Error(`priority query failed: ${priorityError.message}`);
@@ -321,7 +322,7 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     // provenance count (applyScanScreen) so the page's "we check N" figure is
     // the same population this cursor walks.
     const query = applyScanScreen(
-      client.from('universe').select('symbol,name,sector,industry,exchange,country'),
+      client.from('universe').select('symbol,name,sector,industry,exchange,country,currency'),
       rules,
       { regions, bands: marketCapBands },
     );
