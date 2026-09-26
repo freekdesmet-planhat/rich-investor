@@ -7,7 +7,7 @@ import { ImageResponse } from 'next/og';
  * which keeps a PNG out of the repository and means the icon cannot drift from
  * the design by being forgotten in `public/`.
  *
- * "R" for Rijke Belegger — the book the whole framework comes from.
+ * "R" for Rich Investor, the product name (the framework is from the book).
  */
 export const size = { width: 512, height: 512 };
 export const contentType = 'image/png';

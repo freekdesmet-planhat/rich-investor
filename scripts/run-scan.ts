@@ -26,6 +26,8 @@ async function main() {
     client,
     limit: flag('limit', 30),
     cursor: flag('cursor', 0),
+    // A hand run never emails; --notify sends the buy-worthy alerts.
+    skipNotifications: !process.argv.includes('--notify'),
     onProgress: (message) => console.log(`  ${message}`),
   });
 

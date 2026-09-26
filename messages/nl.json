@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Rijke Belegger",
+    "name": "Rich Investor",
     "tagline": "Een gedisciplineerde checklist voor langetermijnbeleggers.",
     "disclaimer": "Dit is een persoonlijke analysetool, geen beleggingsadvies."
   },
@@ -518,7 +518,7 @@
     "steps": {
       "what": {
         "title": "Het is een checklist, geen glazen bol",
-        "body": "Rijke Belegger doet één ding: elk bedrijf op je volglijst wordt elke nacht langs dezelfde negen voorwaarden gelegd. Of het bedrijf winstgevend is, of het groeit, of het niet te veel schuld draagt, en of de koers werkelijk ver genoeg gedaald is om interessant te zijn.\n\nEr wordt niets gescoord of gewogen. Een voorwaarde geldt wel of niet, en wat je krijgt is een telling. Dat is bewust saai — het nut van een checklist is dat hij dezelfde vragen stelt aan een bedrijf dat je al jaren mooi vindt als aan een bedrijf dat je vanochtend tegenkwam."
+        "body": "Rich Investor doet één ding: elk bedrijf op je volglijst wordt elke nacht langs dezelfde negen voorwaarden gelegd. Of het bedrijf winstgevend is, of het groeit, of het niet te veel schuld draagt, en of de koers werkelijk ver genoeg gedaald is om interessant te zijn.\n\nEr wordt niets gescoord of gewogen. Een voorwaarde geldt wel of niet, en wat je krijgt is een telling. Dat is bewust saai — het nut van een checklist is dat hij dezelfde vragen stelt aan een bedrijf dat je al jaren mooi vindt als aan een bedrijf dat je vanochtend tegenkwam."
       },
       "verdicts": {
         "title": "Drie antwoorden, en wat ze werkelijk betekenen",

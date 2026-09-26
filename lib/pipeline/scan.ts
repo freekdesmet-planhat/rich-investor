@@ -28,6 +28,7 @@ import { readThresholdOverrides } from './thresholdStore';
 import { evaluateSymbol } from './evaluateSymbol';
 import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
 import { clearFromScanQueue } from './scanQueue';
+import { sendBuySignalAlerts, type NotifiableSignal } from './notify';
 import { keepDistinctCompanies } from '@/lib/data/searchFilters';
 import {
   DEFAULT_SECTOR_RULES,
@@ -177,6 +178,8 @@ export interface ScanOptions {
    * The caller sizes `limit` to the budget left after these.
    */
   prioritySymbols?: string[];
+  /** Set for a dry run: evaluates and files, but sends no buy-worthy alerts. */
+  skipNotifications?: boolean;
   onProgress?: (message: string) => void;
 }
 
@@ -211,6 +214,7 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     regions = SCAN_REGIONS,
     marketCapBands = SCAN_BANDS,
     prioritySymbols = [],
+    skipNotifications = false,
     onProgress,
   } = options;
   const log = onProgress ?? (() => {});
@@ -447,6 +451,9 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   const capUpdates: MarketCapWrite[] = [];
   const signalRows: Record<string, unknown>[] = [];
   const summary: ScanResult['candidates'] = [];
+  // Buy-worthy names the scan raises fire the same "turns buy-worthy" email the
+  // watchlist sends, deduplicated per ticker/day by notifications_log.
+  const toNotify: NotifiableSignal[] = [];
   let evaluated = 0;
 
   for (const candidate of candidates) {
@@ -508,6 +515,18 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     // by the same shared builder the watchlist uses, so they cannot drift.
     ratioRows.push(...result.ratioRows);
     signalRows.push(result.signalRow);
+
+    // A newly-raised buy-worthy suggestion is a fresh crossing worth an alert —
+    // the scan already excluded names still live as a suggestion, so this is new.
+    if (result.signal.status === 'buy_worthy') {
+      toNotify.push({
+        symbol: candidate.symbol,
+        name: result.name,
+        asOf: today,
+        signal: result.signal,
+        ratios: result.ratios,
+      });
+    }
   }
 
   if (rows.length > 0) {
@@ -531,6 +550,15 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
 
   const capsWritten = await writeMarketCaps(client, capUpdates);
   if (capsWritten > 0) log(`refreshed ${capsWritten} universe market caps`);
+
+  // Alerts only after everything is stored, so a failed write never emails about a
+  // suggestion that was not recorded. notifications_log dedupes per ticker/day, so
+  // a name the watchlist already alerted on is not emailed twice.
+  if (toNotify.length > 0 && !skipNotifications) {
+    await sendBuySignalAlerts(client, toNotify, { onProgress: log });
+  } else if (toNotify.length > 0) {
+    log(`${toNotify.length} new buy-worthy suggestion(s), notifications skipped`);
+  }
 
   // The priority names have now had their full evaluation, so they leave the
   // queue whether or not they became suggestions. A name still crossing the line

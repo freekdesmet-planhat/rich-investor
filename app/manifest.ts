@@ -10,9 +10,9 @@ import { getTranslations } from 'next-intl/server';
  * checked. `display: standalone` opens it without the address bar, which also
  * removes the accidental "reload into the wrong page" a tab invites.
  *
- * Named through next-intl like everything else, so the icon on a Dutch phone
- * says Rijke Belegger. That makes this a request-time route rather than a
- * cached one, which is the right trade for a file fetched once per install.
+ * Named through next-intl like everything else. The product name is "Rich
+ * Investor" in both languages now, but keeping this request-time (not cached)
+ * costs little for a file fetched once per install and leaves localisation open.
  */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const t = await getTranslations('app');
