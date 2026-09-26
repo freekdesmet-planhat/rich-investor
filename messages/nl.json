@@ -83,9 +83,9 @@
       "forward": "verwacht"
     },
     "close": "Sluiten",
-    "entryThreshold": "Voldoet aan de instapdrempel van 50%",
+    "entryThreshold": "Voldoet aan de 50%-grens",
     "roeBuybackNote": "Dit is uitzonderlijk hoog omdat het bedrijf zoveel eigen aandelen heeft teruggekocht dat het eigen vermogen klein is. Het rendement op activa is hier de stabielere maatstaf.",
-    "nearEntryThreshold": "Nadert de instapdrempel",
+    "nearEntryThreshold": "Nadert de 50%-grens",
     "trajectory": {
       "title": "Waarom deze groeicategorie",
       "intro": "De staven zijn de gerapporteerde winst per aandeel; de lijn is het groeipercentage dat erdoorheen is gefit, en daar wordt de categorie uit afgelezen.",
@@ -476,8 +476,8 @@
     "high": "5-jaarstop",
     "now": "Nu",
     "drawdown": "Daling",
-    "entry": "−50% instapniveau",
-    "label": "Slotkoers, met de vijfjaarstop en het instapniveau van 50% gemarkeerd.",
+    "entry": "−50%-grens",
+    "label": "Slotkoers, met de vijfjaarstop en de 50%-grens gemarkeerd.",
     "range": {
       "1y": "1j",
       "3y": "3j",
@@ -671,9 +671,7 @@
     "checkedNightly": "elke nacht gecontroleerd",
     "subscribe": "Mail mij zodra dat gebeurt",
     "subscribed": "Je krijgt een mail de nacht dat het gebeurt",
-    "turnOff": "Uitzetten",
-    "emailSubject": "{symbol} is onder jouw instapniveau gezakt",
-    "emailBody": "{name} ({symbol}) sloot op {price}, onder het instapniveau van {trigger} ({threshold} daling) — de laatste voorwaarde die nog ontbrak. Open de app om je beoordeling te doen."
+    "turnOff": "Uitzetten"
   },
   "landing": {
     "signIn": "Inloggen",

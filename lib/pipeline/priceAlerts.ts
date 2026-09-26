@@ -28,19 +28,45 @@ export interface PriceAlertOutcome {
   error?: string;
 }
 
+/**
+ * A subject-line name: the brand without its legal tail.
+ *
+ * "ASML Holding N.V." reads as "ASML" in a subject line; the full name stays in
+ * the body beside the ticker. Strips a trailing legal form, then a trailing
+ * "Holding"/"Group", and never returns empty.
+ */
+function shortName(name: string): string {
+  const trimmed = name.trim();
+  const withoutForm = trimmed
+    .replace(
+      /,?\s+(N\.?V\.?|Inc\.?|Corp\.?|Corporation|plc|S\.?A\.?|S\.?p\.?A\.?|AG|SE|Ltd\.?|Co\.?|Company|AB|ASA|Oyj)$/i,
+      '',
+    )
+    .trim();
+  const withoutHolding = withoutForm.replace(/\s+(Holdings?|Group)$/i, '').trim();
+  return withoutHolding || trimmed || name;
+}
+
+// Subject leads with the company name, not the ticker, and states the event in
+// the app's own terms — the price-fall condition passing (launch round 2, item 0).
+// FOR LEGAL REVIEW.
 const COPY = {
   subject: {
-    en: (symbol: string) => `${symbol} passed your entry level`,
-    nl: (symbol: string) => `${symbol} is onder jouw instapniveau gezakt`,
+    en: (name: string, trigger: string) =>
+      `${name} fell below ${trigger}: the price-fall condition now passes`,
+    nl: (name: string, trigger: string) =>
+      `${name} zakte onder ${trigger}: de voorwaarde voor de koersdaling is nu gehaald`,
   },
   body: {
     en: (name: string, symbol: string, price: string, trigger: string) =>
-      `${name} (${symbol}) closed at ${price}, below the entry level of ${trigger} — the last ` +
-      `condition it was missing. Open the app to run your review.\n\n` +
+      `${name} (${symbol}) closed at ${price}, below the 50% line at ${trigger} — the last ` +
+      `condition it was missing. The full checklist is re-checked every night, so the ` +
+      `verdict follows in the app.\n\n` +
       `This is a personal analysis tool, not investment advice.`,
     nl: (name: string, symbol: string, price: string, trigger: string) =>
-      `${name} (${symbol}) sloot op ${price}, onder het instapniveau van ${trigger} — de laatste ` +
-      `voorwaarde die nog ontbrak. Open de app om je beoordeling te doen.\n\n` +
+      `${name} (${symbol}) sloot op ${price}, onder de 50%-grens van ${trigger} — de laatste ` +
+      `voorwaarde die nog ontbrak. De volledige checklist wordt elke nacht opnieuw ` +
+      `gecontroleerd, dus het oordeel volgt in de app.\n\n` +
       `Dit is een persoonlijk analysehulpmiddel, geen beleggingsadvies.`,
   },
 };
@@ -75,7 +101,7 @@ export async function sendPriceAlerts(
       const name = alert.name ?? alert.symbol;
       const price = formatCurrency(alert.price, alert.currency, lang);
       const trigger = formatCurrency(alert.trigger, alert.currency, lang);
-      const subject = COPY.subject[lang](alert.symbol);
+      const subject = COPY.subject[lang](shortName(name), trigger);
       const body = COPY.body[lang](name, alert.symbol, price, trigger);
 
       const { error: claimError } = await client.from('notifications_log').insert({

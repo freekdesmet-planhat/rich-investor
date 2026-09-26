@@ -83,9 +83,9 @@
       "forward": "forward"
     },
     "close": "Close",
-    "entryThreshold": "Meets the 50% entry threshold",
+    "entryThreshold": "Meets the 50% line",
     "roeBuybackNote": "This is unusually high because the company has bought back so many of its own shares that its equity is small. Return on assets is the steadier measure here.",
-    "nearEntryThreshold": "Approaching the entry threshold",
+    "nearEntryThreshold": "Approaching the 50% line",
     "trajectory": {
       "title": "Why this growth category",
       "intro": "The bars are reported earnings per share; the line is the growth rate fitted through them, which is what the category is read from.",
@@ -476,8 +476,8 @@
     "high": "5y high",
     "now": "Now",
     "drawdown": "Drawdown",
-    "entry": "−50% entry level",
-    "label": "Closing price, with the 5-year high and the 50% entry level marked.",
+    "entry": "−50% line",
+    "label": "Closing price, with the 5-year high and the 50% line marked.",
     "range": {
       "1y": "1y",
       "3y": "3y",
@@ -671,9 +671,7 @@
     "checkedNightly": "checked every night",
     "subscribe": "Email me when it does",
     "subscribed": "You’ll be emailed the night it does",
-    "turnOff": "Turn off",
-    "emailSubject": "{symbol} passed your entry level",
-    "emailBody": "{name} ({symbol}) closed at {price}, below the {threshold} entry level of {trigger} — the last condition it was missing. Open the app to run your review."
+    "turnOff": "Turn off"
   },
   "landing": {
     "signIn": "Sign in",

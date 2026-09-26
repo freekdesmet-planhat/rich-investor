@@ -372,7 +372,21 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
       .returns<SigRow[]>();
     const latest = new Map<string, SigRow>();
     for (const r of sigs ?? []) if (!latest.has(r.symbol)) latest.set(r.symbol, r);
+
+    // One email per event: if a "Checklist complete" alert already went out for a
+    // symbol tonight (the watchlist scan runs before this pass), its price alert
+    // would be a second mail about the same thing — so skip it (round 2, item 0).
+    const { data: completed } = await client
+      .from('notifications_log')
+      .select('symbol')
+      .eq('kind', 'buy_signal')
+      .eq('as_of', today)
+      .in('symbol', alertCandidates.map((a) => a.symbol))
+      .returns<Array<{ symbol: string }>>();
+    const alreadyAlerted = new Set((completed ?? []).map((r) => r.symbol));
+
     const toSend = alertCandidates.filter((a) => {
+      if (alreadyAlerted.has(a.symbol)) return false;
       const sig = latest.get(a.symbol);
       return sig != null && priceTriggerOf(sig.checklist) != null;
     });
