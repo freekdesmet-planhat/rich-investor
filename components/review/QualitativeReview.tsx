@@ -44,6 +44,7 @@ export async function QualitativeReview({
   history,
   conditionsMet,
   conditionsApplicable,
+  owns,
   docs,
 }: {
   symbol: string;
@@ -53,9 +54,26 @@ export async function QualitativeReview({
   history: HistoryEntry[];
   conditionsMet: number;
   conditionsApplicable: number;
+  /** Whether a holding is recorded — sell signals are only about a holding. */
+  owns: boolean;
   docs: Map<string, Translation>;
 }) {
   const t = await getTranslations('review');
+
+  // The review is the step after the numbers, so it belongs to stocks that are
+  // there or all but there — not every stock on the list (launch item 8). Two or
+  // more conditions short, it collapses to a single line; one short, it previews;
+  // all met, it opens.
+  const missing = conditionsApplicable - conditionsMet;
+  if (missing >= 2) {
+    return (
+      <section className="mt-8">
+        <SectionHeading>{t('title')}</SectionHeading>
+        <p className="text-ink-subtle mt-1 text-sm">{t('locked')}</p>
+      </section>
+    );
+  }
+  const isPreview = missing === 1;
   const tInsider = await getTranslations('insider');
   // Server component, so the labels are resolved here and handed to the
   // client block rather than it loading a second translation bundle.
@@ -83,6 +101,13 @@ export async function QualitativeReview({
       <p className="bg-surface-sunken border-line text-ink-muted mt-3 rounded-md border px-3 py-2 text-sm">
         {t('checklistReminder', { met: conditionsMet, total: conditionsApplicable })}
       </p>
+      {/* One condition short: the review is a preview, so the reader knows the
+          numbers have not all cleared yet (launch item 8). */}
+      {isPreview && (
+        <p className="border-near-line bg-near-wash text-near mt-2 rounded-md border px-3 py-2 text-sm">
+          {t('preview')}
+        </p>
+      )}
 
       <ReviewForm
         symbol={symbol}
@@ -138,14 +163,21 @@ export async function QualitativeReview({
           <InsiderActivity symbol={symbol} locale={locale} labels={insiderLabels} />
         </div>
 
-        <CheckboxGroup
-          legend={t('sellSignals')}
-          name="sell_signals"
-          keys={[...SELL_SIGNAL_KEYS]}
-          namespace="sell_signal"
-          checked={mine?.sell_signals ?? []}
-          docs={docs}
-        />
+        {/* Sell signals are questions about a holding, so they appear only once
+            ownership is recorded (launch item 8); otherwise a short note points
+            to the "I own this" block above. */}
+        {owns ? (
+          <CheckboxGroup
+            legend={t('sellSignals')}
+            name="sell_signals"
+            keys={[...SELL_SIGNAL_KEYS]}
+            namespace="sell_signal"
+            checked={mine?.sell_signals ?? []}
+            docs={docs}
+          />
+        ) : (
+          <p className="text-ink-subtle text-sm">{t('sellNeedsPosition')}</p>
+        )}
 
         <label className="block">
           <span className="text-sm font-medium">{t('marksLabel')}</span>

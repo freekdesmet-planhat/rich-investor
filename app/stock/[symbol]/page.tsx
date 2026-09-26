@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { PriceChart } from '@/components/PriceChart';
 import { BackLink } from '@/components/BackLink';
 import { SiteHeader } from '@/components/SiteHeader';
-import { StatusBadge } from '@/components/StatusBadge';
+import { VerdictRing } from '@/components/VerdictRing';
 import { AiThesisCard } from '@/components/AiThesisCard';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
@@ -40,7 +40,7 @@ import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/li
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { upcomingEarnings } from '@/lib/data/earnings';
 import { LiquidityNote } from '@/components/LiquidityNote';
-import { formatCurrency, formatDate, formatPercent } from '@/lib/i18n/format';
+import { formatBillions, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { thesisEnabled } from '@/lib/ai/thesis';
 
 export const dynamic = 'force-dynamic';
@@ -177,6 +177,27 @@ export default async function StockPage({
   );
   const anyRuleChanged = changedRuleKeys.size > 0;
 
+  // Every checklist row now shows its measured value, not just the requirement
+  // (launch item 8): "Decline from the 5-year high  -68%" beside "at least 50%".
+  // Categorical conditions (sector, growth category) have no figure to show.
+  const conditionValueText = (c: (typeof signal.checklist)[number]): string | null => {
+    if (c.value == null || !c.applicable) return null;
+    switch (c.key) {
+      case 'drawdown':
+      case 'returns':
+        return formatPercent(c.value, locale, 0);
+      case 'market_cap':
+        return formatBillions(c.value, 'USD', locale);
+      case 'pe':
+      case 'peg':
+      case 'cash_flow':
+      case 'debt':
+        return formatNumber(c.value, locale, 2);
+      default:
+        return null;
+    }
+  };
+
   // Derived from the checklist and the snapshot the evaluation was made from,
   // so it describes this verdict rather than the state of the providers now.
   const quality = dataQualityOf({
@@ -255,17 +276,10 @@ export default async function StockPage({
               </div>
               {name && <p className="mt-0.5 truncate text-sm text-ink-subtle">{name}</p>}
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              <StatusBadge status={signal.status} size="lg" />
-              {/* This verdict rests on a threshold the reader changed (item 5). */}
-              {anyRuleChanged && (
-                <span className="text-near text-xs font-medium">
-                  {tSignal('youChangedRule')}
-                </span>
-              )}
-              {/* Always mounted, gated on `member` inside: removing revalidates
-                  this page, and a gate here would unmount the "Removed · Undo" the
-                  click just produced (audit A6). */}
+            {/* Always mounted, gated on `member` inside: removing revalidates
+                this page, and a gate here would unmount the "Removed · Undo" the
+                click just produced (audit A6). */}
+            <div className="shrink-0">
               <RemoveFromWatchlist
                 symbol={symbol}
                 member={onWatchlist}
@@ -279,6 +293,26 @@ export default async function StockPage({
                 }}
               />
             </div>
+          </div>
+
+          {/* The verdict leads the page (launch item 8): a ring of the applicable
+              conditions and one headline for the state. Sticky on a phone, where the
+              checklist below runs long, so the answer stays in view while scrolling. */}
+          <div className="bg-canvas/95 sticky top-14 z-20 -mx-4 mt-4 border-b border-line px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+            <VerdictRing
+              status={signal.status}
+              met={signal.conditions_met}
+              total={signal.conditions_applicable}
+              headline={tStatus(`headline.${signal.status}`)}
+              conditionsMet={tStatus('conditionsMet', {
+                met: signal.conditions_met,
+                total: signal.conditions_applicable,
+              })}
+            />
+            {/* This verdict rests on a threshold the reader changed (item 5). */}
+            {anyRuleChanged && (
+              <p className="text-near mt-1 text-xs font-medium">{tSignal('youChangedRule')}</p>
+            )}
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -367,67 +401,6 @@ export default async function StockPage({
           </p>
         )}
 
-        {/* --- the mandatory "why", directly under the status badge -------- */}
-        {/* Sunken rather than raised: this is the verdict explaining itself,
-            so it belongs to the header above it rather than reading as the
-            first of the page's several independent panels. */}
-        <Card as="section" tone="sunken" className="mt-5" padding="loose">
-          <SectionHeading>{tSignal('why.title')}</SectionHeading>
-          <WhyBlock
-            parts={signal.why_parts?.[locale] ?? null}
-            prose={why}
-            labels={{
-              passes: tSignal('why.passes'),
-              missing: tSignal('why.missing'),
-              check: tSignal('why.check'),
-              fullReasoning: tSignal('why.full'),
-            }}
-          />
-          {signal.peg_basis && (
-            <p className="mt-3 text-xs text-ink-subtle">
-              PEG: {tSignal(`pegBasis.${signal.peg_basis}`)}
-            </p>
-          )}
-        </Card>
-
-        {/* --- price chart ------------------------------------------------- */}
-        {snapshot?.price_history && snapshot.price_history.length > 1 && (
-          <Section>
-            {/* Range as links, so the choice lives in the URL and the chart
-                stays readable with JavaScript off. */}
-            <div className="mb-1 flex flex-wrap items-center justify-end gap-2 text-xs">
-              {CHART_RANGES.map((value) => (
-                <Link
-                  key={value}
-                  href={value === '5y' ? `/stock/${encodeURIComponent(symbol)}` : `/stock/${encodeURIComponent(symbol)}?range=${value}`}
-                  aria-current={range === value ? 'true' : undefined}
-                  className={
-                    range === value
-                      ? 'font-medium text-ink underline underline-offset-4'
-                      : 'text-ink-subtle underline-offset-4 hover:text-ink hover:underline'
-                  }
-                >
-                  {tChart(`range.${value}`)}
-                </Link>
-              ))}
-            </div>
-            <PriceChart
-              points={pointsInRange(snapshot.price_history, range)}
-              high={drawdownDetail.high ?? null}
-              highDate={drawdownDetail.highDate ?? null}
-              currency={snapshot.currency}
-              locale={locale}
-              labels={{
-                high: tChart('high'),
-                now: tChart('now'),
-                drawdown: tChart('drawdown'),
-                entry: tChart('entry'),
-                chart: tChart('label'),
-              }}
-            />
-          </Section>
-        )}
-
         {/* --- buy-worthy checklist ---------------------------------------- */}
         <Section>
           <SectionHeading
@@ -514,6 +487,20 @@ export default async function StockPage({
                   >
                     {docs.get(`condition:${condition.key}`)?.name ?? condition.key}
                   </span>
+                  {/* The measured value on the row (launch item 8), so a reader
+                      sees "−68%" beside the condition, not only the requirement. */}
+                  {(() => {
+                    const valueText = conditionValueText(condition);
+                    return valueText ? (
+                      <span
+                        className={`shrink-0 text-sm font-semibold tabular-nums ${
+                          outsideFocusRow ? 'text-ink-faint' : 'text-ink'
+                        }`}
+                      >
+                        {valueText}
+                      </span>
+                    ) : null;
+                  })()}
                   {/* The condition-trend delta, folded in: only on rows that
                       flipped since the reference, coloured the way a pass and a
                       fail are coloured everywhere else. */}
@@ -544,6 +531,67 @@ export default async function StockPage({
             })}
           </ul>
         </Section>
+
+        {/* --- price chart ------------------------------------------------- */}
+        {snapshot?.price_history && snapshot.price_history.length > 1 && (
+          <Section>
+            {/* Range as links, so the choice lives in the URL and the chart
+                stays readable with JavaScript off. */}
+            <div className="mb-1 flex flex-wrap items-center justify-end gap-2 text-xs">
+              {CHART_RANGES.map((value) => (
+                <Link
+                  key={value}
+                  href={value === '5y' ? `/stock/${encodeURIComponent(symbol)}` : `/stock/${encodeURIComponent(symbol)}?range=${value}`}
+                  aria-current={range === value ? 'true' : undefined}
+                  className={
+                    range === value
+                      ? 'font-medium text-ink underline underline-offset-4'
+                      : 'text-ink-subtle underline-offset-4 hover:text-ink hover:underline'
+                  }
+                >
+                  {tChart(`range.${value}`)}
+                </Link>
+              ))}
+            </div>
+            <PriceChart
+              points={pointsInRange(snapshot.price_history, range)}
+              high={drawdownDetail.high ?? null}
+              highDate={drawdownDetail.highDate ?? null}
+              currency={snapshot.currency}
+              locale={locale}
+              labels={{
+                high: tChart('high'),
+                now: tChart('now'),
+                drawdown: tChart('drawdown'),
+                entry: tChart('entry'),
+                chart: tChart('label'),
+              }}
+            />
+          </Section>
+        )}
+
+        {/* --- the mandatory "why", directly under the status badge -------- */}
+        {/* Sunken rather than raised: this is the verdict explaining itself,
+            so it belongs to the header above it rather than reading as the
+            first of the page's several independent panels. */}
+        <Card as="section" tone="sunken" className="mt-5" padding="loose">
+          <SectionHeading>{tSignal('why.title')}</SectionHeading>
+          <WhyBlock
+            parts={signal.why_parts?.[locale] ?? null}
+            prose={why}
+            labels={{
+              passes: tSignal('why.passes'),
+              missing: tSignal('why.missing'),
+              check: tSignal('why.check'),
+              fullReasoning: tSignal('why.full'),
+            }}
+          />
+          {signal.peg_basis && (
+            <p className="mt-3 text-xs text-ink-subtle">
+              PEG: {tSignal(`pegBasis.${signal.peg_basis}`)}
+            </p>
+          )}
+        </Card>
 
         {/* --- headline ratios, with the way to the full twenty ------------ */}
         {/* The default view carries the decision path and a handful of headline
@@ -691,6 +739,7 @@ export default async function StockPage({
           history={reviewData.history}
           conditionsMet={signal.conditions_met}
           conditionsApplicable={signal.conditions_applicable}
+          owns={position != null}
           docs={docs}
         />
         </div>

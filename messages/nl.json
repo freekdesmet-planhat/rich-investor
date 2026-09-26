@@ -35,7 +35,9 @@
       "watching": "Nog afwachten"
     },
     "headline": {
-      "buy_worthy": "Alle voorwaarden gehaald: nu jouw onderzoek"
+      "buy_worthy": "Alle voorwaarden gehaald",
+      "almost": "Bijna zover",
+      "watching": "Nog even volgen"
     },
     "startReview": "Begin mijn beoordeling",
     "reviewPrompt": "Nu jouw onderzoek"
@@ -194,7 +196,10 @@
       "added": "Toegevoegd:",
       "removed": "Verwijderd:",
       "marks": "Antwoord op de vraag van Marks herschreven."
-    }
+    },
+    "locked": "De beoordeling opent zodra een aandeel aan alle negen voorwaarden voldoet.",
+    "preview": "Nog één voorwaarde te gaan. Dit is de beoordeling die je invult zodra het aandeel aan alle negen voldoet — je kunt nu al beginnen.",
+    "sellNeedsPosition": "Verkoopsignalen verschijnen zodra je aangeeft dat je dit aandeel bezit."
   },
   "auth": {
     "email": "E-mailadres",

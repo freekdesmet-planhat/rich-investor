@@ -35,7 +35,9 @@
       "watching": "Watching"
     },
     "headline": {
-      "buy_worthy": "Checklist complete: now it's your research"
+      "buy_worthy": "Checklist complete",
+      "almost": "Almost there",
+      "watching": "Still one to watch"
     },
     "startReview": "Start my review",
     "reviewPrompt": "Now it's your research"
@@ -194,7 +196,10 @@
       "added": "Added:",
       "removed": "Removed:",
       "marks": "Answer to Marks’ question rewritten."
-    }
+    },
+    "locked": "The review opens when a stock meets all nine conditions.",
+    "preview": "One condition away. This is the review you will complete once the stock meets all nine — you can start it now.",
+    "sellNeedsPosition": "Sell signals appear once you record that you own this."
   },
   "auth": {
     "email": "Email address",
