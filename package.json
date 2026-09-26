@@ -12,7 +12,8 @@
     "db:check-sectors": "tsx --env-file-if-exists=.env.local scripts/sync-sector-rules.ts --check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:browser": "tsx --env-file-if-exists=.env.local scripts/verify-browser.ts"
+    "verify:browser": "tsx --env-file-if-exists=.env.local scripts/verify-browser.ts",
+    "test:price-alert": "tsx --env-file-if-exists=.env.local scripts/test-price-alert.ts"
   },
   "dependencies": {
     "@google/genai": "2.22.0",

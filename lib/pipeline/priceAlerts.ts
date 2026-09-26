@@ -7,7 +7,7 @@
  * (recipient, kind, symbol, as_of) index, so a re-run cannot send twice.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createMailer, resolveRecipients, type Mailer } from '@/lib/email/mailer';
+import { createMailer, resolveRecipients, type Mailer, type Recipient } from '@/lib/email/mailer';
 import { formatCurrency } from '@/lib/i18n/format';
 import type { Lang } from '@/lib/i18n/config';
 
@@ -48,12 +48,17 @@ const COPY = {
 export async function sendPriceAlerts(
   client: SupabaseClient,
   alerts: PriceAlert[],
-  options: { mailer?: Mailer; onProgress?: (message: string) => void } = {},
+  options: {
+    mailer?: Mailer;
+    onProgress?: (message: string) => void;
+    /** Explicit recipients, for a scoped one-off test; defaults to the household. */
+    recipients?: Recipient[];
+  } = {},
 ): Promise<PriceAlertOutcome[]> {
   const log = options.onProgress ?? (() => {});
   if (alerts.length === 0) return [];
 
-  const recipients = await resolveRecipients(client, log);
+  const recipients = options.recipients ?? (await resolveRecipients(client, log));
   if (recipients.length === 0) {
     log('no notification recipients configured — nothing sent');
     return [];
