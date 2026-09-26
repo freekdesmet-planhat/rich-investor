@@ -2,8 +2,6 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { setLocale } from '@/app/actions';
 import { LOCALES, type Lang } from '@/lib/i18n/config';
 
-const FLAG: Record<string, string> = { en: '🇬🇧', nl: '🇳🇱' };
-
 /**
  * One button, showing the language you would switch *to*.
  *
@@ -32,7 +30,7 @@ export async function LanguageSwitcher({ className = '' }: { className?: string 
         title={t('switchTo', { language: t(next) })}
         className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-subtle transition hover:bg-surface-hover hover:text-ink"
       >
-        <span aria-hidden="true">{FLAG[next]}</span>
+        {/* Text, not a flag — a flag names a country, not a language (audit 37). */}
         <span className="uppercase">{next}</span>
       </button>
     </form>

@@ -283,12 +283,13 @@ export async function RatioGrid({
             color={color}
             variants={variants}
             caption={caption}
-            targetLabel={targetLabel}
+            // On the two metrics whose card target (≤1, ≥1) is stricter than the
+            // checklist pass mark (≤2.5, ≥70%), show only the pass mark — the number
+            // that actually decides pass/fail — rather than two targets per card
+            // (audit 24).
+            targetLabel={checklistGate(key, locale) ?? targetLabel}
             targetSourceLabel={sourceLabel}
-            gateLabel={(() => {
-              const gate = checklistGate(key, locale);
-              return gate ? tRatio('gate', { value: gate }) : null;
-            })()}
+            gateLabel={null}
             history={row.history ?? []}
             unavailableLabel={
               row.value == null && row.unavailable_reason

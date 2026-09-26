@@ -73,15 +73,6 @@ export function WhyBlock({
           );
         })}
       </div>
-
-      {/* The full text is still one click away, and is the same prose the
-          email sends — a reader who wants the argument in order can have it. */}
-      <details className="mt-4">
-        <summary className="text-ink-subtle cursor-pointer text-xs underline-offset-4 hover:underline">
-          {labels.fullReasoning}
-        </summary>
-        <p className="mt-2 leading-relaxed">{prose}</p>
-      </details>
     </div>
   );
 }

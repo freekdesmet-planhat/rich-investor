@@ -522,9 +522,11 @@ describe('why-text generator (section 7)', () => {
     expect(signal.pegBasis).toBe('forward');
     expect(text.en).toContain('forward PEG');
     expect(text.en).toContain("hasn't shown up in reported results yet");
-    // It must point at the qualitative review by name, not in passing.
-    expect(text.en).toContain('My qualitative review');
-    expect(text.nl).toContain('Mijn kwalitatieve beoordeling');
+    // The forward-PEG caveat now names its own specific check — confirm management
+    // has reaffirmed the targets the estimate rests on — rather than repeating the
+    // general "temporary or structural" handover (audit A3 de-duplication).
+    expect(text.en).toContain('reaffirmed');
+    expect(text.nl).toContain('herbevestigd');
   });
 
   it('flags a deteriorating outlook when trailing passes but forward does not', () => {

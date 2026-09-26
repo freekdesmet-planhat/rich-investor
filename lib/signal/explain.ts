@@ -172,8 +172,8 @@ function pegSentences(condition: ConditionResult, lang: Lang): WhyPart[] {
         : `This passes on forward PEG (${num(d.forwardPeg, lang)}, based on consensus of ${pct(d.forwardGrowth, lang, 0)} EPS growth this year) rather than trailing PEG (${num(d.trailingPeg, lang)}) — the growth hasn't shown up in reported results yet.` });
     out.push({ section: 'check', text:
       lang === 'nl'
-        ? `Loop het blok "Mijn kwalitatieve beoordeling" hieronder langs voordat je dit als een bevestigd instapmoment behandelt: heeft het management de langetermijndoelen herbevestigd, en gaat het om een tijdelijk vraag- of aanbodprobleem in plaats van een structureel probleem?`
-        : `Work through the "My qualitative review" block below before treating this as a confirmed entry: has management reaffirmed its long-term targets, and is this a temporary demand- or supply-side issue rather than a structural one?` });
+        ? `Omdat dit op een verwachting berust en niet op gerealiseerde groei, controleer of het management die langetermijndoelen heeft herbevestigd.`
+        : `Because this rests on a forward estimate rather than realised growth, confirm management has reaffirmed those long-term targets.` });
   } else if (d.basis === 'trailing') {
     out.push({ section: 'passes', text:
       lang === 'nl'
@@ -346,7 +346,7 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
         parts.push({ section: 'missing', text:
           lang === 'nl'
             ? `De koers staat ${pct(-condition.value, lang)} onder de top, nog niet de ${pct(required, lang)} die vereist is.`
-            : `The decline is ${pct(-condition.value, lang)}, short of the ${pct(required, lang)} requiredr.` });
+            : `The decline is ${pct(-condition.value, lang)}, short of the ${pct(required, lang)} required.` });
       }
       if (key === 'pe') {
         parts.push({ section: 'missing', text:

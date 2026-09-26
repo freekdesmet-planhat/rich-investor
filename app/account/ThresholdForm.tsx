@@ -76,10 +76,17 @@ export function ThresholdForm({
                 {labels.names[key] ?? key}
               </legend>
               <div className="mt-1 flex flex-wrap gap-3">
-                {Object.entries(defaults).map(([field, fallback]) => (
+                {Object.entries(defaults).map(([field, fallback]) => {
+                  // Revenue growth is higher-is-better, so its green/orange bands
+                  // read "at or above", not the default "at or below" (audit A3).
+                  const labelKey =
+                    key === 'revenueGrowth' && (field === 'green' || field === 'orange')
+                      ? `${field}Up`
+                      : field;
+                  return (
                   <label key={field} className="block">
                     <span className="text-ink-subtle text-xs">
-                      {labels.fields[field] ?? field}
+                      {labels.fields[labelKey] ?? labels.fields[field] ?? field}
                     </span>
                     <input
                       name={`${key}.${field}`}
@@ -89,7 +96,8 @@ export function ThresholdForm({
                       className="border-line-strong mt-1 block w-24 rounded-lg border bg-surface px-2 py-1.5 text-sm tabular-nums"
                     />
                   </label>
-                ))}
+                  );
+                })}
               </div>
             </fieldset>
           );

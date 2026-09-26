@@ -302,7 +302,7 @@
     "mismatch": "The two passwords do not match.",
     "notifications": {
       "title": "Daily digest",
-      "intro": "Where the digest goes. Until an address is saved here, the deployment falls back to the NOTIFY_EMAILS environment variable.",
+      "intro": "Where the daily digest is sent.",
       "email": "Send it to",
       "emailHint": "Leave blank to receive nothing.",
       "enabled": "Send me the digest",
@@ -335,7 +335,7 @@
     "savedSettings": "Saved.",
     "thresholds": {
       "title": "Thresholds the app chose",
-      "intro": "The method states no cutoff for these four, so the app picked one. Change them and the next evaluation uses yours.",
+      "intro": "The method states no cutoff for these, so the app picked one for each. Change them and the next evaluation uses yours.",
       "bookNote": "The core thresholds — the P/E ceiling of 30, the PEG bands, the 50% decline, the $10bn floor — are not editable. Applying that framework consistently is what this app is for.",
       "appliesNote": "Takes effect at the next evaluation: tonight’s run, or \"Analyse now\" on a stock. Figures already on screen were computed with the old numbers.",
       "resetHint": "Leave a field blank to follow the app default shown in grey.",
@@ -351,6 +351,8 @@
       "fields": {
         "green": "Good at or below",
         "orange": "Borderline at or below",
+        "greenUp": "Good at or above",
+        "orangeUp": "Borderline at or above",
         "netDebtEbitdaGreen": "Net debt/EBITDA, good",
         "netDebtEbitdaOrange": "Net debt/EBITDA, borderline",
         "coverageGreen": "Interest cover, good",
@@ -416,8 +418,8 @@
     "reviewedFilter": "Reviewed",
     "changedTitle": "Changed recently",
     "changedIntro": "What moved on your watchlist in the last {days} days.",
-    "changedGained": "{count} conditions more",
-    "changedLost": "{count} conditions fewer",
+    "changedGained": "{count, plural, one {# condition more} other {# conditions more}}",
+    "changedLost": "{count, plural, one {# condition fewer} other {# conditions fewer}}",
     "changedMoved": "{from} → {to}",
     "trendGained": "{count} since {date}",
     "trendLost": "{count} since {date}",
@@ -572,8 +574,8 @@
     "median": "Median",
     "low": "5y low",
     "high": "5y high",
-    "percentileCheap": "cheaper than {percentile}% of the last five years",
-    "percentileRich": "more expensive than {percentile}% of the last five years",
+    "percentileCheap": "lower than on {percentile}% of days in the last five years",
+    "percentileRich": "higher than on {percentile}% of days in the last five years",
     "footnote": "Trailing P/E on annual reported earnings, stepped when each year was filed rather than when it ended. Loss-making years are left out."
   },
   "declineHistory": {

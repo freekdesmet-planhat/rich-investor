@@ -122,9 +122,12 @@ export default async function AccountPage() {
               EDITABLE_KEYS.map((key) => [key, tAccount(`thresholds.names.${key}`)]),
             ),
             fields: Object.fromEntries(
-              [...new Set(EDITABLE_KEYS.flatMap((key) => Object.keys(defaultFieldsFor(key))))].map(
-                (field) => [field, tAccount(`thresholds.fields.${field}`)],
-              ),
+              [
+                ...new Set(EDITABLE_KEYS.flatMap((key) => Object.keys(defaultFieldsFor(key)))),
+                // Direction-aware variants for higher-is-better metrics (growth).
+                'greenUp',
+                'orangeUp',
+              ].map((field) => [field, tAccount(`thresholds.fields.${field}`)]),
             ),
           }}
         />

@@ -139,9 +139,13 @@ export function ValuationRangeChart({
           // pass colour; expensive-against-itself is stated plainly and left
           // neutral, because it is context and not a verdict.
           <span className={percentile <= 25 ? 'font-medium text-pass' : 'text-ink-muted'}>
+            {/* `percentile` is the share of history at or below today's multiple.
+                So the days it is cheaper *than* is the complement, and the days it
+                is richer than is the percentile itself — the figure each sentence
+                names is "% of days it is lower/higher than". */}
             {(percentile <= 50 ? labels.percentileCheap : labels.percentileRich).replace(
               '{percentile}',
-              String(Math.round(percentile)),
+              String(Math.round(percentile <= 50 ? 100 - percentile : percentile)),
             )}
           </span>
         )}

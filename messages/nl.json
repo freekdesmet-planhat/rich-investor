@@ -302,7 +302,7 @@
     "mismatch": "De twee wachtwoorden komen niet overeen.",
     "notifications": {
       "title": "Dagelijkse samenvatting",
-      "intro": "Waar de samenvatting heen gaat. Zolang hier geen adres staat, valt de app terug op de omgevingsvariabele NOTIFY_EMAILS.",
+      "intro": "Waar de dagelijkse samenvatting heen gaat.",
       "email": "Stuur naar",
       "emailHint": "Laat leeg om niets te ontvangen.",
       "enabled": "Stuur mij de samenvatting",
@@ -335,7 +335,7 @@
     "savedSettings": "Opgeslagen.",
     "thresholds": {
       "title": "Drempels die de app zelf koos",
-      "intro": "De methode noemt voor deze vier geen grens, dus koos de app er een. Pas ze aan en de volgende evaluatie gebruikt die van jou.",
+      "intro": "De methode noemt hiervoor geen grens, dus koos de app er voor elk een. Pas ze aan en de volgende evaluatie gebruikt die van jou.",
       "bookNote": "De kerndrempels — het koers-winstplafond van 30, de PEG-banden, de daling van 50%, de ondergrens van 10 miljard dollar — zijn niet aanpasbaar. Dat raamwerk toepassen is waar deze app voor is.",
       "appliesNote": "Gaat in bij de volgende evaluatie: de run van vannacht, of \"Nu analyseren\" op een aandeel. Cijfers die nu op het scherm staan zijn met de oude getallen berekend.",
       "resetHint": "Laat een veld leeg om de standaard in het grijs te volgen.",
@@ -351,6 +351,8 @@
       "fields": {
         "green": "Goed bij of onder",
         "orange": "Grensgeval bij of onder",
+        "greenUp": "Goed bij of boven",
+        "orangeUp": "Grensgeval bij of boven",
         "netDebtEbitdaGreen": "Nettoschuld/EBITDA, goed",
         "netDebtEbitdaOrange": "Nettoschuld/EBITDA, grensgeval",
         "coverageGreen": "Rentedekking, goed",
@@ -416,8 +418,8 @@
     "reviewedFilter": "Beoordeeld",
     "changedTitle": "Recent veranderd",
     "changedIntro": "Wat er de afgelopen {days} dagen op je volglijst bewoog.",
-    "changedGained": "{count} voorwaarden meer",
-    "changedLost": "{count} voorwaarden minder",
+    "changedGained": "{count, plural, one {# voorwaarde meer} other {# voorwaarden meer}}",
+    "changedLost": "{count, plural, one {# voorwaarde minder} other {# voorwaarden minder}}",
     "changedMoved": "{from} → {to}",
     "trendGained": "{count} sinds {date}",
     "trendLost": "{count} sinds {date}",
@@ -572,8 +574,8 @@
     "median": "Mediaan",
     "low": "5j laag",
     "high": "5j hoog",
-    "percentileCheap": "goedkoper dan {percentile}% van de afgelopen vijf jaar",
-    "percentileRich": "duurder dan {percentile}% van de afgelopen vijf jaar",
+    "percentileCheap": "lager dan op {percentile}% van de dagen in de afgelopen vijf jaar",
+    "percentileRich": "hoger dan op {percentile}% van de dagen in de afgelopen vijf jaar",
     "footnote": "Koers-winstverhouding op gerapporteerde jaarwinst, met een stap op het moment van publicatie in plaats van boekjaareinde. Verliesjaren blijven buiten beschouwing."
   },
   "declineHistory": {
