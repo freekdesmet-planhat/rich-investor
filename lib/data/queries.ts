@@ -55,6 +55,8 @@ export interface SignalRow {
   why_parts: { en: WhyPart[]; nl: WhyPart[] } | null;
   became_buy_worthy: boolean;
   previous_status: string | null;
+  /** The instant this evaluation was written — the true "analysed at" (A5). */
+  created_at: string;
 }
 
 export interface RatioRow {

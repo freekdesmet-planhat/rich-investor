@@ -138,7 +138,11 @@
       "unmeasured": "Judged without a figure: {conditions}. The data providers had nothing to measure, so a cross there is not the same as a measured failure.",
       "approximated": "Rests on an approximation: {conditions}.",
       "stale": "This evaluation used figures the providers had already marked stale."
-    }
+    },
+    "justAnalysed": "Just analysed",
+    "priceClose": "Price: close of {date} ({exchange})",
+    "priceCloseNoExchange": "Price: close of {date}",
+    "financials": "Financials: annual report {year}"
   },
   "review": {
     "title": "My qualitative review",

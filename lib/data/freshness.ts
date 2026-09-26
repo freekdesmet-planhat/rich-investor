@@ -73,3 +73,19 @@ export function relativeAge(ageHours: number | null, labels: RelativeAgeLabels):
   const days = Math.floor(ageHours / 24);
   return labels.days.replace('{count}', String(days));
 }
+
+/**
+ * Hours since an actual instant, from a timestamp rather than a calendar date.
+ *
+ * The staleness check above reads `as_of`, a date, because "has the nightly job
+ * stopped" is a question about days. This reads `created_at`, the moment the row
+ * was written, because "how long ago was this stock analysed" is a question
+ * about hours — and a stock analysed on demand two minutes ago must not read
+ * "17h ago" because its `as_of` date began at midnight (audit 11).
+ */
+export function hoursSince(instant: string | null | undefined, now: Date = new Date()): number | null {
+  if (!instant) return null;
+  const stamped = Date.parse(instant);
+  if (Number.isNaN(stamped)) return null;
+  return Math.max(0, (now.getTime() - stamped) / 3_600_000);
+}

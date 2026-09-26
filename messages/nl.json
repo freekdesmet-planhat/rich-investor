@@ -138,7 +138,11 @@
       "unmeasured": "Beoordeeld zonder cijfer: {conditions}. De databronnen hadden niets te meten, dus een kruis daar betekent iets anders dan een gemeten afwijzing.",
       "approximated": "Berust op een benadering: {conditions}.",
       "stale": "Deze evaluatie gebruikte cijfers die de bronnen al als verouderd hadden gemarkeerd."
-    }
+    },
+    "justAnalysed": "Zojuist geanalyseerd",
+    "priceClose": "Koers: slotkoers van {date} ({exchange})",
+    "priceCloseNoExchange": "Koers: slotkoers van {date}",
+    "financials": "Cijfers: jaarrekening {year}"
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",

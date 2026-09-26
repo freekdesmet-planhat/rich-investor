@@ -8,12 +8,14 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { AiThesisCard } from '@/components/AiThesisCard';
 import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
+import { StockFreshness } from '@/components/StockFreshness';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { Card, Chip, Section, SectionHeading } from '@/components/ui/Surface';
 import { RatioGrid, HEADLINE_RATIOS } from '@/components/RatioGrid';
 import { createClient } from '@/lib/supabase/server';
 import {
+  getListingExchange,
   getPosition,
   getRatios,
   getReviews,
@@ -28,6 +30,7 @@ import {
 } from '@/lib/data/queries';
 import type { Lang } from '@/lib/i18n/config';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
+import { buildStockFreshness } from '@/lib/data/stockFreshness';
 import { dataQualityOf } from '@/lib/data/dataQuality';
 import { DataQualityNotice } from '@/components/DataQualityNotice';
 import { WhyBlock } from '@/components/WhyBlock';
@@ -69,7 +72,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, peerRows] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, peerRows, listingExchange] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -94,10 +97,35 @@ export default async function StockPage({
     getTranslations('liquidity'),
     getTranslations('research'),
     getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
+    getListingExchange(symbol),
   ]);
 
   const tWatchlist = await getTranslations('watchlist');
   const onWatchlist = (await getWatchlistSymbols()).has(symbol);
+
+  // The two facts the old "Updated 17h ago · As of <date>" line got wrong: how
+  // old the price is and which report the fundamentals come from (A5). The age
+  // now comes from the analysis timestamp, not the as-of date at midnight.
+  const priceCloseDate = snapshot?.price_history?.length
+    ? snapshot.price_history.reduce((latest, p) => (p.date > latest ? p.date : latest), snapshot.price_history[0].date)
+    : null;
+  const freshness = buildStockFreshness({
+    createdAt: signal.created_at,
+    priceCloseDate,
+    exchangeCode: listingExchange,
+    fiscalYearEndDate: snapshot?.income_annual?.periods?.[0]?.endDate ?? null,
+    locale,
+    labels: {
+      updated: tData('updated', { age: '{age}' }),
+      justAnalysed: tData('justAnalysed'),
+      justNow: tData('justNow'),
+      hoursAgo: tData.raw('hoursAgo') as string,
+      daysAgo: tData.raw('daysAgo') as string,
+      priceClose: tData.raw('priceClose') as string,
+      priceCloseNoExchange: tData.raw('priceCloseNoExchange') as string,
+      financials: tData.raw('financials') as string,
+    },
+  });
 
   const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
   const drawdown = byKey.get('drawdown_5y');
@@ -603,19 +631,12 @@ export default async function StockPage({
         />
 
         {/* --- provenance ---------------------------------------------------- */}
+        {/* Not a single "As of <date>": how old the price is and which annual
+            report the fundamentals come from are separate facts, and the age
+            reads from the analysis timestamp so a fresh run says "Just analysed"
+            rather than "17h ago" (A5). The stale banner still lives at the top. */}
         <div className="mt-8">
-          <DataFreshness
-            asOf={signal.as_of}
-              labels={{
-                updated: tData('updated', { age: '{age}' }),
-                justNow: tData('justNow'),
-                hoursAgo: tData.raw('hoursAgo') as string,
-                daysAgo: tData.raw('daysAgo') as string,
-                stale: tData.raw('stale') as string,
-                veryStale: tData.raw('veryStale') as string,
-                asOf: tData('asOf', { date: signal.as_of }),
-              }}
-          />
+          <StockFreshness {...freshness} />
         </div>
         <p className="mt-1 text-xs text-ink-faint">
           {snapshot?.statement_sources?.income
