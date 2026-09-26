@@ -250,14 +250,14 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
     const waterfall =
       dd.recoveryNeeded != null
         ? lang === 'nl'
-          ? ` — de logaritmische waterval betekent dat er ${pct(dd.recoveryNeeded, lang)} koerswinst nodig is om dat niveau terug te halen`
-          : ` — the logarithmic-waterfall maths means it needs a ${pct(dd.recoveryNeeded, lang)} gain to reclaim that level`
+          ? ` — er is ${pct(dd.recoveryNeeded, lang)} koerswinst nodig om dat niveau terug te halen`
+          : ` — it needs a ${pct(dd.recoveryNeeded, lang)} gain to reclaim that level`
         : '';
 
     const conviction = by('drawdown')?.passed
       ? lang === 'nl'
-        ? `, en dalingen van 50% of meer bij kwaliteitsbedrijven gelden als zeldzame instapmomenten met hoge overtuiging.`
-        : `, and declines of 50%+ in quality names are rare, high-conviction entry points.`
+        ? `, en dalingen van 50% of meer bij kwaliteitsbedrijven zijn zeldzaam.`
+        : `, and declines of 50%+ in quality names are rare.`
       : '.';
 
     parts.push({

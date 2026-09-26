@@ -83,7 +83,7 @@ kasstroom negatief is terwijl de nettowinst positief is.
 **Doel:** > 15%, en dat meerdere jaren achtereen
 
 De favoriete ratio van Warren Buffett, en te omschrijven als het spaarpercentage van
-het bedrijf". Hij laat zien hoeveel winst een bedrijf maakt op elke euro ingelegd
+het bedrijf. Hij laat zien hoeveel winst een bedrijf maakt op elke euro ingelegd
 eigen vermogen. Het effect van samengestelde groei werkt alleen als (1) de winst
 wordt geherinvesteerd en (2) het bedrijf dat hoge rendement vasthoudt terwijl het
 eigen vermogen groeit — en dat lukt alleen met een sterke slotgracht en voldoende

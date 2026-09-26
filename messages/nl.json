@@ -26,18 +26,18 @@
   "status": {
     "buy_worthy": "Koopwaardig, nu jouw kwalitatieve beoordeling",
     "almost": "Bijna zover, blijven volgen",
-    "watching": "Volgen",
-    "conditionsMet": "{met} van {total} voorwaarden behaald",
+    "watching": "Nog afwachten",
+    "conditionsMet": "{met} van {total} voorwaarden gehaald",
     "cantJudge": "{count} niet te beoordelen: {names}",
     "short": {
       "buy_worthy": "Koopwaardig",
       "almost": "Bijna zover",
-      "watching": "Volgen"
+      "watching": "Nog afwachten"
     }
   },
   "sector": {
     "information_technology": "Informatietechnologie",
-    "luxury_consumer": "Luxegoederen en consumentengoederen",
+    "luxury_consumer": "Luxe en niet-essentiële consumptiegoederen",
     "entertainment_media": "Entertainment en interactieve media",
     "financial_services_non_bank": "Financiële dienstverlening, niet-bancair",
     "outside_focus": "Buiten de vier focussectoren"
@@ -109,15 +109,15 @@
     },
     "trend": {
       "title": "Hoe dit bewoog",
-      "summary": "Van {from} naar {to} behaalde voorwaarden sinds {date}.",
-      "steady": "Onveranderd op {count} behaalde voorwaarden sinds {date}.",
+      "summary": "Van {from} naar {to} gehaalde voorwaarden sinds {date}.",
+      "steady": "Onveranderd op {count} gehaalde voorwaarden sinds {date}.",
       "changesSince": "Sinds {date}:",
-      "started": "voldoet nu aan:",
-      "stopped": "voldoet niet meer aan:",
+      "started": "haalt nu:",
+      "stopped": "haalt niet meer:",
       "tooSoon": "Nog maar één evaluatie. De nachtelijke scan bouwt dit vanaf nu op."
     },
     "delta": {
-      "gained": "nu behaald",
+      "gained": "nu gehaald",
       "lost": "nu niet meer"
     }
   },
@@ -141,7 +141,7 @@
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",
-    "intro": "De app heeft alles gedaan wat meetbaar is. Dit deel kan zij niet voor je beantwoorden.",
+    "intro": "De app heeft alles gedaan wat meetbaar is. Dit deel kan de app niet voor je beantwoorden.",
     "yours": "Jouw beoordeling",
     "theirs": "Beoordeling van {email}",
     "noneYet": "Nog niet beoordeeld",
@@ -149,7 +149,7 @@
     "saving": "Opslaan…",
     "saved": "Opgeslagen",
     "lastUpdated": "Laatst bijgewerkt {date}",
-    "checklistReminder": "{met} van {total} kwantitatieve voorwaarden behaald. De beoordeling hieronder is de laatste stap vóór een koopbeslissing.",
+    "checklistReminder": "{met} van {total} kwantitatieve voorwaarden gehaald. De beoordeling hieronder is de laatste stap vóór een koopbeslissing.",
     "assessment": {
       "label": "Is het probleem tijdelijk of structureel?",
       "help": "De volgende vraag die de methode stelt: een terugval van één of enkele kwartalen, waarbij het groeiverhaal overeind blijft, is iets anders dan structureel verslechterende resultaten.",
@@ -267,7 +267,7 @@
   },
   "thesis": {
     "title": "AI-samenvatting van de these",
-    "intro": "Een korte weging van de bull- en bearcase op basis van de fundamenten, op verzoek gegenereerd uit de cijfers op deze pagina. Geen advies, en geen vervanging van je eigen beoordeling hieronder.",
+    "intro": "Een korte weging van de sterke en de zwakke kant op basis van de fundamenten, op verzoek gegenereerd uit de cijfers op deze pagina. Geen advies, en geen vervanging van je eigen beoordeling hieronder.",
     "generate": "Samenvatting genereren",
     "refresh": "Samenvatting vernieuwen",
     "generating": "Bezig met genereren…",
@@ -301,7 +301,7 @@
     "tooShort": "Gebruik minstens 10 tekens.",
     "mismatch": "De twee wachtwoorden komen niet overeen.",
     "notifications": {
-      "title": "Dagelijkse samenvatting",
+      "title": "Dagelijkse update",
       "intro": "Waar de dagelijkse samenvatting heen gaat.",
       "email": "Stuur naar",
       "emailHint": "Laat leeg om niets te ontvangen.",
@@ -367,7 +367,7 @@
     "back": "Terug naar de volglijst"
   },
   "search": {
-    "title": "Zoek een ticker",
+    "title": "Zoek een bedrijf",
     "intro": "Doorzoek het bedrijvenuniversum op ticker of naam en voeg toe wat je wilt volgen.",
     "placeholder": "Ticker of bedrijfsnaam",
     "submit": "Zoeken",
@@ -467,7 +467,7 @@
   "position": {
     "title": "Heb je dit in bezit?",
     "intro": "De verkoopsignalen hieronder zijn vragen over een positie. Leg vast wat je betaalde en het wordt een beoordeling van iets echts, met het rendement ernaast.",
-    "add": "Ik heb dit",
+    "add": "Ik bezit dit aandeel",
     "edit": "Wijzigen",
     "entryPrice": "Betaalde prijs, per aandeel",
     "entryDate": "Aankoopdatum",
