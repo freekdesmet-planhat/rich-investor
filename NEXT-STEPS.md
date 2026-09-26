@@ -436,6 +436,33 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Round 2 item 7 **review fixes, batch 2** (from the branch-deploy
+  review request). On branch `round2-item7-review-fixes` (preview URL pattern
+  `https://<branch>--richinvestor.netlify.app`; production only on "go").
+  - **First visit follows the OS.** No saved preference now means "system"
+    (DEFAULT_THEME + settings/account fallbacks) — the CSS media query decides at
+    first paint, no flash. Supersedes the earlier "new users default to light".
+  - **verify:theme** gained the two first-paint cases (no preference + OS dark /
+    OS light), measured with JS disabled to prove the pre-hydration paint. 12/12
+    pass locally.
+  - **Header price** carries its close date beside it ("€843.50 · close 24 Sept");
+    confirmed the stock page reads only the stored close and fetches no live quote.
+  - **Contrast pass** (whole-app smoke, EN/NL, light/dark, 1440+390): darkened
+    light --pass (#0f7538) and --near (#a54c08) so Why-block headings clear 4.5:1
+    on the sunken panel; moved real text off --ink-faint (footer tagline, RatioCard
+    unused variant, demo/landing "not advice", home missing-condition hint) onto
+    --ink-subtle. Public-page contrast smoke: 0 findings.
+  - **Demo stock pages** now use the same failed-row treatment as the real stock
+    page (fail colour + "Not met"; "?" + "Can't judge").
+  - Tooling: `scripts/verify-theme.ts` (committed) and a scratchpad whole-app
+    smoke+contrast script (screenshots + WCAG audit; signs in when VERIFY_EMAIL/
+    VERIFY_PASSWORD are set).
+  - BLOCKED: the branch deploy did not publish at the expected URL after ~25 min
+    and several pushes (Netlify serves site-not-found) — needs the build log
+    checked. Authed-page smoke, the ADYEN/GOOGL screenshots, verify:theme against
+    the branch, and the ADYEN re-analysis all wait on the live branch deploy plus
+    sign-in credentials.
+
 - 2026-09-26: Round 2 item 7 **review fixes** (direction approved; fixes on the
   stock page before rollout, on a **preview deploy**). Eight points:
   1. **Dark mode now follows the toggle, not the OS.** Added `@custom-variant dark`
