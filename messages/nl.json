@@ -77,6 +77,7 @@
     },
     "close": "Sluiten",
     "entryThreshold": "Voldoet aan de instapdrempel van 50%",
+    "roeBuybackNote": "Dit is uitzonderlijk hoog omdat het bedrijf zoveel eigen aandelen heeft teruggekocht dat het eigen vermogen klein is. Het rendement op activa is hier de stabielere maatstaf.",
     "nearEntryThreshold": "Nadert de instapdrempel",
     "trajectory": {
       "title": "Waarom deze groeicategorie",

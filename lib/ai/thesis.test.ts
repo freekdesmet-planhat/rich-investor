@@ -111,6 +111,15 @@ describe('prompt guardrails (A7)', () => {
     expect(p).toContain('no price targets');
     expect(p).toContain('Every number you write must be one of the figures given');
   });
+  it('names the rule for valuation instead of an opinion', () => {
+    expect(systemPromptFor('en')).toContain('Name the specific rule the company meets or misses');
+  });
+  it('adds the ROE-over-100% explanation only when asked', () => {
+    expect(systemPromptFor('en')).not.toContain('return on equity is above 100%');
+    expect(systemPromptFor('en', { roeAboveHundred: true })).toContain(
+      'return on equity is above 100%',
+    );
+  });
 });
 
 describe('numbers guardrail (A7)', () => {

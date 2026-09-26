@@ -220,6 +220,13 @@ export async function RatioGrid({
           else if (dd.approachingEntryThreshold) caption = tRatio('nearEntryThreshold');
         }
 
+        // An ROE over 100% reads to a beginner as "makes 149% profit". It is a
+        // small-equity artifact (buybacks), so the card says so and points at ROA
+        // as the steadier measure — the same note the AI summary is told to give.
+        if (key === 'roe' && row.value != null && row.value > 1) {
+          caption = tRatio('roeBuybackNote');
+        }
+
         // Peer comparison, downgraded from a section to a caption. Only for
         // the metrics it covers, and only where the card has nothing more
         // pressing to say — the PEG and drawdown captions above win the slot.

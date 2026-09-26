@@ -77,6 +77,7 @@
     },
     "close": "Close",
     "entryThreshold": "Meets the 50% entry threshold",
+    "roeBuybackNote": "This is unusually high because the company has bought back so many of its own shares that its equity is small. Return on assets is the steadier measure here.",
     "nearEntryThreshold": "Approaching the entry threshold",
     "trajectory": {
       "title": "Why this growth category",

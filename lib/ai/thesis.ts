@@ -117,8 +117,21 @@ const CONSTRAINTS =
   '- No superlatives or salesy words (no "fortress", "dirt-cheap", "best-in-class").\n' +
   '- Do not tell the reader to buy, sell, hold or wait, and give no price targets or ' +
   'price predictions.\n' +
+  '- For valuation, do not call the price cheap or expensive as an opinion. Name the ' +
+  'specific rule the company meets or misses, using the given figures and targets — ' +
+  'for example, "the P/E of 35 is above the method’s limit of 30".\n' +
   '- Every number you write must be one of the figures given below, exactly as given. ' +
   'Do not invent numbers, round them differently, or calculate new ones.';
+
+/**
+ * Appended when ROE is above 100%, so the summary explains the figure rather than
+ * letting a beginner read "148.8%" as a profit margin (A7 follow-up).
+ */
+const ROE_NOTE_INSTRUCTION =
+  'This company’s return on equity is above 100%. Explain, in plain words, that ' +
+  'this is unusually high because the company has bought back so many of its own ' +
+  'shares that its equity is small, and that return on assets is the steadier measure ' +
+  'here. Do not present the return on equity as a profit margin.';
 
 const FORMAT_INSTRUCTIONS =
   'Reply with the summary itself and nothing else: no preamble, no heading, no ' +
@@ -127,7 +140,7 @@ const FORMAT_INSTRUCTIONS =
   'labels. Two short paragraphs at most, under 150 words in total.';
 
 /** The system turn for one language. Dutch is written as Dutch, not translated. */
-export function systemPromptFor(lang: Lang): string {
+export function systemPromptFor(lang: Lang, opts: { roeAboveHundred?: boolean } = {}): string {
   const language =
     lang === 'nl'
       ? 'Write in Dutch, as a Dutch financial journalist would write for a Dutch ' +
@@ -136,7 +149,11 @@ export function systemPromptFor(lang: Lang): string {
         'sentence — write the analysis directly in Dutch.'
       : 'Write in English, for a private investor.';
 
-  return `${SHARED_INSTRUCTIONS}\n\n${language}\n\n${CONSTRAINTS}\n\n${FORMAT_INSTRUCTIONS}`;
+  const constraints = opts.roeAboveHundred
+    ? `${CONSTRAINTS}\n- ${ROE_NOTE_INSTRUCTION}`
+    : CONSTRAINTS;
+
+  return `${SHARED_INSTRUCTIONS}\n\n${language}\n\n${constraints}\n\n${FORMAT_INSTRUCTIONS}`;
 }
 
 export interface ThesisContext {
@@ -240,7 +257,9 @@ export async function* streamThesis(
   }
 
   const generation = provider.stream({
-    systemPrompt: systemPromptFor(lang),
+    systemPrompt: systemPromptFor(lang, {
+      roeAboveHundred: context.roe != null && context.roe > 1,
+    }),
     userMessage: buildUserMessage(context),
     maxOutputTokens: MAX_TOKENS,
     signal,
