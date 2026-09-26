@@ -109,7 +109,7 @@ describe('prompt guardrails (A7)', () => {
     expect(p).toContain('No superlatives');
     expect(p).toContain('Do not tell the reader to buy, sell');
     expect(p).toContain('no price targets');
-    expect(p).toContain('Every number you write must be one of the figures given');
+    expect(p).toContain('Every number you write must be one of the figures listed below');
   });
   it('names the rule for valuation instead of an opinion', () => {
     expect(systemPromptFor('en')).toContain('Name the specific rule the company meets or misses');
@@ -119,6 +119,30 @@ describe('prompt guardrails (A7)', () => {
     expect(systemPromptFor('en', { roeAboveHundred: true })).toContain(
       'return on equity is above 100%',
     );
+  });
+  it('adds the five-year-high line only when asked', () => {
+    expect(systemPromptFor('en')).not.toContain('at its five-year high');
+    expect(systemPromptFor('en', { atFiveYearHigh: true })).toContain('at its five-year high');
+  });
+  it('requires the active voice for the method rules', () => {
+    expect(systemPromptFor('en')).toContain('the method asks for a fall of at least 50%');
+  });
+  it('nudges Dutch term usage (nettoschuld one word)', () => {
+    expect(systemPromptFor('nl')).toContain('nettoschuld');
+  });
+});
+
+describe('figures are formatted in the reader language', () => {
+  it('uses Dutch decimal commas and the % sign', () => {
+    const nl = buildUserMessage(context(), 'nl');
+    expect(nl).toContain('1,17'); // PEG trailing
+    expect(nl).toContain('22,3%'); // ROE
+    expect(nl).not.toContain('procent');
+  });
+  it('uses English dots by default', () => {
+    const en = buildUserMessage(context());
+    expect(en).toContain('1.17');
+    expect(en).toContain('22.3%');
   });
 });
 

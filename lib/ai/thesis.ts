@@ -22,6 +22,7 @@
  * placeholder that reads like an analysis is worse than no analysis.
  */
 import type { Lang } from '@/lib/i18n/config';
+import { formatNumber, formatPercent } from '@/lib/i18n/format';
 import {
   thesisProvider,
   ThesisProviderError,
@@ -121,10 +122,12 @@ const CONSTRAINTS =
   '- Do not tell the reader to buy, sell, hold or wait, and give no price targets or ' +
   'price predictions.\n' +
   '- For valuation, do not call the price cheap or expensive as an opinion. Name the ' +
-  'specific rule the company meets or misses, using the given figures and targets — ' +
-  'for example, "the P/E of 35 is above the method’s limit of 30".\n' +
-  '- Every number you write must be one of the figures given below, exactly as given. ' +
-  'Do not invent numbers, round them differently, or calculate new ones.';
+  'specific rule the company meets or misses, and state it in the active voice — ' +
+  '"the method asks for a fall of at least 50%", not "a fall of 50% was sought".\n' +
+  '- Every number you write must be one of the figures listed below, copied exactly ' +
+  'as written there: the same digits, the same decimal mark, and with the % sign — ' +
+  'do not spell out "per cent" or "procent", and do not invent, round or recompute a ' +
+  'figure.';
 
 /**
  * Appended when ROE is above 100%, so the summary explains the figure rather than
@@ -136,6 +139,14 @@ const ROE_NOTE_INSTRUCTION =
   'shares that its equity is small, and that return on assets is the steadier measure ' +
   'here. Do not present the return on equity as a profit margin.';
 
+/**
+ * Appended when the price is within 1% of its five-year high, so the summary says
+ * so plainly instead of citing an awkward "0.0% decline" (A7 follow-up).
+ */
+const AT_HIGH_INSTRUCTION =
+  'The share price is at (or within 1% of) its five-year high. Say plainly that the ' +
+  'stock is at its five-year high, rather than citing a decline of about 0%.';
+
 const FORMAT_INSTRUCTIONS =
   'Reply with the summary itself and nothing else: no preamble, no heading, no ' +
   'bullet list, no JSON. Write plain prose — the page renders the reply as text, ' +
@@ -143,18 +154,22 @@ const FORMAT_INSTRUCTIONS =
   'labels. Two short paragraphs at most, under 150 words in total.';
 
 /** The system turn for one language. Dutch is written as Dutch, not translated. */
-export function systemPromptFor(lang: Lang, opts: { roeAboveHundred?: boolean } = {}): string {
+export function systemPromptFor(
+  lang: Lang,
+  opts: { roeAboveHundred?: boolean; atFiveYearHigh?: boolean } = {},
+): string {
   const language =
     lang === 'nl'
       ? 'Write in Dutch, as a Dutch financial journalist would write for a Dutch ' +
-        'private investor. Use the ordinary Dutch terms for these concepts. Do not ' +
-        'write English and do not produce a word-for-word translation of an English ' +
-        'sentence — write the analysis directly in Dutch.'
+        'private investor. Use the ordinary Dutch terms for these concepts, written ' +
+        'naturally — for example "nettoschuld" as one word. Do not write English and ' +
+        'do not produce a word-for-word translation of an English sentence — write the ' +
+        'analysis directly in Dutch.'
       : 'Write in English, for a private investor.';
 
-  const constraints = opts.roeAboveHundred
-    ? `${CONSTRAINTS}\n- ${ROE_NOTE_INSTRUCTION}`
-    : CONSTRAINTS;
+  let constraints = CONSTRAINTS;
+  if (opts.roeAboveHundred) constraints += `\n- ${ROE_NOTE_INSTRUCTION}`;
+  if (opts.atFiveYearHigh) constraints += `\n- ${AT_HIGH_INSTRUCTION}`;
 
   return `${SHARED_INSTRUCTIONS}\n\n${language}\n\n${constraints}\n\n${FORMAT_INSTRUCTIONS}`;
 }
@@ -202,11 +217,15 @@ export function thesisEnabled(): boolean {
   return thesisProvider().isConfigured();
 }
 
-const pct = (value: number | null) => (value == null ? 'unknown' : `${(value * 100).toFixed(1)}%`);
-const num = (value: number | null) => (value == null ? 'unknown' : value.toFixed(2));
-
-/** The user turn: computed figures only, never raw statements. */
-export function buildUserMessage(context: ThesisContext): string {
+/**
+ * The user turn: computed figures only, never raw statements — and each figure
+ * formatted in the reader's language (a Dutch summary must read "13,2%", not
+ * "13.2 procent"). The model is told to copy these strings verbatim, and the
+ * numbers check validates against this same text, so the two cannot drift.
+ */
+export function buildUserMessage(context: ThesisContext, lang: Lang = 'en'): string {
+  const pct = (value: number | null) => (value == null ? 'unknown' : formatPercent(value, lang, 1));
+  const num = (value: number | null) => (value == null ? 'unknown' : formatNumber(value, lang, 2));
   const checklist = context.checklist
     .map((condition) => {
       const mark = !condition.applicable ? 'n/a' : condition.passed ? 'PASS' : 'FAIL';
@@ -262,8 +281,9 @@ export async function* streamThesis(
   const generation = provider.stream({
     systemPrompt: systemPromptFor(lang, {
       roeAboveHundred: context.roe != null && context.roe > 1,
+      atFiveYearHigh: context.drawdown != null && Math.abs(context.drawdown) < 0.01,
     }),
-    userMessage: buildUserMessage(context),
+    userMessage: buildUserMessage(context, lang),
     maxOutputTokens: MAX_TOKENS,
     signal,
   });
@@ -299,7 +319,7 @@ export async function* streamThesis(
 
   // Every number in the summary must be one we handed the model. A stray figure
   // is a fabrication to a beginner; the caller retries once, then shows nothing.
-  const invented = unmatchedNumbers(trimmed, buildUserMessage(context));
+  const invented = unmatchedNumbers(trimmed, buildUserMessage(context, lang));
   if (invented.length > 0) {
     throw new ThesisError('numbers', `invented figures: ${invented.join(', ')}`);
   }
