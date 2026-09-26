@@ -21,6 +21,13 @@ export interface ConditionResult {
   /** False when the condition cannot apply to this company at all. */
   applicable: boolean;
   passed: boolean;
+  /**
+   * True when the condition applies but its data was demoted to grey by the
+   * sanity layer, so it cannot be judged. It still counts as applicable and is
+   * not met — an unverifiable condition must never make a stock easier to pass —
+   * which caps the stock at "almost there" and is named in the status line (A4).
+   */
+  unjudged?: boolean;
   /** The figure the condition was decided on. */
   value: number | null;
   target: string;
@@ -42,6 +49,12 @@ export interface SignalResult {
   reliesOnForwardPeg: boolean;
   ratioSnapshot: Record<string, number | null>;
   missing: string[];
+  /**
+   * Applicable conditions demoted to grey by the sanity layer — counted, unmet,
+   * and named separately from a genuine miss so the status line can say "1 can't
+   * be judged: returns" rather than calling it a fail (A4).
+   */
+  unjudged: string[];
 }
 
 const ALWAYS = { applicable: true } as const;
@@ -196,17 +209,18 @@ export function evaluateSignal(
   const roa = ratios.roa;
   const roaDetail = roa.detail as { isAdjusted?: boolean; rawValue?: number | null };
   // An out-of-range ROE/ROA (e.g. 443% off a sliver of equity) is demoted to grey
-  // by the sanity layer and can't be judged, so the condition doesn't apply rather
-  // than passing on a meaningless number (A4).
-  const returnsReliable =
-    roe.unavailableReason !== 'unreliable' && roa.unavailableReason !== 'unreliable';
+  // by the sanity layer. The condition stays applicable and is NOT met — a
+  // condition we can't verify must never make a stock easier to pass — so the
+  // stock is capped at "almost there" and the status line names it (A4).
+  const returnsUnjudged =
+    roe.unavailableReason === 'unreliable' || roa.unavailableReason === 'unreliable';
   conditions.push({
     key: 'returns',
-    applicable: returnsReliable,
-    passed: returnsReliable && roe.color === 'green' && roa.color === 'green',
+    ...ALWAYS,
+    passed: !returnsUnjudged && roe.color === 'green' && roa.color === 'green',
+    unjudged: returnsUnjudged,
     value: roe.value,
     target: 'ROE > 15% and ROA > 10%',
-    notApplicableReason: returnsReliable ? undefined : 'unreliable',
     detail: {
       roe: roe.value,
       roa: roa.value,
@@ -224,22 +238,19 @@ export function evaluateSignal(
   const fcfPositive = pFcf.unavailableReason !== 'negative_base' && pFcf.value != null;
   const qualityOk = quality.value != null && quality.value >= 0.7;
   // A negative cash-conversion ratio is demoted to grey by the sanity layer (a
-  // sign flip on a one-off, not a readable signal), so the condition can't be
-  // judged rather than being called clean or failed on a nonsense number (A4).
-  const qualityReliable = quality.unavailableReason !== 'unreliable';
-  const cashFlowApplicable = !ctx.isFinancial && qualityReliable;
+  // sign flip on a one-off, not a readable signal). Not applicable to a financial
+  // institution at all; for everyone else the condition stays applicable and, when
+  // demoted, is unjudged — counted, not met, never a free pass (A4).
+  const qualityUnjudged = !ctx.isFinancial && quality.unavailableReason === 'unreliable';
 
   conditions.push({
     key: 'cash_flow',
-    applicable: cashFlowApplicable,
-    passed: cashFlowApplicable && fcfPositive && qualityOk,
+    applicable: !ctx.isFinancial,
+    passed: !ctx.isFinancial && !qualityUnjudged && fcfPositive && qualityOk,
+    unjudged: qualityUnjudged,
     value: quality.value,
     target: 'free cash flow positive, operating cash flow ≥ 70% of net income',
-    notApplicableReason: ctx.isFinancial
-      ? 'financial_institution'
-      : !qualityReliable
-        ? 'unreliable'
-        : undefined,
+    notApplicableReason: ctx.isFinancial ? 'financial_institution' : undefined,
     detail: { fcfPositive, qualityOk, ocfOverNetIncome: quality.value },
   });
 
@@ -279,6 +290,7 @@ export function evaluateSignal(
   }
 
   const missing = applicable.filter((c) => !c.passed).map((c) => c.key);
+  const unjudged = applicable.filter((c) => c.unjudged).map((c) => c.key);
 
   const ratioSnapshot: Record<string, number | null> = {};
   for (const [key, result] of Object.entries(ratios)) ratioSnapshot[key] = result.value;
@@ -293,5 +305,6 @@ export function evaluateSignal(
     reliesOnForwardPeg: peg.basis === 'forward',
     ratioSnapshot,
     missing,
+    unjudged,
   };
 }

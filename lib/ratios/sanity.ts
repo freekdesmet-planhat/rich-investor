@@ -22,9 +22,6 @@ import type { RatioResult, RatioKey } from './engine';
 /** Above this, a return ratio is denominator noise, not a real figure (ROE 443%). */
 const RETURN_OUTLIER = 1.0; // 100%
 
-/** Beyond ±this, a year-on-year change is almost always a source/restatement mix. */
-const GROWTH_OUTLIER = 0.6; // ±60%
-
 interface SanityRule {
   /** True when the value is outside any plausible range and cannot be judged. */
   outlier: (value: number) => boolean;
@@ -32,18 +29,47 @@ interface SanityRule {
   reason: string;
 }
 
+// Single-value outliers only: a figure so far outside any plausible range for a
+// real large company that it must be denominator noise or a sign flip. Growth is
+// NOT size-tested here — a real grower can double revenue in a year (Nvidia) — it
+// is tested for internal inconsistency instead (revenueInconsistent, applied in
+// the engine where the gross-profit series is at hand).
 const RULES: Partial<Record<RatioKey, SanityRule>> = {
   roe: { outlier: (v) => Math.abs(v) > RETURN_OUTLIER, reason: 'roe_out_of_range' },
   roa: { outlier: (v) => Math.abs(v) > RETURN_OUTLIER, reason: 'roa_out_of_range' },
-  revenue_growth: { outlier: (v) => Math.abs(v) > GROWTH_OUTLIER, reason: 'growth_out_of_range' },
-  eps_growth: { outlier: (v) => Math.abs(v) > GROWTH_OUTLIER, reason: 'growth_out_of_range' },
   // A negative cash-conversion ratio (OCF below zero against positive net income)
   // is a sign flip on a one-off far more often than a readable signal at this size.
   earnings_quality: { outlier: (v) => v < 0, reason: 'cash_conversion_negative' },
 };
 
+/** The revenue move worth scrutinising; below this, a divergence is just noise. */
+const REVENUE_MOVE_FLOOR = 0.6; // ±60%
+
+/** Gross profit must move at least this fraction of revenue, in the same direction. */
+const GROSS_PROFIT_TRACKING = 0.4;
+
+/**
+ * Whether a year's revenue move is internally inconsistent with gross profit — the
+ * signature of a gross/net or restatement source mix rather than a real change.
+ *
+ * Adyen's 2023 revenue fell 79% while gross profit rose 22% (it reclassified to net
+ * revenue): opposite directions, clearly not a real collapse. Nvidia's revenue and
+ * gross profit both roughly doubled together: real, and left alone. So the test is
+ * direction and co-movement, never size — a company that genuinely doubled is not
+ * punished for it.
+ */
+export function revenueInconsistent(revYoY: number | null, gpYoY: number | null): boolean {
+  if (revYoY == null || gpYoY == null || !Number.isFinite(revYoY) || !Number.isFinite(gpYoY)) {
+    return false;
+  }
+  if (Math.abs(revYoY) <= REVENUE_MOVE_FLOOR) return false;
+  const oppositeDirection = Math.sign(revYoY) !== Math.sign(gpYoY);
+  const grossProfitLags = Math.abs(gpYoY) < GROSS_PROFIT_TRACKING * Math.abs(revYoY);
+  return oppositeDirection || grossProfitLags;
+}
+
 /** Demote one ratio to a grey "unreliable" result, keeping the raw figure. */
-function demote(result: RatioResult, reason: string): RatioResult {
+export function demote(result: RatioResult, reason: string): RatioResult {
   return {
     ...result,
     value: null,

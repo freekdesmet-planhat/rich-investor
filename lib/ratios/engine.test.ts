@@ -174,6 +174,25 @@ describe('P/E (5.1)', () => {
     expect(result.value).not.toBeCloseTo(1698.3 / 27.55, 1);
   });
 
+  it('converts a GBp (pence) price to pounds so UK price ratios and caps work (A4)', () => {
+    const fx = createFxRates({ GBPUSD: 1.34 });
+    const ctx = buildContext(
+      bundle({
+        price: 1000, // pence
+        quoteCurrency: 'GBp',
+        filingCurrency: 'GBP',
+        marketCap: 3_000_000_000, // already in GBP
+        income: statement('income', 'annual', [['2025-12-31', { dilutedEps: 0.5 }]]),
+      }),
+      { fx },
+    );
+    // Price is £10 (1000p / 100) against £0.50 of EPS -> P/E 20, not 2000.
+    const pe = computePe(ctx, derive(ctx));
+    expect(pe.value).toBeCloseTo(20, 4);
+    // Market cap is already in GBP; convert on the GBP->USD rate, no /100.
+    expect(ctx.marketCapUsd).toBeCloseTo(3_000_000_000 * 1.34, 0);
+  });
+
   it('withholds price ratios entirely when no exchange rate is available', () => {
     const ctx = buildContext(
       bundle({ price: 100, quoteCurrency: 'USD', filingCurrency: 'EUR', income }),

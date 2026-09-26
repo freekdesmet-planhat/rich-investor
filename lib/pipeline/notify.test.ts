@@ -99,6 +99,7 @@ const signal = (): NotifiableSignal => ({
     reliesOnForwardPeg: true,
     ratioSnapshot: {},
     missing: [],
+    unjudged: [],
   } as SignalResult,
   ratios: {
     drawdown_5y: {

@@ -41,6 +41,8 @@ export interface SignalRow {
     key: string;
     applicable: boolean;
     passed: boolean;
+    /** Demoted to grey by the sanity layer: counted, unmet, "can't be judged" (A4). */
+    unjudged?: boolean;
     value: number | null;
     target: string;
     notApplicableReason?: string;

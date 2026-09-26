@@ -34,6 +34,19 @@ export function capCurrency(currency: string | null): string {
   return currency ?? 'USD';
 }
 
+/**
+ * How much to divide a *price* in `currency` by to reach its major unit.
+ *
+ * A GBp (pence) price is 100× its value in GBP; dividing by 100 lets it convert
+ * and compare against GBP-denominated statement figures. Everything else is 1.
+ * Prices need this where market caps do not — the cap is already reported in the
+ * major unit (see capCurrency).
+ */
+export function priceDivisor(currency: string | null): number {
+  if (currency === 'GBp' || currency === 'GBX') return 100;
+  return 1;
+}
+
 /** A rate table that converts nothing; every pair resolves to 1 when equal. */
 export const identityFx: FxRates = {
   rate: (from, to) => (from === to ? 1 : null),

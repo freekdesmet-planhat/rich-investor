@@ -32,7 +32,8 @@ import {
   type SeriesPoint,
 } from './fundamentals';
 import { DEFAULT_THRESHOLDS, type Thresholds } from './thresholds';
-import { capCurrency, identityFx, type FxRates } from '@/lib/providers/fx';
+import { capCurrency, priceDivisor, identityFx, type FxRates } from '@/lib/providers/fx';
+import { demote, revenueInconsistent } from './sanity';
 import type { SymbolBundle } from '@/lib/providers/marketData';
 import type { FocusSector } from '@/lib/sectors/mapping';
 
@@ -175,27 +176,27 @@ export function buildContext(
   const quoteCurrency = bundle.quote?.currency ?? null;
   const filingCurrency = bundle.filingCurrency ?? quoteCurrency;
 
+  // A price quoted in a minor unit (LSE: GBp pence) is divided down to its major
+  // unit first, so it converts and compares against major-unit statement figures
+  // (A4). The market cap is already reported in the major unit, so it skips this.
+  const majorCurrency = capCurrency(quoteCurrency);
+  const divisor = priceDivisor(quoteCurrency);
+
   // Convert the market-facing figures into the filing currency, so every ratio
   // that divides a price by a statement figure compares like with like.
-  const fxApplied =
-    quoteCurrency && filingCurrency ? fx.rate(quoteCurrency, filingCurrency) : null;
+  const fxApplied = filingCurrency ? fx.rate(majorCurrency, filingCurrency) : null;
 
   const rawPrice = bundle.quote?.price ?? null;
+  const rawPriceMajor = rawPrice != null ? rawPrice / divisor : null;
   const rawMarketCap = bundle.quote?.marketCap ?? null;
 
-  const price = rawPrice != null && fxApplied != null ? rawPrice * fxApplied : null;
+  const price = rawPriceMajor != null && fxApplied != null ? rawPriceMajor * fxApplied : null;
   const marketCap = rawMarketCap != null && fxApplied != null ? rawMarketCap * fxApplied : null;
 
-  // The $10bn floor (5.19) is stated in USD, so it needs its own conversion.
-  const toUsd = quoteCurrency ? fx.rate(quoteCurrency, 'USD') : null;
-  // The market cap is reported in the major unit even where the price is quoted
-  // in a minor one (LSE: price in GBp pence, cap in GBP), so it converts on the
-  // major-unit rate. Without this every UK name lost its cap and failed the size
-  // condition on missing data (A4). Price-based ratios keep `toUsd`, which stays
-  // null for a pence quote — they render grey rather than a wrong number, which
-  // is the honest state until a full pence pass.
-  const capToUsd = fx.rate(capCurrency(quoteCurrency), 'USD');
-  const marketCapUsd = rawMarketCap != null && capToUsd != null ? rawMarketCap * capToUsd : null;
+  // The $10bn floor (5.19) is stated in USD, so it needs its own conversion; the
+  // cap and the (major-unit) price both convert on the major-unit rate.
+  const toUsd = fx.rate(majorCurrency, 'USD');
+  const marketCapUsd = rawMarketCap != null && toUsd != null ? rawMarketCap * toUsd : null;
 
   return {
     symbol: bundle.symbol,
@@ -933,7 +934,26 @@ export function computeEpsGrowth(ctx: RatioContext, d: Derived): RatioResult {
 }
 
 export function computeRevenueGrowth(ctx: RatioContext, d: Derived): RatioResult {
-  return growthRatio('revenue_growth', d.revenueSeries, ctx.thresholds.revenueGrowth);
+  const result = growthRatio('revenue_growth', d.revenueSeries, ctx.thresholds.revenueGrowth);
+  if (result.value == null) return result;
+
+  // Internal-consistency sanity (A4): a big revenue move whose gross profit does
+  // not follow is a gross/net source mix, not a real change, and can't be judged.
+  // Aligned on the periods both series report, so a missing year never fabricates
+  // a divergence.
+  const income = ctx.bundle.statements.income.annual;
+  const rev = new Map(annualSeries(income, 'revenue').map((p) => [p.period, p.value]));
+  const gp = new Map(annualSeries(income, 'grossProfit').map((p) => [p.period, p.value]));
+  const periods = [...rev.keys()].filter((p) => gp.has(p)).sort();
+  if (periods.length >= 2) {
+    const [prev, last] = [periods[periods.length - 2], periods[periods.length - 1]];
+    const yoy = (m: Map<string, number>) =>
+      m.get(prev) ? m.get(last)! / m.get(prev)! - 1 : null;
+    if (revenueInconsistent(yoy(rev), yoy(gp))) {
+      return demote(result, 'revenue_gross_profit_divergence');
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------

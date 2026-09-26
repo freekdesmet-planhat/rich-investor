@@ -28,6 +28,7 @@
     "almost": "Almost there, keep watching",
     "watching": "Watching",
     "conditionsMet": "{met} of {total} conditions met",
+    "cantJudge": "{count} can't be judged: {names}",
     "short": {
       "buy_worthy": "Buy-worthy",
       "almost": "Almost there",

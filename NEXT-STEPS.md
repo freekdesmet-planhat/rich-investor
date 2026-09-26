@@ -364,6 +364,26 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A4 verification pass — two silent-verdict-change fixes.
+  - **Grey never makes a stock easier to pass.** The first cut marked a demoted
+    condition non-applicable, which *removed* it from the count — a stock with a
+    grey condition could get to buy-worthy on fewer conditions. Corrected: a
+    sanity-demoted condition stays applicable and is NOT met (`unjudged`), capping
+    the stock at "almost", and the status line names it ("8 of 9 met · 1 can't be
+    judged: returns"). Before/after audit of 43 watchlist + suggestion names:
+    NEWLY buy-worthy = **none**; GDDY 9/9→8/9 (ROE 443%), and Apple/Mastercard/
+    Nvidia (ROE 149/241/117%) drop `returns` to unjudged — real but buyback-
+    distorted, correctly capped per "buy only when every condition is met".
+  - **Growth test is now consistency, not size.** The ±60% rule would have demoted
+    real hypergrowth (Nvidia +114%). Replaced with `revenueInconsistent`: flag a
+    >60% revenue move only when gross profit moves the opposite way or barely
+    follows (Adyen −79% rev / +22% GP), applied in the engine where the gross-
+    profit series is at hand. eps_growth no longer size-tested.
+  - **Pence UK names now convert (÷100), not grey.** `priceDivisor` normalises a
+    GBp price to pounds so P/E and PEG work; cap stays on the major-unit rate. 10
+    of the 293 focus names are pence-quoted (INF/REL/WPP/AVV/SGE/BRBY/CPG/ENT/IHG/
+    NXT .L). Focus universe exported to Claude outputs/focus-universe-2026-09-26.csv
+    for a sector spot-check.
 - 2026-09-26: A4 (data sanity layer) built.
   - **Sanity layer** (`lib/ratios/sanity.ts`): out-of-range values are demoted to
     grey "can't judge reliably" before the signal and stored rows are built — ROE/ROA

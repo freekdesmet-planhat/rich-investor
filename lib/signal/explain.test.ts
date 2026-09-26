@@ -46,6 +46,7 @@ function signalOf(conditions: ConditionResult[], status: SignalStatus = 'watchin
     reliesOnForwardPeg: false,
     ratioSnapshot: {},
     missing: applicable.filter((c) => !c.passed).map((c) => c.key),
+    unjudged: applicable.filter((c) => c.unjudged).map((c) => c.key),
   };
 }
 

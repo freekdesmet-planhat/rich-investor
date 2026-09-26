@@ -352,6 +352,24 @@ export default async function StockPage({
                   met: signal.conditions_met,
                   total: signal.conditions_applicable,
                 })}
+                {(() => {
+                  // Conditions demoted to grey by the sanity layer are counted and
+                  // unmet, but named apart from a genuine miss (A4): "can't be
+                  // judged", not "failed".
+                  const unjudged = (signal.checklist ?? []).filter((c) => c.unjudged);
+                  if (unjudged.length === 0) return null;
+                  return (
+                    <>
+                      {' · '}
+                      {tStatus('cantJudge', {
+                        count: unjudged.length,
+                        names: unjudged
+                          .map((c) => CONDITION_LABEL[c.key]?.[locale] ?? c.key)
+                          .join(', '),
+                      })}
+                    </>
+                  );
+                })()}
               </span>
             }
           >

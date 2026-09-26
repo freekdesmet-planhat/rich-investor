@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applySanity } from './sanity';
+import { applySanity, revenueInconsistent } from './sanity';
 import type { RatioResult, RatioKey } from './engine';
 
 function ratio(key: RatioKey, value: number | null, color: RatioResult['color'] = 'green'): RatioResult {
@@ -34,13 +34,14 @@ describe('data sanity layer', () => {
     expect(out.roe.color).toBe('green');
   });
 
-  it('demotes a year-on-year growth beyond ±60%', () => {
+  it('does not size-demote fast growth (real hypergrowth is left alone)', () => {
+    // Nvidia-style: revenue and EPS more than doubled. Not touched by applySanity.
     const out = applySanity({
-      revenue_growth: ratio('revenue_growth', -0.79),
-      eps_growth: ratio('eps_growth', 0.4),
+      revenue_growth: ratio('revenue_growth', 1.14),
+      eps_growth: ratio('eps_growth', 2.8),
     });
-    expect(out.revenue_growth.unavailableReason).toBe('unreliable');
-    expect(out.eps_growth.value).toBe(0.4); // within range
+    expect(out.revenue_growth.value).toBe(1.14);
+    expect(out.eps_growth.value).toBe(2.8);
   });
 
   it('demotes a negative cash-conversion ratio', () => {
@@ -52,5 +53,29 @@ describe('data sanity layer', () => {
     const grey = ratio('roe', null, 'gray');
     const out = applySanity({ roe: grey });
     expect(out.roe).toBe(grey);
+  });
+});
+
+describe('revenue / gross-profit consistency', () => {
+  it('flags Adyen: revenue −79% while gross profit +22% (source mix)', () => {
+    expect(revenueInconsistent(-0.79, 0.22)).toBe(true);
+  });
+
+  it('does not flag Nvidia: revenue and gross profit both roughly double', () => {
+    expect(revenueInconsistent(1.14, 1.14)).toBe(false);
+  });
+
+  it('flags a big revenue jump gross profit barely follows', () => {
+    // Revenue +80%, gross profit +5% — a gross/net reclassification, not real.
+    expect(revenueInconsistent(0.8, 0.05)).toBe(true);
+  });
+
+  it('ignores ordinary moves below the ±60% floor', () => {
+    expect(revenueInconsistent(0.2, -0.1)).toBe(false);
+  });
+
+  it('is null-safe', () => {
+    expect(revenueInconsistent(null, 0.2)).toBe(false);
+    expect(revenueInconsistent(0.9, null)).toBe(false);
   });
 });

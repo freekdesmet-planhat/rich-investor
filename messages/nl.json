@@ -28,6 +28,7 @@
     "almost": "Bijna zover, blijven volgen",
     "watching": "Volgen",
     "conditionsMet": "{met} van {total} voorwaarden behaald",
+    "cantJudge": "{count} niet te beoordelen: {names}",
     "short": {
       "buy_worthy": "Koopwaardig",
       "almost": "Bijna zover",
