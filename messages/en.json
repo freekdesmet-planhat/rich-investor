@@ -131,7 +131,8 @@
     "delta": {
       "gained": "newly passing",
       "lost": "newly failing"
-    }
+    },
+    "youChangedRule": "You changed this rule"
   },
   "data": {
     "staleBanner": "Data from {date}, data source temporarily unavailable.",
@@ -375,7 +376,8 @@
         "coverageGreen": "Interest cover, good",
         "coverageOrange": "Interest cover, borderline",
         "band": "Band, as a fraction"
-      }
+      },
+      "markNote": "A verdict computed with a threshold you changed says so — on the affected condition and on the verdict line."
     }
   },
   "notFound": {

@@ -12,6 +12,7 @@ export interface ThresholdLabels {
   intro: string;
   bookNote: string;
   appliesNote: string;
+  markNote: string;
   resetHint: string;
   save: string;
   saving: string;
@@ -105,6 +106,7 @@ export function ThresholdForm({
 
         <p className="text-ink-faint text-xs">{labels.resetHint}</p>
         <p className="text-ink-faint text-xs">{labels.appliesNote}</p>
+        <p className="text-ink-faint text-xs">{labels.markNote}</p>
 
         <SubmitButton idle={labels.save} busy={labels.saving} />
 

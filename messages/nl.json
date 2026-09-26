@@ -131,7 +131,8 @@
     "delta": {
       "gained": "nu gehaald",
       "lost": "nu niet meer"
-    }
+    },
+    "youChangedRule": "Je hebt deze regel gewijzigd"
   },
   "data": {
     "staleBanner": "Gegevens van {date}, gegevensbron tijdelijk niet beschikbaar.",
@@ -375,7 +376,8 @@
         "coverageGreen": "Rentedekking, goed",
         "coverageOrange": "Rentedekking, grensgeval",
         "band": "Band, als fractie"
-      }
+      },
+      "markNote": "Een oordeel dat met een door jou gewijzigde grens is berekend, laat dat zien — bij de betreffende voorwaarde en op de oordeelsregel."
     }
   },
   "notFound": {

@@ -30,6 +30,7 @@ import {
 import type { Lang } from '@/lib/i18n/config';
 import { buildTrend, conditionChanges } from '@/lib/data/trend';
 import { buildStockFreshness } from '@/lib/data/stockFreshness';
+import { isOverridden, RATIO_THRESHOLD } from '@/lib/ratios/editableThresholds';
 import { dataQualityOf } from '@/lib/data/dataQuality';
 import { DataQualityNotice } from '@/components/DataQualityNotice';
 import { WhyBlock } from '@/components/WhyBlock';
@@ -161,6 +162,20 @@ export default async function StockPage({
   // reference evaluation. Keyed for a quick lookup while rendering the rows.
   const changeByKey = new Map(changes.map((c) => [c.key, c.gained]));
 
+  // A verdict computed with a threshold the reader changed must say so, on the
+  // affected condition and on the verdict line (launch item 5). Only the editable
+  // (app-default) thresholds can move the verdict; among the nine conditions that
+  // is the debt one.
+  const changedRuleKeys = new Set(
+    signal.checklist
+      .filter((c) => {
+        const key = RATIO_THRESHOLD[c.key];
+        return key != null && isOverridden(key, thresholdOverrides);
+      })
+      .map((c) => c.key),
+  );
+  const anyRuleChanged = changedRuleKeys.size > 0;
+
   // Derived from the checklist and the snapshot the evaluation was made from,
   // so it describes this verdict rather than the state of the providers now.
   const quality = dataQualityOf({
@@ -241,6 +256,12 @@ export default async function StockPage({
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2">
               <StatusBadge status={signal.status} size="lg" />
+              {/* This verdict rests on a threshold the reader changed (item 5). */}
+              {anyRuleChanged && (
+                <span className="text-near text-xs font-medium">
+                  {tSignal('youChangedRule')}
+                </span>
+              )}
               {/* Always mounted, gated on `member` inside: removing revalidates
                   this page, and a gate here would unmount the "Removed · Undo" the
                   click just produced (audit A6). */}
@@ -482,6 +503,12 @@ export default async function StockPage({
                       className={`shrink-0 text-xs font-medium ${flipped ? 'text-pass' : 'text-fail'}`}
                     >
                       {flipped ? '↑' : '↓'} {tSignal(flipped ? 'delta.gained' : 'delta.lost')}
+                    </span>
+                  )}
+                  {/* This condition's threshold is one the reader changed (item 5). */}
+                  {changedRuleKeys.has(condition.key) && (
+                    <span className="border-near-line bg-near-wash text-near shrink-0 rounded-full border px-1.5 text-xs font-medium">
+                      {tSignal('youChangedRule')}
                     </span>
                   )}
                 </span>

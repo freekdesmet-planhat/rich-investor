@@ -113,6 +113,7 @@ export default async function AccountPage() {
             intro: tAccount('thresholds.intro'),
             bookNote: tAccount('thresholds.bookNote'),
             appliesNote: tAccount('thresholds.appliesNote'),
+            markNote: tAccount('thresholds.markNote'),
             resetHint: tAccount('thresholds.resetHint'),
             save: tAccount('saveSettings'),
             saving: tAccount('savingSettings'),
