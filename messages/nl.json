@@ -285,7 +285,15 @@
     "sp500Pe": {
       "name": "K/W van de S&P 500",
       "help": "De koers-winstverhouding van de index als geheel, als ijkpunt om de waardering van één bedrijf tegen af te zetten. Afgeleid van SPY, die de index volgt en wél een K/W rapporteert waar de index zelf dat niet doet."
-    }
+    },
+    "temp": {
+      "expensive": "duur",
+      "fair": "neutraal",
+      "cheap": "goedkoop"
+    },
+    "summary": "Markttemperatuur: {temp} · Buffett-indicator {value}",
+    "expectFew": "Verwacht dat weinig aandelen slagen.",
+    "detail": "Volledige marktcontext"
   },
   "thesis": {
     "title": "AI-samenvatting van de these",
@@ -456,7 +464,13 @@
     "sectorAny": "Alles",
     "pegForward": "verwachte PEG",
     "pegForwardHelp": "De waarderingstoets slaagt op verwachte groei, niet op al gerealiseerde winst.",
-    "readyHeading": "Klaar voor jouw onderzoek"
+    "readyHeading": "Klaar voor jouw onderzoek",
+    "readyIntro": "Aan alle negen voorwaarden voldaan. De cijfers zijn rond — het oordeel is aan jou.",
+    "almostHeading": "Bijna zover",
+    "almostIntro": "Nog één voorwaarde te gaan.",
+    "cardMissing": "Ontbreekt: {condition}",
+    "restHeading": "Alle overige",
+    "changedSummary": "Deze week: {closer} dichterbij, {further} verder weg"
   },
   "chart": {
     "high": "5-jaarstop",

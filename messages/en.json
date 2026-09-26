@@ -285,7 +285,15 @@
     "sp500Pe": {
       "name": "S&P 500 P/E",
       "help": "Trailing price-to-earnings for the index as a whole, as a baseline to read a single company's multiple against. Taken from SPY, which tracks the index and reports one where the index itself does not."
-    }
+    },
+    "temp": {
+      "expensive": "expensive",
+      "fair": "fair",
+      "cheap": "cheap"
+    },
+    "summary": "Market temperature: {temp} · Buffett indicator {value}",
+    "expectFew": "Expect few stocks to pass.",
+    "detail": "Full market context"
   },
   "thesis": {
     "title": "AI thesis summary",
@@ -456,7 +464,13 @@
     "sectorAny": "All",
     "pegForward": "forward PEG",
     "pegForwardHelp": "The valuation test passes on expected growth, not on earnings already delivered.",
-    "readyHeading": "Ready for your research"
+    "readyHeading": "Ready for your research",
+    "readyIntro": "All nine conditions met. The numbers are done — the judgement is yours.",
+    "almostHeading": "Almost there",
+    "almostIntro": "One condition short.",
+    "cardMissing": "Missing: {condition}",
+    "restHeading": "Everything else",
+    "changedSummary": "This week: {closer} moved closer, {further} moved further"
   },
   "chart": {
     "high": "5y high",

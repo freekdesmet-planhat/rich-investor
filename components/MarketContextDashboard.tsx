@@ -47,6 +47,14 @@ export async function MarketContextDashboard() {
   const spread = data.yield_spread_10y2y;
   const concentration = data.spy_rsp_spread;
 
+  // A one-line temperature reading is what the page needs above the watchlist;
+  // the four cards are detail behind an expander (launch item 9).
+  const temperature = buffettTone(data.buffett_indicator);
+  const tempWord =
+    temperature === 'warn' ? t('temp.expensive') : temperature === 'good' ? t('temp.cheap') : t('temp.fair');
+  const buffettValue =
+    data.buffett_indicator != null ? `${formatNumber(data.buffett_indicator, locale, 0)}%` : t('unavailable');
+
   const cards: Array<{
     key: string;
     name: string;
@@ -104,12 +112,22 @@ export async function MarketContextDashboard() {
   ];
 
   return (
-    <section className="mb-8">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+    <details className="border-line group mb-6 rounded-xl border bg-surface-sunken px-3 py-2">
+      <summary className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 text-sm marker:content-none">
+        <span className="text-ink-muted">
+          {t('summary', { temp: tempWord, value: buffettValue })}
+        </span>
+        {temperature === 'warn' && (
+          <span className="text-ink-subtle">{t('expectFew')}</span>
+        )}
+        <span className="text-accent ml-auto text-xs underline underline-offset-2 group-open:hidden">
+          {t('detail')}
+        </span>
+      </summary>
+
+      <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <SectionHeading>{t('title')}</SectionHeading>
-        <p className="text-ink-faint text-xs">
-          {t('asOf', { date: data.date })}
-        </p>
+        <p className="text-ink-faint text-xs">{t('asOf', { date: data.date })}</p>
       </div>
       <p className="text-ink-subtle mb-3 text-xs">{t('subtitle')}</p>
 
@@ -136,6 +154,6 @@ export async function MarketContextDashboard() {
           ))}
         </ul>
       )}
-    </section>
+    </details>
   );
 }

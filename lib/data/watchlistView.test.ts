@@ -58,7 +58,7 @@ const pending = (symbol: string): ViewableEntry => ({
 
 const view = (overrides: Partial<ViewOptions> = {}): ViewOptions => ({
   status: 'all',
-  sort: 'sector',
+  sort: 'conditions',
   query: '',
   review: 'any',
   growth: 'any',
@@ -210,7 +210,7 @@ describe('building the links', () => {
 
   it('leaves defaults out, so the common case has a clean URL', () => {
     expect(viewHref(view(), { status: 'all' })).toBe('/');
-    expect(viewHref(view({ sort: 'symbol' }), { sort: 'sector' })).toBe('/');
+    expect(viewHref(view({ sort: 'symbol' }), { sort: 'conditions' })).toBe('/');
   });
 
   it('does not drop the typed filter when a chip is clicked', () => {

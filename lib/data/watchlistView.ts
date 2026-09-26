@@ -299,7 +299,7 @@ export function viewHref(current: ViewOptions, change: Partial<ViewOptions>): st
   const next = { ...current, ...change };
   const params = new URLSearchParams();
   if (next.status !== 'all') params.set('status', next.status);
-  if (next.sort !== 'sector') params.set('sort', next.sort);
+  if (next.sort !== 'conditions') params.set('sort', next.sort);
   if (next.review !== 'any') params.set('review', next.review);
   if (next.growth !== 'any') params.set('growth', next.growth);
   if (next.sector !== 'any') params.set('sector', next.sector);

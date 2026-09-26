@@ -56,17 +56,6 @@ const SECTOR_ORDER: FocusSector[] = [
   'outside_focus',
 ];
 
-function groupBySector(entries: WatchlistEntry[]): Map<FocusSector, WatchlistEntry[]> {
-  const groups = new Map<FocusSector, WatchlistEntry[]>();
-  for (const sector of SECTOR_ORDER) groups.set(sector, []);
-  for (const entry of entries) {
-    const bucket = groups.get(entry.focus_sector) ?? groups.get('outside_focus')!;
-    bucket.push(entry);
-  }
-  for (const [sector, rows] of groups) if (rows.length === 0) groups.delete(sector);
-  return groups;
-}
-
 export default async function WatchlistPage({
   searchParams,
 }: {
@@ -89,7 +78,7 @@ export default async function WatchlistPage({
   const locale = (await getLocale()) as Lang;
   const view: ViewOptions = {
     status: isStatusFilter(params.status) ? params.status : 'all',
-    sort: isSortKey(params.sort) ? params.sort : 'sector',
+    sort: isSortKey(params.sort) ? params.sort : 'conditions',
     query: params.q ?? '',
     review: isReviewFilter(params.review) ? params.review : 'any',
     growth: isGrowthFilter(params.growth) ? params.growth : 'any',
@@ -139,9 +128,18 @@ export default async function WatchlistPage({
   const growthTotals = growthCounts(all);
   const sectors = sectorCounts(all, SECTOR_ORDER);
   const visible = sortEntries(filterEntries(all, view, reviews), view.sort);
-  // Sector is a sort option now, so the grouped layout belongs to that option
-  // alone; any other ordering would be cut apart by the group headings.
-  const groups = view.sort === 'sector' ? groupBySector(visible) : null;
+  // The home page leads with what to act on (launch item 9): the checklist-complete
+  // names as cards, then the one-condition-short names as cards that state the gap,
+  // then everything else as the compact list, ordered by the chosen sort.
+  const ready = visible.filter((e) => e.signal?.status === 'buy_worthy');
+  const almost = visible.filter(
+    (e) =>
+      e.signal != null &&
+      e.signal.status !== 'buy_worthy' &&
+      e.signal.conditions_applicable - e.signal.conditions_met === 1,
+  );
+  const featured = new Set([...ready, ...almost].map((e) => e.symbol));
+  const rest = visible.filter((e) => !featured.has(e.symbol));
 
   const asOf = all.find((e) => e.signal)?.signal?.as_of;
 
@@ -250,6 +248,7 @@ export default async function WatchlistPage({
           days={RECENT_DAYS}
           labels={{
             title: tWatchlist('changedTitle'),
+            summary: tWatchlist.raw('changedSummary') as string,
             intro: tWatchlist.raw('changedIntro') as string,
             gained: tWatchlist.raw('changedGained') as string,
             lost: tWatchlist.raw('changedLost') as string,
@@ -342,34 +341,94 @@ export default async function WatchlistPage({
         )}
 
         <div className="space-y-8">
-          {groups
-            ? [...groups].map(([sector, rows]) => (
-                <section key={sector}>
-                  {/* No "!" badge on the outside-focus group: being in a different
-                      sector is a fact about the company, not an alert (launch item 6). */}
-                  <SectionHeading>{tSector(sector)}</SectionHeading>
-                  <RowList
-                    rows={rows}
-                    labels={rowLabels}
-                    removeLabels={removeLabels}
-                    trends={trends}
-                    trendLabels={trendLabels}
-                    pegLabels={pegLabels}
-                    analyseLabels={analyseLabels}
-                  />
-                </section>
-              ))
-            : visible.length > 0 && (
-                <RowList
-                  rows={visible}
-                  labels={rowLabels}
-                  removeLabels={removeLabels}
-                  trends={trends}
-                  trendLabels={trendLabels}
-                  pegLabels={pegLabels}
-                  analyseLabels={analyseLabels}
-                />
+          {ready.length > 0 && (
+            <section>
+              <SectionHeading>{tWatchlist('readyHeading')}</SectionHeading>
+              <p className="text-ink-subtle mb-3 mt-0.5 text-sm">{tWatchlist('readyIntro')}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {ready.map((entry) => (
+                  <div
+                    key={entry.symbol}
+                    className="bg-surface border-pass-line flex flex-col gap-3 rounded-xl border p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/stock/${encodeURIComponent(entry.symbol)}`} className="min-w-0">
+                        <p className="truncate font-semibold text-ink">
+                          {entry.symbol}
+                          <span className="text-ink-subtle ml-2 font-normal">{entry.name ?? ''}</span>
+                        </p>
+                        <p className="text-pass mt-1 text-sm font-medium">
+                          {tStatus('short.buy_worthy')}
+                          <span className="text-ink-subtle ml-2 font-normal tabular-nums">
+                            {rowLabels.conditionsMet(
+                              entry.signal!.conditions_met,
+                              entry.signal!.conditions_applicable,
+                            )}
+                          </span>
+                        </p>
+                      </Link>
+                      <RemoveFromWatchlist symbol={entry.symbol} member labels={removeLabels} compact />
+                    </div>
+                    <Link
+                      href={`/stock/${encodeURIComponent(entry.symbol)}#review`}
+                      className="text-accent hover:text-accent-hover text-sm font-medium underline underline-offset-4"
+                    >
+                      {tStatus('startReview')} →
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {almost.length > 0 && (
+            <section>
+              <SectionHeading>{tWatchlist('almostHeading')}</SectionHeading>
+              <p className="text-ink-subtle mb-3 mt-0.5 text-sm">{tWatchlist('almostIntro')}</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {almost.map((entry) => (
+                  <div
+                    key={entry.symbol}
+                    className="bg-surface border-near-line rounded-xl border p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/stock/${encodeURIComponent(entry.symbol)}`} className="min-w-0">
+                        <p className="truncate font-medium text-ink">
+                          {entry.symbol}
+                          <span className="text-ink-subtle ml-2 font-normal">{entry.name ?? ''}</span>
+                        </p>
+                      </Link>
+                      <RemoveFromWatchlist symbol={entry.symbol} member labels={removeLabels} compact />
+                    </div>
+                    <p className="text-near mt-1 text-sm">{rowLabels.missingOne(entry)}</p>
+                    <p className="text-ink-subtle mt-0.5 text-xs tabular-nums">
+                      {rowLabels.conditionsMet(
+                        entry.signal!.conditions_met,
+                        entry.signal!.conditions_applicable,
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {rest.length > 0 && (
+            <section>
+              {(ready.length > 0 || almost.length > 0) && (
+                <SectionHeading>{tWatchlist('restHeading')}</SectionHeading>
               )}
+              <RowList
+                rows={rest}
+                labels={rowLabels}
+                removeLabels={removeLabels}
+                trends={trends}
+                trendLabels={trendLabels}
+                pegLabels={pegLabels}
+                analyseLabels={analyseLabels}
+              />
+            </section>
+          )}
         </div>
 
         <div className="mt-8">

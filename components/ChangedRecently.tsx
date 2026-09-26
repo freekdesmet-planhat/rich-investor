@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import type { Trend } from '@/lib/data/trend';
-import { SectionHeading } from './ui/Surface';
 
 export interface ChangedLabels {
   title: string;
+  /** One line: carries {closer} and {further}. */
+  summary: string;
   /** Carries {days}. */
   intro: string;
   /** Carries {count}. */
@@ -34,10 +35,20 @@ export function ChangedRecently({
 }) {
   if (movers.length === 0) return null;
 
+  const closer = movers.filter((m) => m.delta > 0).length;
+  const further = movers.filter((m) => m.delta < 0).length;
+
+  // One line by default (launch item 9): "This week: 5 moved closer, 6 further",
+  // with the per-name detail behind the expander for when it is wanted.
   return (
-    <section className="border-line mb-4 rounded-xl border bg-surface-sunken p-3">
-      <SectionHeading>{labels.title}</SectionHeading>
-      <p className="text-ink-subtle mt-0.5 text-xs">
+    <details className="border-line group mb-4 rounded-xl border bg-surface-sunken p-3">
+      <summary className="flex cursor-pointer flex-wrap items-center gap-x-2 text-sm marker:content-none">
+        <span className="font-medium text-ink">{labels.title}</span>
+        <span className="text-ink-subtle">
+          {labels.summary.replace('{closer}', String(closer)).replace('{further}', String(further))}
+        </span>
+      </summary>
+      <p className="text-ink-subtle mt-2 text-xs">
         {labels.intro.replace('{days}', String(days))}
       </p>
 
@@ -73,6 +84,6 @@ export function ChangedRecently({
           );
         })}
       </ul>
-    </section>
+    </details>
   );
 }

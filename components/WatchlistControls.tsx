@@ -66,7 +66,7 @@ export function WatchlistControls({
   const isFiltered =
     view.status !== 'all' ||
     view.query.trim() !== '' ||
-    view.sort !== 'sector' ||
+    view.sort !== 'conditions' ||
     view.review !== 'any' ||
     view.growth !== 'any' ||
     view.sector !== 'any';
@@ -186,7 +186,7 @@ export function WatchlistControls({
           className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1"
         >
           {view.status !== 'all' && <input type="hidden" name="status" value={view.status} />}
-          {view.sort !== 'sector' && <input type="hidden" name="sort" value={view.sort} />}
+          {view.sort !== 'conditions' && <input type="hidden" name="sort" value={view.sort} />}
           {view.review !== 'any' && <input type="hidden" name="review" value={view.review} />}
           {view.growth !== 'any' && <input type="hidden" name="growth" value={view.growth} />}
           {view.sector !== 'any' && <input type="hidden" name="sector" value={view.sector} />}
