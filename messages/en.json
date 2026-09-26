@@ -590,16 +590,6 @@
     "percentileRich": "higher than on {percentile}% of days in the last five years",
     "footnote": "Trailing P/E on annual reported earnings, stepped when each year was filed rather than when it ended. Loss-making years are left out."
   },
-  "declineHistory": {
-    "heading": "For scale, at market level",
-    "shallow": "Across the whole US market, only {total} declines worse than 20% have been recorded since {since}, and just two of them went past 50% — 1929 at −79% and 2000–09 at −54%. That is what makes the 50% entry level a demanding one.",
-    "meaningful": "Across the whole US market, {total} declines worse than 20% have been recorded since {since}; only two went past 50% — 1929 at −79% and 2000–09 at −54%.",
-    "deep0": "This fall is deeper than anything the US market as a whole has done: of {total} declines worse than 20% since {since}, only two passed 50%, and the worst of them — 1929, at −79% — was still shallower than this.",
-    "deep1": "A fall this deep is rare at market level: of {total} US market declines worse than 20% since {since}, only two passed 50%, and only one of those — 1929, at −79% — went deeper than this.",
-    "deep2": "A fall this deep is rare at market level: of {total} US market declines worse than 20% since {since}, only two passed 50%, and both were deeper than this.",
-    "recovery": "Recovering from the major ones took anywhere from {months} months to {years} years.",
-    "caveat": "These are index figures, not company ones. An individual company falling 50% is far more common than the market doing so — sometimes it recovers, sometimes the fall was the market being right."
-  },
   "earningsQuality": {
     "heading": "Earnings quality",
     "intro": "Beyond the cash-flow condition, which this does not change.",

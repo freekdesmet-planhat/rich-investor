@@ -590,16 +590,6 @@
     "percentileRich": "hoger dan op {percentile}% van de dagen in de afgelopen vijf jaar",
     "footnote": "Koers-winstverhouding op gerapporteerde jaarwinst, met een stap op het moment van publicatie in plaats van boekjaareinde. Verliesjaren blijven buiten beschouwing."
   },
-  "declineHistory": {
-    "heading": "Ter vergelijking, op marktniveau",
-    "shallow": "Voor de Amerikaanse markt als geheel zijn er sinds {since} maar {total} dalingen van meer dan 20% geregistreerd, waarvan er slechts twee voorbij de 50% gingen — 1929 met −79% en 2000–09 met −54%. Dat maakt de instapdrempel van 50% zo streng.",
-    "meaningful": "Voor de Amerikaanse markt als geheel zijn er sinds {since} {total} dalingen van meer dan 20% geregistreerd; slechts twee gingen voorbij de 50% — 1929 met −79% en 2000–09 met −54%.",
-    "deep0": "Deze daling is dieper dan alles wat de Amerikaanse markt als geheel ooit deed: van de {total} dalingen van meer dan 20% sinds {since} gingen er maar twee voorbij de 50%, en zelfs de zwaarste daarvan — 1929, met −79% — bleef hierbij achter.",
-    "deep1": "Een daling van deze omvang is zeldzaam op marktniveau: van de {total} Amerikaanse marktdalingen van meer dan 20% sinds {since} gingen er maar twee voorbij de 50%, en slechts één daarvan — 1929, met −79% — ging dieper dan deze.",
-    "deep2": "Een daling van deze omvang is zeldzaam op marktniveau: van de {total} Amerikaanse marktdalingen van meer dan 20% sinds {since} gingen er maar twee voorbij de 50%, en beide waren dieper dan deze.",
-    "recovery": "Herstel van de grote dalingen duurde tussen de {months} maanden en {years} jaar.",
-    "caveat": "Dit zijn indexcijfers, geen bedrijfscijfers. Dat één bedrijf 50% daalt komt veel vaker voor dan dat de markt dat doet — soms herstelt het, soms had de markt gelijk."
-  },
   "earningsQuality": {
     "heading": "Winstkwaliteit",
     "intro": "Naast de kasstroomvoorwaarde, die hierdoor niet verandert.",

@@ -30,7 +30,6 @@ import {
 } from '@/lib/data/statementTable';
 import { comparePeers, PEER_METRICS } from '@/lib/data/peerComparison';
 import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
-import { declineContext } from '@/lib/data/declineHistory';
 import { earningsQualityNotes } from '@/lib/ratios/earningsQuality';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
@@ -80,7 +79,7 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
   const signal = await getSignal(symbol);
   if (!signal) return null;
 
-  const [ratios, docs, thresholdOverrides, peerRows, tRatio, tData, tValuation, tDecline, tQuality] =
+  const [ratios, docs, thresholdOverrides, peerRows, tRatio, tData, tValuation, tQuality] =
     await Promise.all([
       getRatios(symbol, signal.as_of),
       getDocTranslations(locale),
@@ -89,7 +88,6 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
       getTranslations('ratio'),
       getTranslations('data'),
       getTranslations('valuationHistory'),
-      getTranslations('declineHistory'),
       getTranslations('earningsQuality'),
     ]);
 
@@ -108,7 +106,6 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
     byKey.get('pe')?.value ?? null,
   );
 
-  const decline = declineContext(byKey.get('drawdown_5y')?.value ?? null);
 
   const qualityYears = (snapshot.income_annual?.periods ?? []).map((period, i) => ({
     endDate: period.endDate,
@@ -147,14 +144,12 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
     thresholdOverrides,
     peers,
     valuation,
-    decline,
     qualityNotes,
     trajectory,
     lynchName: lynch?.name ?? null,
     tRatio,
     tData,
     tValuation,
-    tDecline,
     tQuality,
   };
 }
@@ -296,21 +291,6 @@ export default async function ResearchPage({
                         }}
                       />
                     </Card>
-                    {analysis.decline && (
-                      // Decline-severity, shrunk from a card to a single caveat
-                      // line. The market-level phrasing is built into the copy,
-                      // so it does not read as a claim about this one company.
-                      <p className="mt-2 max-w-prose text-xs text-ink-faint">
-                        {analysis.tDecline
-                          .raw(
-                            analysis.decline.severity === 'deep'
-                              ? `deep${analysis.decline.deeperInHistory}`
-                              : analysis.decline.severity,
-                          )
-                          .replace('{total}', String(analysis.decline.totalDeclines))
-                          .replace('{since}', String(1870))}
-                      </p>
-                    )}
                   </Section>
                 )}
 
