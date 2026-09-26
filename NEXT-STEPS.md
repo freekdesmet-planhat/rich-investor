@@ -32,23 +32,95 @@ rather than dropping the item quietly.
 - The book's own thresholds (P/E ceiling, PEG bands, 50% decline, $10bn
   floor) stay locked and untouched. Only the app-default thresholds in
   Account are ever user-editable.
+- A verdict computed with a user-changed threshold must say so: the affected
+  checklist row and the verdict line both show "You changed this rule", and the
+  Account page says so when the threshold is being edited. (2026-09-26, launch
+  item 5. Condition 9 stays editable.)
 - Rebrand the copy: stop citing "(from the book)" scattered through every
   metric tooltip and threshold. The app presents this as its own methodology
   in its own voice. Keep one clear credit to "Rijke Belegger, Arme Belegger"
   somewhere sensible (an About or Methodology page), not removed entirely,
   just not repeated everywhere.
-- The checklist/verdict-first information hierarchy of the stock page stays:
-  the buy-worthy verdict, the chart, the AI thesis, and the qualitative
-  review are what a user sees first; full financials and dense tables live
-  behind the "Full research" tab from item 6. The visual language around
-  that hierarchy is what's changing in this redesign, not the hierarchy
-  itself.
+- The stock page order (updated 2026-09-26, launch item 8 — this supersedes the
+  earlier verdict / chart / thesis / review order): verdict (a nine-dot ring and
+  one headline per state), then the checklist (the value on every row, e.g.
+  "Price fall: -68% (needs -50%)"), then the chart, then "Why" collapsed to three
+  bullets, then the ratios and the AI summary. Full financials and dense tables
+  live behind "Full research". The qualitative review opens at 9/9, shows a
+  preview at 8/9, and otherwise collapses to one line; sell signals appear only
+  after "I own this"; on mobile the verdict header is sticky.
 - The qualitative-review workflow (temporary vs structural, catalysts, sell
   signals, Howard Marks' question) and the "not investment advice" framing
   are core product, not decoration. They survive the redesign in substance.
 - Support both light and dark mode from here on, not dark-only.
 - Keep EN/NL bilingual coverage for all new and rewritten copy.
 - Keep this a single-owner data model, no multi-user support in this phase.
+
+## Launch build order (decided 2026-09-26)
+
+Group A (audit fixes) is done. This is the ordered path to a paid launch. Same
+routine per item: gate (vitest + tsc + eslint + build), push one commit, then a
+production smoke test — EN and NL, light and dark, mobile at 390px. Free tiers
+only; no new/switched provider without a cost/benefit discussion first.
+
+### Quick batch (one commit each)
+
+1. **9/9 relabel.** The 9/9 status becomes **"Checklist complete"** (NL **"Alle
+   voorwaarden gehaald"**) everywhere, emails included. The home section holding
+   those stocks is **"Ready for your research"** (NL **"Klaar voor jouw
+   onderzoek"**). On the stock page: **"Checklist complete: now it's your
+   research"**, with a **"Start my review"** button. FLAG: final wording still goes
+   to the user's legal check.
+2. **Ferrari.** Add a symbolRule for **RACE.MI** (home listing Milan) →
+   `luxury_consumer`; `db:sync-sectors` then `db:check-sectors`.
+3. **Crash line.** Delete the "17 US market declines since 1870" sentence under
+   the P/E chart.
+4. **Peer line.** Replace "vs. the others you follow" with the distance to the
+   rule's threshold, e.g. **"ROE 22.3%: 7.3 points above the 15% minimum"** (NL
+   equivalent).
+5. **Changed-threshold disclosure.** Condition 9 stays editable, but any verdict
+   computed with a user-changed threshold shows **"You changed this rule"** on that
+   checklist row and on the verdict line; the Account page says so when editing it.
+   (Ground rule updated above.)
+6. **Sector rule = one of the nine, presented calmly.** "Outside the focus
+   sectors" shows in neutral grey, not a red ✗; the watchlist section header loses
+   its "!" badge. Add a **"Why only four sectors?"** explainer on Methodology and
+   behind the sector row, using audit section 5 copy updated to our final
+   definitions (four focus sectors; capital-markets = exchanges + data providers
+   in, banks/brokers/asset managers out; publishers in as entertainment_media).
+   FLAG: leave a placeholder for the study period and source — the user will supply
+   them from the book.
+7. **Item-4 copy pass** (previously queued): use the app's own vocabulary in the AI
+   prompt (condition names + the word "voorwaarde" from i18n; the stock, not the
+   price, meets conditions), and refer to the method's limit instead of the stray
+   opinion word "erg laag" (e.g. "ruim onder de grens van 2,5").
+
+### Bigger items (in this order)
+
+8. **Stock page, checklist-first.** (Ground rule updated above.) Verdict with a
+   nine-dot ring + one headline per state; checklist with the value on every row;
+   chart; "Why" collapsed to three bullets; ratios and AI summary. Review opens at
+   9/9, previews at 8/9, else one line ("The review opens when a stock meets all
+   nine conditions"). Sell signals only after "I own this". Sticky verdict header
+   on mobile.
+9. **Home screen.** "Ready for your research" (a card per 9/9 stock), then "Almost
+   there" (8/9 cards naming the one missing condition), then the rest in a compact
+   list sorted by conditions met. Market context → one line; changelog → one line
+   with an expander.
+10. **Price trigger.** When the decline is a stock's only missing condition, show
+    the price at which it passes (5-year high × 0.5, e.g. "Passes below $201.31") on
+    the stock page and its Almost-there card, with an opt-in per-stock email alert.
+    The nightly price pass checks it → say "checked every night". Deduplicate like
+    the other alerts.
+11. **Front door.** Public landing page at `/`; three public read-only demo stock
+    pages (ASML.AS, HEIA.AS, AAPL) using the new stock page; a "Join the waitlist"
+    form. Demo pages: labelled "Demo", figures dated, no AI generate button, no
+    review or holdings, "not financial advice" visible, indexable. Landing copy from
+    audit section 1, with the cadence line computed live ("We check [N] large
+    companies in the four focus sectors about once a week. Your watchlist every
+    night."), EN + NL. FLAG: waitlist email collection needs a privacy notice first
+    — add a short placeholder page and flag it for the user's legal check. Sign-up
+    and billing are out of scope.
 
 ## Design direction
 
@@ -364,6 +436,13 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Launch build order decided (see "Launch build order" section near the
+  top). Quick batch items 1–7 (one commit each), then bigger items 8–11 in order.
+  Two ground rules updated: the stock-page order is now verdict → checklist → chart
+  → Why(3 bullets) → ratios/AI summary (item 8), and a user-changed threshold must
+  be disclosed on the checklist row + verdict line + Account (item 5). Legal-check
+  flags recorded on items 1, 6 (study period/source placeholder), and 11 (privacy
+  notice).
 - 2026-09-26: A10 (stock header + holdings inputs) shipped and visually verified on
   prod (dark mode). 27: identity (ticker + price) and the verdict pill now share one
   bounded top row; the chips, the tradability line and the research link drop below
