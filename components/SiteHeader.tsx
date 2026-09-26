@@ -50,7 +50,6 @@ export async function SiteHeader() {
     { href: '/suggestions', label: tNav('suggestions') },
     { href: '/compare', label: tNav('compare') },
     { href: '/how-it-works', label: tNav('howItWorks') },
-    { href: '/methodology', label: tNav('methodology') },
     ...(user ? [{ href: '/account', label: tNav('account') }] : []),
   ];
 

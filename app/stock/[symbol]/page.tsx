@@ -330,7 +330,7 @@ export default async function StockPage({
             {/* The sector rule judges a company on identity, not numbers, so the
                 reasoning sits one click behind the tag (launch item 6). */}
             <Link
-              href="/methodology#four-sectors"
+              href="/how-it-works#four-sectors"
               className="text-ink-subtle hover:text-ink text-xs underline underline-offset-2"
             >
               {tMethod('fourSectors.link')}

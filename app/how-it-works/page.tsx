@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteHeader } from '@/components/SiteHeader';
-import { Card } from '@/components/ui/Surface';
+import { Card, Section, SectionHeading } from '@/components/ui/Surface';
+import { getTranslations as getDocTranslations } from '@/lib/data/queries';
+import { CONDITION_LABEL } from '@/lib/signal/explain';
+import type { Lang } from '@/lib/i18n/config';
 import { finishOnboarding } from './actions';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,40 +14,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The primer, shown once on a first sign-in and reachable from the nav after.
+ * How it works — one page, merged from the old primer and methodology (round 2,
+ * item 4).
  *
- * Four steps, and the step lives in the URL rather than in component state.
- * That is worth a sentence, because the obvious build is a client component
- * with a `useState` counter:
- *
- *   * it works with JavaScript off, like the rest of the app's navigation;
- *   * a step is linkable, so "read the bit about price and growth" is a URL;
- *   * Back and Next are real links, so the browser's own back button does
- *     what the reader expects instead of leaving the page entirely.
- *
- * Deliberately not a modal over the watchlist. A dialog on first sign-in
- * would be covering the one screen a new member is trying to make sense of,
- * and it would be the only part of the app that cannot be linked to or
- * returned to later.
- *
- * It is also not a second methodology page. That one is reference material —
- * every condition, its exact threshold, the credit. This is four screens of
- * plain language for someone who has not read anything yet, and it links
- * there at the end rather than repeating it.
+ * With `?step=` it is the first-login primer: four short screens, the step in the
+ * URL so it works with no JavaScript, is linkable, and Back/Next are real links.
+ * Without a step it is the full reference: the same four-step idea as plain
+ * content, then the nine conditions in detail, why only four sectors, why the
+ * rules don't change, and the single credit to the book. /methodology redirects
+ * here, so there is one page and one nav item.
  */
 const STEPS = ['what', 'verdicts', 'priceAndGrowth', 'yours'] as const;
 
 /**
- * `**bold**` and `*italic*`, which is all the copy uses.
- *
- * A markdown dependency for this would be a poor trade, and the alternative —
- * putting `<strong>` in the translation files — puts markup where translators
- * and copy edits live.
- *
- * Both markers, not just the first: an earlier version split on `**` alone and
- * shipped a literal `*might*` onto the page, because the copy reaches for
- * italics exactly once and the renderer did not know about it. One regex over
- * both, so adding emphasis to a sentence cannot silently print asterisks.
+ * `**bold**` and `*italic*`, which is all the copy uses. A markdown dependency
+ * would be a poor trade, and putting `<strong>` in the translation files puts
+ * markup where translators and copy edits live. Both markers, so emphasis can
+ * never silently print an asterisk.
  */
 function renderParagraph(text: string) {
   return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) => {
@@ -67,103 +53,189 @@ export default async function HowItWorksPage({
 }: {
   searchParams: Promise<{ step?: string }>;
 }) {
-  const t = await getTranslations('onboarding');
   const { step: raw } = await searchParams;
+  const t = await getTranslations('onboarding');
 
-  const requested = Number(raw);
-  const index = Number.isInteger(requested) ? Math.min(Math.max(requested, 1), STEPS.length) - 1 : 0;
-  const step = STEPS[index];
-  const isLast = index === STEPS.length - 1;
+  // --- primer mode: the stepped first-login walkthrough ---------------------
+  if (raw != null) {
+    const requested = Number(raw);
+    const index = Number.isInteger(requested)
+      ? Math.min(Math.max(requested, 1), STEPS.length) - 1
+      : 0;
+    const step = STEPS[index];
+    const isLast = index === STEPS.length - 1;
+
+    return (
+      <>
+        <SiteHeader />
+        <main className="mx-auto max-w-2xl px-4 py-8">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+              {t('stepOf', { current: index + 1, total: STEPS.length })}
+            </p>
+            <div className="flex gap-1.5" aria-hidden="true">
+              {STEPS.map((key, i) => (
+                <span
+                  key={key}
+                  className={`h-1.5 w-8 rounded-full ${i <= index ? 'bg-accent' : 'bg-line'}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <Card className="mt-4" padding="loose">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">
+              {t(`steps.${step}.title`)}
+            </h1>
+            <div className="mt-4 space-y-4">
+              {t(`steps.${step}.body`)
+                .split('\n\n')
+                .map((paragraph, i) => (
+                  <p key={i} className="text-[15px] leading-relaxed text-ink-muted">
+                    {renderParagraph(paragraph)}
+                  </p>
+                ))}
+            </div>
+            {isLast && (
+              <Link
+                href="/how-it-works"
+                className="mt-5 inline-block text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+              >
+                {t('methodLink')} →
+              </Link>
+            )}
+          </Card>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {index > 0 && (
+              <Link
+                href={`/how-it-works?step=${index}`}
+                className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover"
+              >
+                {t('back')}
+              </Link>
+            )}
+            {isLast ? (
+              <form action={finishOnboarding}>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover"
+                >
+                  {t('done')}
+                </button>
+              </form>
+            ) : (
+              <Link
+                href={`/how-it-works?step=${index + 2}`}
+                className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover"
+              >
+                {t('next')}
+              </Link>
+            )}
+            {!isLast && (
+              <form action={finishOnboarding} className="ml-auto">
+                <button
+                  type="submit"
+                  className="rounded-lg px-2.5 py-1.5 text-sm text-ink-subtle transition hover:bg-surface-hover hover:text-ink"
+                >
+                  {t('skip')}
+                </button>
+              </form>
+            )}
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  // --- reference mode: the full page, from the nav --------------------------
+  const locale = (await getLocale()) as Lang;
+  const [tm, docs] = await Promise.all([getTranslations('methodology'), getDocTranslations(locale)]);
 
   return (
     <>
       <SiteHeader />
+      <main className="mx-auto max-w-3xl px-4 py-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t('navLabel')}</h1>
 
-      <main className="mx-auto max-w-2xl px-4 py-8">
-        {/* Progress before the content, so the reader knows how long this is
-            before deciding whether to start. Four short screens is a very
-            different proposition from an unknown number of them. */}
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-            {t('stepOf', { current: index + 1, total: STEPS.length })}
-          </p>
-          <div className="flex gap-1.5" aria-hidden="true">
-            {STEPS.map((key, i) => (
-              <span
-                key={key}
-                className={`h-1.5 w-8 rounded-full ${i <= index ? 'bg-accent' : 'bg-line'}`}
-              />
-            ))}
-          </div>
+        {/* The four-step idea, as content rather than a walkthrough. */}
+        <div className="mt-6 space-y-6">
+          {STEPS.map((step) => (
+            <section key={step}>
+              <SectionHeading>{t(`steps.${step}.title`)}</SectionHeading>
+              <div className="mt-2 space-y-3">
+                {t(`steps.${step}.body`)
+                  .split('\n\n')
+                  .map((paragraph, i) => (
+                    <p key={i} className="text-[15px] leading-relaxed text-ink-muted">
+                      {renderParagraph(paragraph)}
+                    </p>
+                  ))}
+              </div>
+            </section>
+          ))}
         </div>
 
-        <Card className="mt-4" padding="loose">
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
-            {t(`steps.${step}.title`)}
-          </h1>
+        {/* The nine conditions in detail. */}
+        <Section>
+          <SectionHeading>{tm('conditionsTitle')}</SectionHeading>
+          <p className="mb-4 text-sm leading-relaxed text-ink-muted">{tm('conditionsIntro')}</p>
+          <Card padding="none">
+            <ol className="divide-y divide-line">
+              {Object.keys(CONDITION_LABEL).map((key, index) => {
+                const doc = docs.get(`condition:${key}`);
+                return (
+                  <li key={key} className="flex gap-3 px-4 py-3">
+                    <span className="w-5 shrink-0 text-sm tabular-nums text-ink-faint">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink">
+                        {doc?.name ?? CONDITION_LABEL[key][locale]}
+                      </p>
+                      {doc?.target && (
+                        <p className="mt-0.5 text-sm text-ink-subtle">{doc.target}</p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </Card>
+        </Section>
 
-          <div className="mt-4 space-y-4">
-            {t(`steps.${step}.body`)
-              .split('\n\n')
-              .map((paragraph, i) => (
-                <p key={i} className="text-[15px] leading-relaxed text-ink-muted">
-                  {renderParagraph(paragraph)}
-                </p>
-              ))}
+        {/* Why only four sectors? */}
+        <Section>
+          <div id="four-sectors" className="scroll-mt-6">
+            <SectionHeading>{tm('fourSectors.heading')}</SectionHeading>
+            <Card tone="sunken">
+              <div className="space-y-3 text-sm leading-relaxed text-ink-muted">
+                {(tm.raw('fourSectors.body') as string)
+                  .split('\n\n')
+                  .map((paragraph, i) => (
+                    <p key={i}>{paragraph}</p>
+                  ))}
+              </div>
+              <p className="mt-3 text-xs text-ink-faint">{tm('fourSectors.source')}</p>
+            </Card>
           </div>
+        </Section>
 
-          {isLast && (
-            <Link
-              href="/methodology"
-              className="mt-5 inline-block text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
-            >
-              {t('methodLink')} →
-            </Link>
-          )}
-        </Card>
+        {/* Why the rules don't change. */}
+        <Section>
+          <SectionHeading>{tm('fixedTitle')}</SectionHeading>
+          <p className="text-sm leading-relaxed text-ink-muted">{tm('fixedBody')}</p>
+          <p className="mt-4 text-sm leading-relaxed text-ink-muted">{tm('revisitBody')}</p>
+          <p className="mt-4 text-sm leading-relaxed text-ink-muted">{tm('honestBody')}</p>
+        </Section>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          {index > 0 && (
-            <Link
-              href={`/how-it-works?step=${index}`}
-              className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover"
-            >
-              {t('back')}
-            </Link>
-          )}
-
-          {isLast ? (
-            <form action={finishOnboarding}>
-              <button
-                type="submit"
-                className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover"
-              >
-                {t('done')}
-              </button>
-            </form>
-          ) : (
-            <Link
-              href={`/how-it-works?step=${index + 2}`}
-              className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover"
-            >
-              {t('next')}
-            </Link>
-          )}
-
-          {/* Skip stays available on every step, and marks the primer seen
-              exactly as finishing does. Someone who wants out on step one has
-              given their answer. */}
-          {!isLast && (
-            <form action={finishOnboarding} className="ml-auto">
-              <button
-                type="submit"
-                className="rounded-lg px-2.5 py-1.5 text-sm text-ink-subtle transition hover:bg-surface-hover hover:text-ink"
-              >
-                {t('skip')}
-              </button>
-            </form>
-          )}
-        </div>
+        {/* The single credit to the book. */}
+        <Section>
+          <SectionHeading>{tm('creditTitle')}</SectionHeading>
+          <Card tone="sunken">
+            <p className="text-sm leading-relaxed text-ink-muted">{tm('creditBody')}</p>
+          </Card>
+        </Section>
       </main>
     </>
   );

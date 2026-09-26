@@ -95,7 +95,7 @@ export default async function WatchlistPage({
   // redirect rather than a modal over the page: a dialog would be covering
   // the one screen a new member is trying to make sense of, and it would be
   // the only part of the app you cannot link to or come back to.
-  if (!(await hasSeenPrimer())) redirect('/how-it-works');
+  if (!(await hasSeenPrimer())) redirect('/how-it-works?step=1');
 
   const params = await searchParams;
   const locale = (await getLocale()) as Lang;
