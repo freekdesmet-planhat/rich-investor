@@ -34,9 +34,15 @@ import { createFxRates, capCurrency } from '@/lib/providers/fx';
 import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
 import { enqueueForScan, type ScanQueueEntry } from './scanQueue';
 import { applyScanScreen, SCAN_BANDS, SCAN_REGIONS } from './scan';
-import { primaryListingFilter } from './scanQuery';
+import { scanVenueFilter } from './scanQuery';
+import { keepDistinctCompanies } from '@/lib/data/searchFilters';
 import { isDueTonight } from './rotation';
-import { DEFAULT_SECTOR_RULES, type FocusSector, type SectorRule } from '@/lib/sectors/mapping';
+import {
+  DEFAULT_SECTOR_RULES,
+  resolveFocusSector,
+  type FocusSector,
+  type SectorRule,
+} from '@/lib/sectors/mapping';
 
 /** The two decline lines a crossing is queued on. */
 export const CROSS_THRESHOLDS = [-0.45, -0.5] as const;
@@ -140,34 +146,44 @@ async function loadRules(client: SupabaseClient): Promise<SectorRule[]> {
     : DEFAULT_SECTOR_RULES;
 }
 
+interface UniRow {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  country: string | null;
+  sector: string | null;
+  industry: string | null;
+}
+
 /** A universe query builder, narrowed to the calls the pager makes. */
-interface SymbolQuery {
+interface RowQuery {
   order: (column: string) => {
     range: (
       from: number,
       to: number,
-    ) => PromiseLike<{ data: Array<{ symbol: string }> | null; error: { message: string } | null }>;
+    ) => PromiseLike<{ data: UniRow[] | null; error: { message: string } | null }>;
   };
 }
 
 /**
- * Every symbol matching a filtered universe query, paged past PostgREST's 1,000
- * row cap. The `order('symbol')` is load-bearing: without a stable sort, paging
- * returns rows in an arbitrary order that overlaps and misses across pages, so
- * the cohort would differ run to run.
+ * Every row matching a filtered universe query, paged past PostgREST's 1,000 row
+ * cap. The `order('symbol')` is load-bearing: without a stable sort, paging
+ * returns rows in an arbitrary order that overlaps and misses across pages.
  */
-async function allSymbols(build: () => SymbolQuery): Promise<string[]> {
-  const out: string[] = [];
+async function allRows(build: () => RowQuery): Promise<UniRow[]> {
+  const out: UniRow[] = [];
   const page = 1000;
   for (let from = 0; ; from += page) {
     const { data, error } = await build().order('symbol').range(from, from + page - 1);
     if (error) throw new Error(`universe query failed: ${error.message}`);
     const rows = data ?? [];
-    for (const r of rows) out.push(r.symbol);
+    out.push(...rows);
     if (rows.length < page) break;
   }
   return out;
 }
+
+const COHORT_COLS = 'symbol,name,exchange,country,sector,industry';
 
 export async function runPricePass(options: PricePassOptions): Promise<PricePassResult> {
   const { client, batchSize = PRICE_BATCH_SIZE, includeMid = true } = options;
@@ -176,38 +192,47 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
   const rules = await loadRules(client);
 
   // --- cohort --------------------------------------------------------------
-  // Focus names every night (only they can trigger); the rest on a rotation.
-  const focus = new Set(
-    await allSymbols(() =>
-      applyScanScreen(client.from('universe').select('symbol'), rules),
-    ),
+  // One symbol per company throughout: each source is collapsed with the same
+  // reducer the scan uses, so a company's cross-listings are not quoted several
+  // times. Focus names every night (only they can trigger); the rest on a rotation.
+  const focusRows = (await allRows(() =>
+    applyScanScreen(client.from('universe').select(COHORT_COLS), rules),
+  )).filter(
+    (r) =>
+      resolveFocusSector(rules, { symbol: r.symbol, sector: r.sector, industry: r.industry })
+        .focusSector !== 'outside_focus',
   );
+  const focus = new Set(keepDistinctCompanies(focusRows).map((r) => r.symbol));
 
-  const allLargeMega = await allSymbols(() =>
-    client
-      .from('universe')
-      .select('symbol')
-      .in('region', SCAN_REGIONS)
-      .in('market_cap_band', SCAN_BANDS)
-      .eq('inactive', false)
-      .or(primaryListingFilter()),
-  );
-  const nonFocusDue = allLargeMega.filter(
+  const lmCompanies = keepDistinctCompanies(
+    await allRows(() =>
+      client
+        .from('universe')
+        .select(COHORT_COLS)
+        .in('region', SCAN_REGIONS)
+        .in('market_cap_band', SCAN_BANDS)
+        .eq('inactive', false)
+        .or(scanVenueFilter()),
+    ),
+  ).map((r) => r.symbol);
+  const nonFocusDue = lmCompanies.filter(
     (s) => !focus.has(s) && isDueTonight(s, today, LABEL_ROTATION_LM),
   );
 
   const midDue = includeMid
-    ? (
-        await allSymbols(() =>
+    ? keepDistinctCompanies(
+        await allRows(() =>
           client
             .from('universe')
-            .select('symbol')
+            .select(COHORT_COLS)
             .in('region', SCAN_REGIONS)
             .in('market_cap_band', ['Mid Cap'])
             .eq('inactive', false)
-            .or(primaryListingFilter()),
-        )
-      ).filter((s) => isDueTonight(s, today, LABEL_ROTATION_MID))
+            .or(scanVenueFilter()),
+        ),
+      )
+        .map((r) => r.symbol)
+        .filter((s) => isDueTonight(s, today, LABEL_ROTATION_MID))
     : [];
 
   // Watched names are evaluated in full every night by the watchlist pass, so

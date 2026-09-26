@@ -15,7 +15,7 @@ import type { WhyPart } from '@/lib/signal/explain';
 import type { Position } from './position';
 import { sanitiseOverrides } from '@/lib/ratios/editableThresholds';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
-import { applyScanScreen, isPrimaryListing } from '@/lib/pipeline/scan';
+import { applyScanScreen } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
 import {
   collapseCompanies,
@@ -599,7 +599,6 @@ export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
   // the count includes a company's Frankfurt copy and a fistful of preferreds.
   const eligible = (domain.data ?? []).filter(
     (r) =>
-      isPrimaryListing(r.exchange, r.country) &&
       resolveFocusSector(rules, { symbol: r.symbol, sector: r.sector, industry: r.industry })
         .focusSector !== 'outside_focus',
   );

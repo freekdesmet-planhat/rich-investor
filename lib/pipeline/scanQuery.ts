@@ -109,6 +109,23 @@ export function primaryListingFilter(
     .join(',');
 }
 
+/** The main US exchanges. A foreign-domiciled company's US listing lives here. */
+export const US_PRIMARY_VENUES = ['NMS', 'NYQ', 'NGM', 'ASE', 'PCX'];
+
+/**
+ * Which listings the scan admits: a home-country primary (as before), OR any
+ * listing on a main US exchange. The second arm brings in a company domiciled
+ * abroad but listed only in the US (Accenture, Spotify, Arm, NXP), whose venue
+ * never matches its home country. It deliberately does NOT admit foreign venues
+ * for a US-domiciled company — a US name's thin London/Frankfurt/Vienna line has a
+ * real home listing to collapse onto, and admitting it leaked those cross-listings
+ * (and re-surfaced names their symbol rule had excluded). The home listing still
+ * wins a dual listing, because the collapse sorts home-country first (2026-09-26).
+ */
+export function scanVenueFilter(): string {
+  return `exchange.in.(${US_PRIMARY_VENUES.join(',')}),${primaryListingFilter()}`;
+}
+
 export interface FocusPrefilter {
   symbols: string[];
   sectors: string[];

@@ -35,11 +35,7 @@ import {
   type FocusSector,
   type SectorRule,
 } from '@/lib/sectors/mapping';
-import {
-  focusSectorFilter,
-  isPrimaryListing as isPrimaryListingRow,
-  primaryListingFilter,
-} from './scanQuery';
+import { focusSectorFilter, scanVenueFilter } from './scanQuery';
 
 /** How long a dismissed ticker stays out of the feed (section 3.1). */
 export const DISMISS_DAYS = 90;
@@ -85,7 +81,11 @@ export function applyScanScreen<Q>(
     .in('market_cap_band', options.bands ?? SCAN_BANDS)
     // Retired tickers (0043) are out of the domain entirely.
     .eq('inactive', false)
-    .or(primaryListingFilter());
+    // Home-country primary, or any main-US-venue listing (admits foreign-domiciled
+    // US-listed names like Accenture/Spotify/Arm/NXP without pulling in US names'
+    // thin foreign cross-listings). The collapse keeps the home line for a dual
+    // listing (2026-09-26).
+    .or(scanVenueFilter());
   const focus = focusSectorFilter(rules);
   if (focus != null) q = q.or(focus);
   return q as unknown as Q;
@@ -341,10 +341,10 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     for (const row of universeRows) {
       consumed++;
       if (exclude.has(row.symbol)) continue;
-      // Narrower re-checks of what the query already did: the primary-listing
-      // test is exact in SQL, and the focus test is the authoritative
-      // most-specific-rule-wins resolution over a SQL superset.
-      if (!isPrimaryListingRow(row.exchange, row.country)) continue;
+      // The primary-listing choice is no longer a per-row drop — keepDistinctCompanies
+      // collapses each company's venues to one (home first, else most-traded), which
+      // is what admits a US-only foreign domicile. The focus test is the exact
+      // most-specific-rule-wins resolution over the SQL superset.
       const focus = resolveFocusSector(rules, {
         symbol: row.symbol,
         sector: row.sector,

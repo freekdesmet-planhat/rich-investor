@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:validate": "tsx scripts/validate-migrations.ts",
+    "db:sync-sectors": "tsx --env-file-if-exists=.env.local scripts/sync-sector-rules.ts",
+    "db:check-sectors": "tsx --env-file-if-exists=.env.local scripts/sync-sector-rules.ts --check",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify:browser": "tsx --env-file-if-exists=.env.local scripts/verify-browser.ts"

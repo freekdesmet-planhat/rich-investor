@@ -140,14 +140,13 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
     'entertainment_media',
     'Digital advertising platforms.',
   ),
-  industryRule(
-    'Communication Services',
-    'Diversified Telecommunication Services',
-    'entertainment_media',
-    'FinanceDatabase files Alphabet and Meta here rather than under Interactive ' +
-      'Media, so the industry is in focus. It also holds genuine telcos, which ' +
-      'the quantitative filters screen out on growth and margins.',
-  ),
+  // NB: there is deliberately no industry rule for "Diversified Telecommunication
+  // Services". FinanceDatabase dumps Alphabet, Meta, Pinterest, NYT, Omnicom and
+  // Zillow under that label alongside actual carriers, tower and satellite
+  // companies, so an industry rule would sweep the telcos in. The internet/media/
+  // advertising names are pinned in by symbol rules below; a genuine telco under
+  // this label is left out, and any new name that lands here is not auto-assigned
+  // — it surfaces as a focus-less domain-adjacent row for review (2026-09-26).
 
   // -------------------------------------------------------------------------
   // 4. Financial services, non-bank
@@ -238,6 +237,57 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
   symbolRule('FFIV', 'information_technology', 'F5 — application networking (IT), not financial services.'),
   symbolRule('PANW', 'information_technology', 'Palo Alto Networks — security software (IT), not financial services.'),
   symbolRule('TTWO', 'entertainment_media', 'Take-Two — video games (entertainment_media), not financial services.'),
+
+  // --- Diversified Telecom label, pinned per name (2026-09-26 decision) --------
+  // Internet platforms, media and advertising stay in; the label carries no rule.
+  symbolRule('GOOGL', 'entertainment_media', 'Alphabet — search/ads/internet platform.'),
+  symbolRule('META', 'entertainment_media', 'Meta — internet/social platform.'),
+  symbolRule('PINS', 'entertainment_media', 'Pinterest — internet platform.'),
+  symbolRule('PRX.AS', 'entertainment_media', 'Prosus — internet-platform holding company.'),
+  symbolRule('SCHA.OL', 'entertainment_media', 'Schibsted — online marketplaces and media.'),
+  symbolRule('OMC', 'entertainment_media', 'Omnicom — advertising.'),
+  symbolRule('PUB.PA', 'entertainment_media', 'Publicis — advertising.'),
+  symbolRule('WPP.L', 'entertainment_media', 'WPP — advertising.'),
+  symbolRule('NYT', 'entertainment_media', 'New York Times — media.'),
+  symbolRule('SPOT', 'entertainment_media', 'Spotify — audio streaming platform (filed under Diversified Telecom).'),
+  // Carriers, towers, satellite and cable — out, per name (not by label).
+  symbolRule('T', 'outside_focus', 'AT&T — telecom carrier.'),
+  symbolRule('VZ', 'outside_focus', 'Verizon — telecom carrier.'),
+  symbolRule('TMUS', 'outside_focus', 'T-Mobile US — telecom carrier.'),
+  symbolRule('TEF.MC', 'outside_focus', 'Telefónica — telecom carrier.'),
+  symbolRule('ORA.PA', 'outside_focus', 'Orange — telecom carrier.'),
+  symbolRule('KPN.AS', 'outside_focus', 'KPN — telecom carrier.'),
+  symbolRule('SCMN.SW', 'outside_focus', 'Swisscom — telecom carrier.'),
+  symbolRule('TEL.OL', 'outside_focus', 'Telenor — telecom carrier.'),
+  symbolRule('TELIA.ST', 'outside_focus', 'Telia — telecom carrier.'),
+  symbolRule('TIT.MI', 'outside_focus', 'Telecom Italia — telecom carrier.'),
+  symbolRule('DTE.DE', 'outside_focus', 'Deutsche Telekom — telecom carrier.'),
+  symbolRule('CLNX.MC', 'outside_focus', 'Cellnex — telecom towers.'),
+  symbolRule('ASTS', 'outside_focus', 'AST SpaceMobile — satellite operator.'),
+  symbolRule('SATS', 'outside_focus', 'EchoStar — satellite operator.'),
+  symbolRule('CHTR', 'outside_focus', 'Charter — cable operator.'),
+  symbolRule('CMCSA', 'outside_focus', 'Comcast — cable operator (also owns NBCUniversal).'),
+
+  // --- Capital Markets: exchanges and data providers in, the rest out ---------
+  // Exchanges and index/ratings/data providers join financial_services_non_bank;
+  // asset managers, investment banks and bank-chartered brokers stay out (they are
+  // banks, same logic as Ally/SoFi). See Claude outputs/capital-markets-review.csv.
+  symbolRule('ICE', 'financial_services_non_bank', 'Intercontinental Exchange — exchange operator.'),
+  symbolRule('CME', 'financial_services_non_bank', 'CME Group — exchange operator.'),
+  symbolRule('NDAQ', 'financial_services_non_bank', 'Nasdaq — exchange operator.'),
+  symbolRule('CBOE', 'financial_services_non_bank', 'Cboe Global Markets — exchange operator.'),
+  symbolRule('LSEG.L', 'financial_services_non_bank', 'London Stock Exchange Group — exchange + data.'),
+  symbolRule('DB1.DE', 'financial_services_non_bank', 'Deutsche Börse — exchange operator.'),
+  symbolRule('ENX.PA', 'financial_services_non_bank', 'Euronext — exchange operator.'),
+  symbolRule('SPGI', 'financial_services_non_bank', 'S&P Global — ratings, index and data.'),
+  symbolRule('MCO', 'financial_services_non_bank', 'Moody’s — ratings and data.'),
+  symbolRule('MSCI', 'financial_services_non_bank', 'MSCI — index and data.'),
+  symbolRule('FDS', 'financial_services_non_bank', 'FactSet — financial data.'),
+  symbolRule('MORN', 'financial_services_non_bank', 'Morningstar — index, ratings and data.'),
+
+  // --- Per-name fixes (2026-09-26) --------------------------------------------
+  symbolRule('GPN', 'financial_services_non_bank', 'Global Payments — a payment processor, misfiled under Professional Services.'),
+  symbolRule('WISE.L', 'financial_services_non_bank', 'Wise — cross-border payments (null industry in the dataset).'),
 ];
 
 /**

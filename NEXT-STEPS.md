@@ -364,6 +364,36 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A4 parked-sector decisions + follow-ups.
+  - **Telecom/cable out, per name** (no industry rule for "Diversified Telecom",
+    which also holds Alphabet/Meta/NYT/Omnicom). Removed that industry rule; carriers,
+    towers, satellite and cable pinned out by symbol (T, VZ, TMUS, TEF.MC, ORA.PA,
+    KPN.AS, SCMN.SW, TEL.OL, TELIA.ST, TIT.MI, DTE.DE, CLNX.MC, ASTS, SATS, CHTR,
+    CMCSA); internet/media/advertising pinned in (GOOGL, META, PINS, PRX.AS, SCHA.OL,
+    OMC, PUB.PA, WPP.L, NYT, SPOT). **Flagged for review (professional-information,
+    dropped for now, awaiting your call):** REL.L (RELX), WKL.AS (Wolters Kluwer),
+    INF.L (Informa).
+  - **Capital markets:** exchanges + data/ratings/index in (ICE, CME, NDAQ, CBOE,
+    LSEG.L, DB1.DE, ENX.PA, SPGI, MCO, MSCI, FDS, MORN); asset managers, investment
+    banks and bank-chartered brokers stay out. Review CSV:
+    Claude outputs/capital-markets-review.csv (53 names: 9 in, 41 out, 3 flagged).
+    **Flagged for your call: HOOD (Robinhood), IBKR (Interactive Brokers), TW
+    (Tradeweb).**
+  - **US-listed foreign domiciles in** (scanVenueFilter: home-country primary OR a
+    main US venue; collapse keeps the home line on a dual listing). Adds 11 clean
+    names — ACN, ARM, CRCL, FER, GRMN, NXPI, ONON, SPOT, STM, STX, TEL — no
+    cross-listing flood, unique symbols.
+  - **Sector sync in deploy (item 4):** sync-sector-rules.ts is now a full reconcile
+    (DB := code, so removals go live too); `npm run db:sync-sectors` in the deploy
+    routine, `npm run db:check-sectors` as the smoke check that fails on drift.
+  - **Per-name:** GPN -> financial_services_non_bank. Ticker rename map (lib/data/
+    tickerRenames.ts: FISV->FI, FLT->CPAY, NLOK->GEN) wired into import-universe.
+    Null-band focus backfill: WISE.L capped at $11.3bn (searchable); ENX.PA returned
+    no market cap from the provider (a real gap).
+  - Domain now **~241 distinct companies**. Verdicts: only CMCSA moves (intended,
+    cable-out); no unintended watchlist/suggestion changes.
+  - **Later item:** refresh the universe import (applies the rename map + drops the
+    stale FISV/FLT/NLOK rows properly).
 - 2026-09-26: A4 decisions round (ROE rule, universe cleanup, sector fixes).
   - **ROE judged on equity, not a 100% cap.** Demote ROE only when equity is
     negative or under 5% of assets in a window year (GDDY 3%, SBUX negative stay

@@ -18,6 +18,7 @@ import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { parse } from 'csv-parse/sync';
 import bz2 from 'unbzip2-stream';
+import { renameTicker } from '@/lib/data/tickerRenames';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -136,7 +137,8 @@ async function main() {
   const rows: Record<string, unknown>[] = [];
 
   for (const record of records) {
-    const symbol = (record.symbol ?? '').trim();
+    // Apply known ticker renames the source dataset lags (FISV -> FI, etc.).
+    const symbol = renameTicker((record.symbol ?? '').trim());
     if (!symbol) {
       counts.noSymbol++;
       continue;
