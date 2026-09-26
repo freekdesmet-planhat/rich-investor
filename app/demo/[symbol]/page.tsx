@@ -17,8 +17,9 @@ import {
   formatPercent,
 } from '@/lib/i18n/format';
 import type { Lang } from '@/lib/i18n/config';
+import { env } from '@/lib/env';
 
-// A public, indexable page: no robots noindex, unlike the gated app.
+// Public, but not indexed until the data licence is settled (safety item 1).
 export async function generateMetadata({
   params,
 }: {
@@ -27,7 +28,11 @@ export async function generateMetadata({
   const { symbol } = await params;
   const sym = decodeURIComponent(symbol).toUpperCase();
   const t = await getTranslations('demo');
-  return { title: `${sym} — Rich Investor (${t('badge')})` };
+  return {
+    title: `${sym} — Rich Investor (${t('badge')})`,
+    // Not indexable until the finance-query display licence is settled (item 1).
+    ...(env.publicIndexing() ? {} : { robots: { index: false, follow: false } }),
+  };
 }
 
 export default async function DemoStockPage({

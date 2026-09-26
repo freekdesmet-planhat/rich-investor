@@ -43,8 +43,17 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Landing } from '@/components/Landing';
 import { getFocusCompanyCount } from '@/lib/data/landing';
+import type { Metadata } from 'next';
+import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
+
+// The landing page ("/" signed out) must not be indexed until the data licence
+// for the public demos is settled (safety item 1). noindex here; robots.ts also
+// disallows the route.
+export async function generateMetadata(): Promise<Metadata> {
+  return env.publicIndexing() ? {} : { robots: { index: false, follow: false } };
+}
 
 /** How far back the row sparkline reaches: a quarter, the book's own cadence. */
 const TREND_DAYS = 90;

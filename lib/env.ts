@@ -18,6 +18,11 @@ function required(name: string): string {
   return value;
 }
 
+/** A boolean feature flag: true only when the variable is exactly "true". */
+function flag(name: string): boolean {
+  return optional(name) === 'true';
+}
+
 export const env = {
   supabaseUrl: () => required('SUPABASE_URL'),
   supabaseAnonKey: () => required('SUPABASE_ANON_KEY'),
@@ -53,4 +58,19 @@ export const env = {
   hasResend: () => Boolean(optional('RESEND_API_KEY')),
   /** True when the cron endpoints have a shared secret to check against. */
   hasCronSecret: () => Boolean(optional('CRON_SECRET')),
+
+  /**
+   * Whether the public landing and demo pages may be indexed. Default false: the
+   * demos show finance-query data to anyone, and the data licence for public
+   * display is not settled — so until this flips, those pages carry a noindex tag
+   * and robots.txt disallows them.
+   */
+  publicIndexing: () => flag('PUBLIC_INDEXING'),
+
+  /**
+   * Whether the waitlist is collecting emails. Default false: without a reviewed
+   * privacy notice we do not collect anything, so the form is replaced by an
+   * "Opening soon" line and the action refuses to write.
+   */
+  waitlistOpen: () => flag('WAITLIST_OPEN'),
 };

@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { WaitlistForm } from './WaitlistForm';
 import { DEMO_SYMBOLS } from '@/lib/data/landing';
+import { env } from '@/lib/env';
 
 /**
  * The public front door (launch item 11).
@@ -45,27 +46,38 @@ export async function Landing({ count }: { count: number }) {
 
         <section className="mt-10">
           <h2 className="text-ink text-lg font-semibold">{t('waitlistHeading')}</h2>
-          <p className="text-ink-subtle mb-3 mt-1 text-sm">{t('waitlistIntro')}</p>
-          <WaitlistForm
-            locale={locale}
-            labels={{
-              emailPlaceholder: t('emailPlaceholder'),
-              join: t('join'),
-              joining: t('joining'),
-              joined: t('joined'),
-              invalid: t('invalid'),
-              error: t('error'),
-            }}
-          />
-          <p className="text-ink-faint mt-2 text-xs">
-            {t.rich('privacyNote', {
-              privacy: (chunks) => (
-                <Link href="/privacy" className="underline underline-offset-2 hover:text-ink-subtle">
-                  {chunks}
-                </Link>
-              ),
-            })}
-          </p>
+          {/* Closed until a reviewed privacy notice is in place (safety item 2):
+              no form, no email collected — just a note. */}
+          {env.waitlistOpen() ? (
+            <>
+              <p className="text-ink-subtle mb-3 mt-1 text-sm">{t('waitlistIntro')}</p>
+              <WaitlistForm
+                locale={locale}
+                labels={{
+                  emailPlaceholder: t('emailPlaceholder'),
+                  join: t('join'),
+                  joining: t('joining'),
+                  joined: t('joined'),
+                  invalid: t('invalid'),
+                  error: t('error'),
+                }}
+              />
+              <p className="text-ink-faint mt-2 text-xs">
+                {t.rich('privacyNote', {
+                  privacy: (chunks) => (
+                    <Link
+                      href="/privacy"
+                      className="underline underline-offset-2 hover:text-ink-subtle"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            </>
+          ) : (
+            <p className="text-ink-muted mt-1 text-sm font-medium">{t('openingSoon')}</p>
+          )}
         </section>
 
         <section className="mt-12">

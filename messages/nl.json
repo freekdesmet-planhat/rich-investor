@@ -691,7 +691,8 @@
     "invalid": "Vul een geldig e-mailadres in.",
     "error": "Er ging iets mis. Probeer het opnieuw.",
     "privacyNote": "We gebruiken je e-mailadres alleen om je te laten weten wanneer Rich Investor opengaat. Zie onze <privacy>privacyverklaring</privacy>.",
-    "notAdvice": "Rich Investor is een persoonlijk analysehulpmiddel, geen beleggingsadvies."
+    "notAdvice": "Rich Investor is een persoonlijk analysehulpmiddel, geen beleggingsadvies.",
+    "openingSoon": "Binnenkort beschikbaar."
   },
   "demo": {
     "badge": "Demo",

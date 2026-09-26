@@ -1,9 +1,10 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
 
 export interface WaitlistState {
-  status: 'idle' | 'joined' | 'invalid' | 'error';
+  status: 'idle' | 'joined' | 'invalid' | 'error' | 'closed';
 }
 
 // Deliberately forgiving: one @, a dot in the domain, no spaces. The point is to
@@ -22,6 +23,10 @@ export async function joinWaitlist(
   _prev: WaitlistState,
   formData: FormData,
 ): Promise<WaitlistState> {
+  // Closed until a reviewed privacy notice is in place (safety item 2): refuse to
+  // write here too, not only in the UI, so nothing is collected under a placeholder.
+  if (!env.waitlistOpen()) return { status: 'closed' };
+
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const locale = String(formData.get('locale') ?? '') || null;
   if (!email || email.length > 320 || !EMAIL.test(email)) return { status: 'invalid' };

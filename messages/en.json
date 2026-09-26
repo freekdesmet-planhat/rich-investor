@@ -691,7 +691,8 @@
     "invalid": "Please enter a valid email address.",
     "error": "Something went wrong. Please try again.",
     "privacyNote": "We'll only use your email to tell you when Rich Investor opens. See our <privacy>privacy notice</privacy>.",
-    "notAdvice": "Rich Investor is a personal analysis tool, not investment advice."
+    "notAdvice": "Rich Investor is a personal analysis tool, not investment advice.",
+    "openingSoon": "Opening soon."
   },
   "demo": {
     "badge": "Demo",
