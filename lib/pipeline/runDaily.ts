@@ -237,7 +237,12 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
 
     ratioRows.push(...result.ratioRows);
     signalRows.push(result.signalRow);
-    capUpdates.push({ symbol, marketCapUsd: result.marketCapUsd });
+    capUpdates.push({
+      symbol,
+      marketCapUsd: result.marketCapUsd,
+      priceHigh5y: result.priceHigh5y,
+      drawdown5y: result.drawdown5y,
+    });
 
     rows.push({
       symbol,

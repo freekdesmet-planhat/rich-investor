@@ -97,6 +97,12 @@ export function crossedThreshold(prev: number, curr: number): number | null {
   return crossed;
 }
 
+function chunkList<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 /** A finance-query failure that is specifically the provider throttling us. */
 function isRateLimit(error: unknown): boolean {
   if (!(error instanceof ProviderError)) return false;
@@ -208,21 +214,22 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
   );
 
   // --- stored five-year highs, for the trigger -----------------------------
-  // Only names with a stored drawdown_5y (i.e. previously evaluated) can trigger.
-  const { data: ddRows } = await client
-    .from('ratios')
-    .select('symbol,as_of,value,detail')
-    .eq('ratio_key', 'drawdown_5y')
-    .in('symbol', cohort)
-    .order('as_of', { ascending: false })
-    .returns<Array<{ symbol: string; as_of: string; value: number | null; detail: { high?: number | null } | null }>>();
-
+  // The high and the decline against it at the last full evaluation live on the
+  // universe row (A12b), written back by the scan and watchlist for every name
+  // they evaluate — not just suggested ones. Only names that carry one can
+  // trigger; the focus universe fills in over a scan cycle.
   const highs = new Map<string, StoredHigh>();
-  for (const row of ddRows ?? []) {
-    if (highs.has(row.symbol)) continue; // first is newest (ordered desc)
-    const high = row.detail?.high ?? null;
-    if (high == null || !Number.isFinite(high) || high <= 0 || row.value == null) continue;
-    highs.set(row.symbol, { high, prevDrawdown: row.value });
+  for (const symbols of chunkList(cohort, 500)) {
+    const { data } = await client
+      .from('universe')
+      .select('symbol,price_high_5y,drawdown_5y')
+      .in('symbol', symbols)
+      .returns<Array<{ symbol: string; price_high_5y: number | null; drawdown_5y: number | null }>>();
+    for (const row of data ?? []) {
+      const high = row.price_high_5y;
+      if (high == null || !Number.isFinite(high) || high <= 0 || row.drawdown_5y == null) continue;
+      highs.set(row.symbol, { high, prevDrawdown: row.drawdown_5y });
+    }
   }
   log(`${highs.size} of the cohort carry a stored five-year high (trigger-eligible)`);
 

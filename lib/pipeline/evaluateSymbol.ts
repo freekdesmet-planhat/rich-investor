@@ -74,6 +74,15 @@ export interface EvaluatedSymbol {
    * the static dataset's stale band (A1c).
    */
   marketCapUsd: number | null;
+  /**
+   * The five-year high and the decline against it at this evaluation, from the
+   * drawdown_5y ratio. Both are written back to the universe row (A12b) so the
+   * nightly price pass — which fetches a price but no history — can recompute the
+   * decline against today's price and detect a name crossing the entry line
+   * between full evaluations.
+   */
+  priceHigh5y: number | null;
+  drawdown5y: number | null;
   /** Ready to upsert into `ratios` (one per computed ratio). */
   ratioRows: Record<string, unknown>[];
   /** Ready to upsert into `signal_history`. */
@@ -190,6 +199,8 @@ export function evaluateSymbol(input: EvaluateSymbolInput): EvaluatedSymbol {
     previousStatus,
     becameBuyWorthy,
     marketCapUsd: (ratios.market_cap?.value as number | null | undefined) ?? null,
+    priceHigh5y: ((ratios.drawdown_5y?.detail as { high?: number | null } | undefined)?.high) ?? null,
+    drawdown5y: (ratios.drawdown_5y?.value as number | null | undefined) ?? null,
     ratioRows: buildRatioRows(symbol, asOf, ratios),
     signalRow: buildSignalRow({
       symbol,

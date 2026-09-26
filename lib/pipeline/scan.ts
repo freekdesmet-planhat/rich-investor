@@ -467,9 +467,15 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
       status: result.signal.status,
       conditionsMet: result.signal.conditionsMet,
     });
-    // Every evaluated candidate refreshes its cached USD cap, not just the
-    // suggested ones, so the whole screened universe self-heals over a cycle (A1c).
-    capUpdates.push({ symbol: candidate.symbol, marketCapUsd: result.marketCapUsd });
+    // Every evaluated candidate refreshes its cached USD cap and five-year high,
+    // not just the suggested ones, so the whole screened universe self-heals over a
+    // cycle (A1c) and the price pass has a high to trigger against (A12b).
+    capUpdates.push({
+      symbol: candidate.symbol,
+      marketCapUsd: result.marketCapUsd,
+      priceHigh5y: result.priceHigh5y,
+      drawdown5y: result.drawdown5y,
+    });
 
     // Only genuinely interesting names become suggestions. Everything else is
     // simply not raised — the feed is for things worth a decision.
