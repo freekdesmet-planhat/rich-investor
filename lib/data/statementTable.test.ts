@@ -19,25 +19,25 @@ const specs = [
 ];
 
 describe('buildStatementTable', () => {
-  it('puts the newest period first whatever order it was stored in', () => {
+  it('puts the oldest period first whatever order it was stored in (time L→R)', () => {
     expect(buildStatementTable(periods, specs).columns).toEqual([
-      '2025-12-31',
-      '2024-12-31',
       '2023-12-31',
+      '2024-12-31',
+      '2025-12-31',
     ]);
   });
 
   it('lines values up with their columns', () => {
     const table = buildStatementTable(periods, specs);
-    expect(table.rows[0]).toMatchObject({ label: 'Revenue', values: [150, 120, 100] });
+    expect(table.rows[0]).toMatchObject({ label: 'Revenue', values: [100, 120, 150] });
   });
 
-  it('computes growth against the period to its right', () => {
+  it('computes growth against the period to its left (the older one)', () => {
     const [revenue] = buildStatementTable(periods, specs).rows;
-    expect(revenue.growth![0]).toBeCloseTo(0.25, 6); // 150 over 120
+    // Nothing older to the left of the first column.
+    expect(revenue.growth![0]).toBeNull();
     expect(revenue.growth![1]).toBeCloseTo(0.2, 6); // 120 over 100
-    // Nothing older to compare the last column against.
-    expect(revenue.growth![2]).toBeNull();
+    expect(revenue.growth![2]).toBeCloseTo(0.25, 6); // 150 over 120
   });
 
   /**
@@ -46,10 +46,10 @@ describe('buildStatementTable', () => {
    */
   it('refuses growth out of a negative base', () => {
     const netIncome = buildStatementTable(periods, specs).rows[1];
-    // 2025's 20 follows 2024's -5.
-    expect(netIncome.growth![0]).toBeNull();
     // 2024's -5 follows 2023's 10, which is a real base.
     expect(netIncome.growth![1]).toBeCloseTo(-1.5, 6);
+    // 2025's 20 follows 2024's -5 (negative base): no growth figure.
+    expect(netIncome.growth![2]).toBeNull();
   });
 
   it('leaves growth off rows that did not ask for it', () => {
@@ -75,7 +75,7 @@ describe('buildStatementTable', () => {
       { endDate: '2024-12-31', metrics: { revenue: 120 } },
     ];
     const table = buildStatementTable(sparse, specs);
-    expect(table.rows.find((r) => r.key === 'ebitda')!.values).toEqual([40, null]);
+    expect(table.rows.find((r) => r.key === 'ebitda')!.values).toEqual([null, 40]);
   });
 
   it('treats an unusable number as absent', () => {

@@ -44,7 +44,7 @@ export interface StatementRow {
 }
 
 export interface StatementTable {
-  /** Period end dates, newest first. */
+  /** Period end dates, oldest first — time runs left to right (round 2, item 2). */
   columns: string[];
   rows: StatementRow[];
 }
@@ -65,7 +65,9 @@ export interface StoredPeriod {
  */
 function growthSeries(values: Array<number | null>): Array<number | null> {
   return values.map((value, i) => {
-    const previous = values[i + 1];
+    // The older period is the one to the left now that time runs left to right
+    // (round 2, item 2), so growth is measured against the previous column.
+    const previous = values[i - 1];
     if (value == null || previous == null || previous <= 0) return null;
     return value / previous - 1;
   });
@@ -83,8 +85,8 @@ export function buildStatementTable(
   periods: StoredPeriod[],
   specs: StatementRowSpec[],
 ): StatementTable {
-  // Newest first, whatever order the provider stored them in.
-  const ordered = [...periods].sort((a, b) => b.endDate.localeCompare(a.endDate));
+  // Oldest first, so time runs left to right like the charts (round 2, item 2).
+  const ordered = [...periods].sort((a, b) => a.endDate.localeCompare(b.endDate));
   const columns = ordered.map((p) => p.endDate);
 
   const rows: StatementRow[] = [];

@@ -1,4 +1,5 @@
 import type { StatementTable as Table } from '@/lib/data/statementTable';
+import { ScrollableTable } from './ScrollableTable';
 
 /**
  * A financial statement, at the density a financial statement needs.
@@ -29,7 +30,7 @@ export function StatementTable({
   formatColumn: (endDate: string) => string;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollableTable>
       <table className="w-full min-w-[42rem] text-sm">
         <thead>
           <tr className="border-b border-line">
@@ -102,6 +103,6 @@ export function StatementTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollableTable>
   );
 }
