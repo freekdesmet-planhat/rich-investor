@@ -437,7 +437,7 @@ export default async function StockPage({
             <p className="text-pass text-sm font-medium">{tStatus('reviewPrompt')}</p>
             <a
               href="#review"
-              className="bg-pass text-accent-ink rounded-md px-3 py-1.5 text-sm font-medium transition hover:opacity-90"
+              className="bg-primary text-primary-ink hover:bg-primary-hover rounded-md px-3 py-1.5 text-sm font-medium transition"
             >
               {tStatus('startReview')}
             </a>

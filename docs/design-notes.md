@@ -29,6 +29,26 @@ this file exists:
 
 ## Colour
 
+> **Round 2 (2026-09-26): light-first redesign.** Light is the primary theme.
+> The look is calm and warm, in the spirit of FinChat but not its brand:
+> - **Page** `canvas` is clean white `#ffffff`; **panels** `surface` are a warm
+>   off-white `#faf8f4`, lifted by a thin light border rather than a shadow;
+>   wells (`surface-sunken`) step down to `#f3f0e9`.
+> - **Borders** are thin and light: `line #ece8e0`, `line-strong #ddd7ca`.
+> - **Ink** is a warm near-black `#1b1a17`, stepping down through muted/subtle/faint.
+> - **One accent** (`accent #2563eb`), used sparingly for links, focus rings and
+>   selection — never as a second brand colour.
+> - **Primary buttons are black**: the `primary` token (`#1b1a17` in light,
+>   inverted to `#f5f4f1` in dark) with `primary-ink`. Secondary actions stay
+>   bordered/ghost. Use `bg-primary text-primary-ink hover:bg-primary-hover`.
+> - **Segmented tabs** are pills with a **dark selected state** (selected =
+>   `bg-primary text-primary-ink`, unselected = ghost). Applies to TabStrip and
+>   any in-page tab set as the rollout reaches them.
+> - **Generous whitespace**: prefer more padding and vertical rhythm over density,
+>   except inside Full research tables where density is the point.
+> Dark mode stays fully supported; every token has a dark value chosen for dark.
+> The tables below show the earlier values and are updated as the rollout lands.
+
 All tokens live in `app/globals.css`, defined for light and dark, and exposed
 to Tailwind through `@theme inline` — so every one is usable as an ordinary
 utility (`bg-surface`, `text-ink-subtle`, `border-line`).

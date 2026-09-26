@@ -24,26 +24,34 @@
   color-scheme: light;
 
   /* --- surfaces, back to front ------------------------------------------ */
-  --canvas: #f8fafc;        /* the page itself */
-  --surface: #ffffff;       /* cards, panels, anything lifted off the page */
-  --surface-sunken: #f1f5f9;/* wells: inset panels, table headers, code */
-  --surface-hover: #f1f5f9;
+  /* Light-primary, warm off-white panels on a clean page (round 2, item 7):
+     the page is white, panels are a warm off-white lifted by a thin border
+     rather than a shadow, and wells step down one more shade. */
+  --canvas: #ffffff;        /* the page itself */
+  --surface: #faf8f4;       /* cards, panels, anything lifted off the page */
+  --surface-sunken: #f3f0e9;/* wells: inset panels, table headers, code */
+  --surface-hover: #f1ede4;
 
   /* --- lines ------------------------------------------------------------- */
-  --line: #e2e8f0;          /* ordinary borders and rules */
-  --line-strong: #cbd5e1;   /* where a border has to carry weight */
+  --line: #ece8e0;          /* ordinary borders and rules — thin and light */
+  --line-strong: #ddd7ca;   /* where a border has to carry weight */
 
   /* --- text, by role rather than by lightness ---------------------------- */
-  --ink: #0f172a;           /* primary text */
-  --ink-muted: #475569;     /* secondary text, still meant to be read */
-  --ink-subtle: #64748b;    /* captions, units, provenance */
-  --ink-faint: #94a3b8;     /* placeholders, disabled, decorative */
+  --ink: #1b1a17;           /* primary text — a warm near-black */
+  --ink-muted: #55514a;     /* secondary text, still meant to be read */
+  --ink-subtle: #7c766c;    /* captions, units, provenance */
+  --ink-faint: #a8a294;     /* placeholders, disabled, decorative */
 
-  /* --- accent ------------------------------------------------------------ */
-  --accent: #1d4ed8;
-  --accent-hover: #1e40af;
+  /* --- accent — one colour, used sparingly for links and selection ------- */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
   --accent-ink: #ffffff;
-  --accent-wash: #eff6ff;
+  --accent-wash: #eef3ff;
+
+  /* --- primary — the high-contrast button fill (black in light) ---------- */
+  --primary: #1b1a17;
+  --primary-hover: #000000;
+  --primary-ink: #ffffff;
 
   /**
    * The three verdicts, and nothing else uses these.
@@ -106,6 +114,10 @@
     --accent-ink: #0f172a;
     --accent-wash: #172554;
 
+    --primary: #f5f4f1;
+    --primary-hover: #ffffff;
+    --primary-ink: #1b1a17;
+
     --pass: #4ade80;
     --pass-wash: #052e16;
     --pass-line: #166534;
@@ -150,6 +162,10 @@
   --accent-ink: #0f172a;
   --accent-wash: #172554;
 
+  --primary: #f5f4f1;
+  --primary-hover: #ffffff;
+  --primary-ink: #1b1a17;
+
   --pass: #4ade80;
   --pass-wash: #052e16;
   --pass-line: #166534;
@@ -190,6 +206,9 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
   --color-accent-wash: var(--accent-wash);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
 
   --color-pass: var(--pass);
   --color-pass-wash: var(--pass-wash);
