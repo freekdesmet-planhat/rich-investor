@@ -19,6 +19,10 @@
  */
 
 :root {
+  /* Native controls (date picker, scrollbars) follow the theme, so the
+     holdings date field is not a bright white box on the dark canvas. */
+  color-scheme: light;
+
   /* --- surfaces, back to front ------------------------------------------ */
   --canvas: #f8fafc;        /* the page itself */
   --surface: #ffffff;       /* cards, panels, anything lifted off the page */
@@ -83,6 +87,7 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --canvas: #020617;
     --surface: #0f172a;
     --surface-sunken: #1e293b;
@@ -126,6 +131,7 @@
    drive. Nothing sets this yet — the switch itself belongs with the navigation
    work — but the tokens are ready for it rather than needing a second pass. */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --canvas: #020617;
   --surface: #0f172a;
   --surface-sunken: #1e293b;

@@ -45,6 +45,11 @@ const PRIMARY =
   'rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60';
 const SECONDARY =
   'rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover disabled:opacity-60';
+// Themed rather than the browser default: the fields carried `bg-white`, which
+// showed as a bright box (and a light-scheme date picker) on the dark canvas
+// (audit 28). The theme's `color-scheme` now steers the native date control.
+const FIELD =
+  'border-line-strong text-ink bg-canvas mt-1 block rounded-md border px-3 py-2 text-sm focus:border-accent focus:outline-none';
 
 /**
  * Whether you own this, and what it has done since you bought it.
@@ -177,7 +182,7 @@ export function PositionBlock({
                   inputMode="decimal"
                   required
                   defaultValue={position?.entry_price ?? ''}
-                  className="border-line-strong mt-1 block w-32 rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
+                  className={`${FIELD} w-32`}
                 />
               </label>
               <label className="block">
@@ -187,7 +192,7 @@ export function PositionBlock({
                   type="date"
                   required
                   defaultValue={position?.entry_date ?? ''}
-                  className="border-line-strong mt-1 block rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
+                  className={FIELD}
                 />
               </label>
               <label className="block">
@@ -196,7 +201,7 @@ export function PositionBlock({
                   name="quantity"
                   inputMode="decimal"
                   defaultValue={position?.quantity ?? ''}
-                  className="border-line-strong mt-1 block w-28 rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
+                  className={`${FIELD} w-28`}
                 />
                 <span className="text-ink-faint mt-1 block text-xs">
                   {labels.quantityHint}
@@ -210,7 +215,7 @@ export function PositionBlock({
                 name="note"
                 rows={2}
                 defaultValue={position?.note ?? ''}
-                className="border-line-strong mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm bg-canvas"
+                className={`${FIELD} w-full`}
               />
             </label>
 

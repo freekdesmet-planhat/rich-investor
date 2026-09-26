@@ -225,81 +225,88 @@ export default async function StockPage({
             classifies the company — sector, growth category, PEG basis — drops
             to a row of chips underneath, so the top of the page answers "what
             am I looking at, and what is it worth" before anything else. */}
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h1 className="text-3xl font-semibold tracking-tight text-ink">{symbol}</h1>
-              {snapshot?.price != null && (
-                // Formatted as money rather than a bare number with a code
-                // appended: "928.70 EUR" sat three inches from a market cap
-                // printed as "$34.0B" and nothing said whether the two were
-                // the same currency, different currencies, or converted.
-                <span className="text-xl font-medium tabular-nums text-ink-muted">
-                  {formatCurrency(snapshot.price, snapshot.currency, locale)}
-                </span>
-              )}
+        <div className="mt-4">
+          {/* Identity and the verdict share one row, and both are bounded: the
+              ticker and price on the left, the status pill and Remove on the
+              right. Everything that can grow — the classifying chips, the
+              tradability line — drops below, so a long tradability line can no
+              longer push the verdict pill out of the header (audit 27). */}
+          <div className="flex items-start justify-between gap-x-6">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h1 className="text-3xl font-semibold tracking-tight text-ink">{symbol}</h1>
+                {snapshot?.price != null && (
+                  // Formatted as money rather than a bare number with a code
+                  // appended: "928.70 EUR" sat three inches from a market cap
+                  // printed as "$34.0B" and nothing said whether the two were
+                  // the same currency, different currencies, or converted.
+                  <span className="text-xl font-medium tabular-nums text-ink-muted">
+                    {formatCurrency(snapshot.price, snapshot.currency, locale)}
+                  </span>
+                )}
+              </div>
+              {name && <p className="mt-0.5 truncate text-sm text-ink-subtle">{name}</p>}
             </div>
-            {name && <p className="mt-0.5 truncate text-sm text-ink-subtle">{name}</p>}
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Chip>{tSector(signal.focus_sector)}</Chip>
-              {lynch && <Chip>{lynch.name}</Chip>}
-              {/* Says on the page header what the PEG card says in a caption:
-                  the valuation test was carried by expected growth. */}
-              <PegBasisBadge
-                basis={signal.peg_basis as 'forward' | 'trailing' | 'both' | 'none' | null}
-                label={tWatchlist('pegForward')}
-                title={tWatchlist('pegForwardHelp')}
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <StatusBadge status={signal.status} size="lg" />
+              {/* Always mounted, gated on `member` inside: removing revalidates
+                  this page, and a gate here would unmount the "Removed · Undo" the
+                  click just produced (audit A6). */}
+              <RemoveFromWatchlist
+                symbol={symbol}
+                member={onWatchlist}
+                labels={{
+                  remove: tWatchlist('remove'),
+                  removing: tWatchlist('removing'),
+                  // See app/page.tsx: {symbol} is substituted on the client.
+                  removed: tWatchlist.raw('removed') as string,
+                  undo: tWatchlist('undo'),
+                  restored: tWatchlist.raw('restored') as string,
+                }}
               />
-              {/* When the next answer arrives. Shown only when the stored date
-                  is actually ahead of us — see upcomingEarnings. */}
-              {earnings && (
-                <Chip tone={earnings.soon ? 'accent' : 'neutral'} title={earnings.date}>
-                  {earnings.daysAway === 0
-                    ? tEarnings('today')
-                    : earnings.daysAway === 1
-                      ? tEarnings('tomorrow')
-                      : earnings.soon
-                        ? tEarnings('inDays', { days: earnings.daysAway })
-                        : tEarnings('chip', { date: formatDate(earnings.date, locale) })}
-                </Chip>
-              )}
             </div>
-
-            {/* Execution cost, beside the price it would be paid at. Never a
-                condition — the nine are unchanged — so it sits outside the
-                checklist entirely. */}
-            <LiquidityNote symbol={symbol} locale={locale} labels={liquidityLabels} />
-
-            {/* The way into everything this page deliberately leaves out.
-                One click, and never expanded here — the ground rules keep
-                the default view to the verdict and the review. */}
-            <Link
-              href={`/stock/${encodeURIComponent(symbol)}/research`}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
-            >
-              {tResearch('title')}
-              <span aria-hidden="true">→</span>
-            </Link>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <StatusBadge status={signal.status} size="lg" />
-            {/* Always mounted, gated on `member` inside: removing revalidates
-                this page, and a gate here would unmount the "Removed · Undo" the
-                click just produced (audit A6). */}
-            <RemoveFromWatchlist
-              symbol={symbol}
-              member={onWatchlist}
-              labels={{
-                remove: tWatchlist('remove'),
-                removing: tWatchlist('removing'),
-                // See app/page.tsx: {symbol} is substituted on the client.
-                removed: tWatchlist.raw('removed') as string,
-                undo: tWatchlist('undo'),
-                restored: tWatchlist.raw('restored') as string,
-              }}
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Chip>{tSector(signal.focus_sector)}</Chip>
+            {lynch && <Chip>{lynch.name}</Chip>}
+            {/* Says on the page header what the PEG card says in a caption:
+                the valuation test was carried by expected growth. */}
+            <PegBasisBadge
+              basis={signal.peg_basis as 'forward' | 'trailing' | 'both' | 'none' | null}
+              label={tWatchlist('pegForward')}
+              title={tWatchlist('pegForwardHelp')}
             />
+            {/* When the next answer arrives. Shown only when the stored date
+                is actually ahead of us — see upcomingEarnings. */}
+            {earnings && (
+              <Chip tone={earnings.soon ? 'accent' : 'neutral'} title={earnings.date}>
+                {earnings.daysAway === 0
+                  ? tEarnings('today')
+                  : earnings.daysAway === 1
+                    ? tEarnings('tomorrow')
+                    : earnings.soon
+                      ? tEarnings('inDays', { days: earnings.daysAway })
+                      : tEarnings('chip', { date: formatDate(earnings.date, locale) })}
+              </Chip>
+            )}
           </div>
+
+          {/* Execution cost, beside the price it would be paid at. Never a
+              condition — the nine are unchanged — so it sits outside the
+              checklist entirely. */}
+          <LiquidityNote symbol={symbol} locale={locale} labels={liquidityLabels} />
+
+          {/* The way into everything this page deliberately leaves out.
+              One click, and never expanded here — the ground rules keep
+              the default view to the verdict and the review. */}
+          <Link
+            href={`/stock/${encodeURIComponent(symbol)}/research`}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+          >
+            {tResearch('title')}
+            <span aria-hidden="true">→</span>
+          </Link>
         </div>
 
         {/* A stopped pipeline affects every figure on this page. */}
