@@ -33,8 +33,8 @@ export function Sparkline({
     })
     .join(' ');
 
-  const rising = values[values.length - 1] >= values[0];
-
+  // A sparkline shows a trend, not a verdict — so it draws in neutral ink rather
+  // than green/red, which on a passing metric read as a warning it isn't (item 6).
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
@@ -47,7 +47,7 @@ export function Sparkline({
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={rising ? 'stroke-emerald-500' : 'stroke-rose-500'}
+        className="stroke-ink-subtle"
       />
     </svg>
   );

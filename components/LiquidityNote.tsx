@@ -80,7 +80,7 @@ export function LiquidityNote({
         {labels.heading}
       </span>
 
-      {state === 'loading' && <span className="text-ink-faint">{labels.loading}</span>}
+      {state === 'loading' && <span className="text-ink-subtle">{labels.loading}</span>}
 
       {state === 'ready' && data && (
         <>
@@ -110,7 +110,7 @@ export function LiquidityNote({
                 {data.spreadPercent.toFixed(2)}%
               </span>
             ) : (
-              <span className="text-ink-faint">
+              <span className="text-ink-subtle">
                 {data.spreadUnavailable === 'market_closed'
                   ? labels.marketClosed
                   : labels.notQuoted}
@@ -118,7 +118,7 @@ export function LiquidityNote({
             )}
           </span>
 
-          <span className="text-ink-faint">{labels.note}</span>
+          <span className="text-ink-subtle">{labels.note}</span>
         </>
       )}
     </div>

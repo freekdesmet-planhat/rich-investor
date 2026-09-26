@@ -134,7 +134,12 @@
       "gained": "newly passing",
       "lost": "newly failing"
     },
-    "youChangedRule": "You changed this rule"
+    "youChangedRule": "You changed this rule",
+    "status": {
+      "met": "Met",
+      "notMet": "Not met",
+      "cantJudge": "Can't judge"
+    }
   },
   "data": {
     "staleBanner": "Data from {date}, data source temporarily unavailable.",

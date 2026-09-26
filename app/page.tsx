@@ -603,7 +603,7 @@ function ReviewMark({ text, done }: { text: string; done: boolean }) {
   return (
     <p
       className={`mt-0.5 text-xs ${
-        done ? 'text-ink-subtle' : 'text-amber-700 dark:text-amber-500'
+        done ? 'text-ink-subtle' : 'text-near'
       }`}
     >
       <span aria-hidden="true" className="mr-1">

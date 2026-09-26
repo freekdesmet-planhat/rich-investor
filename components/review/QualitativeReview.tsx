@@ -24,8 +24,8 @@ export interface ReviewRecord {
 }
 
 const ASSESSMENT_TONE: Record<string, string> = {
-  temporary: 'text-emerald-700 dark:text-emerald-300',
-  structural: 'text-rose-700 dark:text-rose-300',
+  temporary: 'text-pass',
+  structural: 'text-fail',
   not_assessed: 'text-ink-subtle',
 };
 
@@ -140,7 +140,17 @@ export async function QualitativeReview({
                   defaultChecked={(mine?.assessment ?? 'not_assessed') === value}
                   className="peer sr-only"
                 />
-                <span className="border-line-strong text-ink-muted hover:bg-surface-hover inline-block rounded-full border px-3 py-2 text-sm transition peer-checked:border-accent peer-checked:bg-accent peer-checked:font-medium peer-checked:text-accent-ink peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
+                {/* Selected reads as an ink outline over a light tint, not solid
+                    blue — blue is for links and focus only (item 2). "Not yet
+                    assessed" is the empty default, so it keeps the unselected look
+                    even while it is the checked value. */}
+                <span
+                  className={`border-line-strong text-ink-muted hover:bg-surface-hover inline-block rounded-full border px-3 py-2 text-sm transition peer-focus-visible:ring-2 peer-focus-visible:ring-accent ${
+                    value === 'not_assessed'
+                      ? ''
+                      : 'peer-checked:border-ink peer-checked:bg-surface-sunken peer-checked:font-medium peer-checked:text-ink'
+                  }`}
+                >
                   {t(`assessment.${value}`)}
                 </span>
               </label>
@@ -311,8 +321,8 @@ function CheckboxGroup({
           const doc = docs.get(`${namespace}:${key}`);
           const tone =
             namespace === 'sell_signal'
-              ? 'peer-checked:border-rose-600 peer-checked:bg-rose-50 peer-checked:text-rose-900 dark:peer-checked:border-rose-500 dark:peer-checked:bg-rose-950 dark:peer-checked:text-rose-100'
-              : 'peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-900 dark:peer-checked:border-emerald-500 dark:peer-checked:bg-emerald-950 dark:peer-checked:text-emerald-100';
+              ? 'peer-checked:border-fail-line peer-checked:bg-fail-wash peer-checked:text-fail'
+              : 'peer-checked:border-pass-line peer-checked:bg-pass-wash peer-checked:text-pass';
 
           return (
             <label key={key} className="cursor-pointer" title={doc?.explanation}>
@@ -351,8 +361,8 @@ function ChipList({
 }) {
   const classes =
     tone === 'emerald'
-      ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200'
-      : 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200';
+      ? 'bg-pass-wash text-pass'
+      : 'bg-fail-wash text-fail';
 
   return (
     <div className="mt-2">

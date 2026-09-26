@@ -215,6 +215,15 @@ export async function RatioGrid({
             : 'red'
           : row.color;
 
+        // What the dot means, for assistive tech — a word, not the colour name
+        // (item 6). Anything that is not a clean pass/fail reads as "can't judge".
+        const statusLabel =
+          color === 'green'
+            ? tSignal('status.met')
+            : color === 'red'
+              ? tSignal('status.notMet')
+              : tSignal('status.cantJudge');
+
         // The same fact already sits under the Why block; it belongs on
         // the card that shows the number it is about.
         let caption =
@@ -308,6 +317,7 @@ export async function RatioGrid({
             explanation={unwrapParagraphs(doc?.explanation ?? '')}
             displayValue={formatRatio(row, locale)}
             color={color}
+            statusLabel={statusLabel}
             variants={variants}
             caption={caption}
             // On the two metrics whose card target (≤1, ≥1) is stricter than the

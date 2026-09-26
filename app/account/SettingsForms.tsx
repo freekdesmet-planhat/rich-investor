@@ -43,8 +43,8 @@ function Status({ state, labels }: { state: SettingsActionState; labels: Setting
       aria-live="polite"
       className={`mt-2 text-xs ${
         state.status === 'saved'
-          ? 'text-emerald-700 dark:text-emerald-300'
-          : 'text-rose-600 dark:text-rose-400'
+          ? 'text-pass'
+          : 'text-fail'
       }`}
     >
       {text}

@@ -56,7 +56,7 @@ export function AddToWatchlist({
   if (added) {
     return (
       <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+        <span className="text-xs font-medium text-pass">
           ✓ {labels.onWatchlist}
         </span>
         {/* Only for an add that just happened here: a result already on the
@@ -74,7 +74,7 @@ export function AddToWatchlist({
       <input type="hidden" name="symbol" value={symbol} />
       <Button labels={labels} />
       {state.status === 'error' && (
-        <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+        <p className="mt-1 text-xs text-fail">
           {state.message === 'unknown_symbol' ? labels.unknownSymbol : labels.failed}
         </p>
       )}

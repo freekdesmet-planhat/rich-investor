@@ -151,6 +151,15 @@ export default async function StockPage({
   const priceCloseDate = snapshot?.price_history?.length
     ? snapshot.price_history.reduce((latest, p) => (p.date > latest ? p.date : latest), snapshot.price_history[0].date)
     : null;
+  // One price for the whole page: the latest stored close, labelled with its
+  // close date (item 4). The header used to show a live/delayed quote while the
+  // chart, drawdown and trigger used this close, so the page named two prices.
+  // Everything now reads this one — header, checklist drawdown, position return —
+  // and the chart already ends on it, so it is the single source of truth.
+  const latestClose =
+    priceCloseDate != null
+      ? (snapshot?.price_history?.find((p) => p.date === priceCloseDate)?.close ?? null)
+      : null;
   const freshness = buildStockFreshness({
     createdAt: signal.created_at,
     priceCloseDate,
@@ -232,6 +241,12 @@ export default async function StockPage({
     if (c.value == null || !c.applicable) return null;
     switch (c.key) {
       case 'drawdown':
+        // Recompute against the same latest close the chart ends on (item 4), so
+        // the checklist and the chart can never show two different drawdowns.
+        if (latestClose != null && drawdownDetail.high != null && drawdownDetail.high > 0) {
+          return formatPercent(latestClose / drawdownDetail.high - 1, locale, 0);
+        }
+        return formatPercent(c.value, locale, 0);
       case 'returns':
         return formatPercent(c.value, locale, 0);
       case 'market_cap':
@@ -312,13 +327,14 @@ export default async function StockPage({
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h1 className="text-3xl font-semibold tracking-tight text-ink">{symbol}</h1>
-                {snapshot?.price != null && (
-                  // Formatted as money rather than a bare number with a code
-                  // appended: "928.70 EUR" sat three inches from a market cap
-                  // printed as "$34.0B" and nothing said whether the two were
-                  // the same currency, different currencies, or converted.
+                {latestClose != null && (
+                  // The latest close (item 4), formatted as money rather than a
+                  // bare number with a code appended: "928.70 EUR" sat three
+                  // inches from a market cap printed as "$34.0B" and nothing said
+                  // whether the two were the same currency or converted. The
+                  // close date is on the freshness line just below.
                   <span className="text-xl font-medium tabular-nums text-ink-muted">
-                    {formatCurrency(snapshot.price, snapshot.currency, locale)}
+                    {formatCurrency(latestClose, snapshot?.currency ?? null, locale)}
                   </span>
                 )}
               </div>
@@ -527,6 +543,16 @@ export default async function StockPage({
                 condition.key === 'focus_sector' &&
                 signal.focus_sector === 'outside_focus' &&
                 !condition.passed;
+              // A failed row must stand out from a passed one, and a row we can't
+              // judge (no data, or outside the focus sectors) from a real failure —
+              // in colour, icon and words, so it reads in greyscale too (item 3).
+              const rowState: 'pass' | 'fail' | 'none' =
+                !condition.applicable || outsideFocusRow
+                  ? 'none'
+                  : condition.passed
+                    ? 'pass'
+                    : 'fail';
+              const rowIcon = rowState === 'none' ? '?' : rowState === 'pass' ? '✓' : '✗';
               return (
               // Condition and criterion sit side by side where there is room
               // and stack where there is not. They used to share one line at
@@ -540,15 +566,17 @@ export default async function StockPage({
                 <span className="flex min-w-0 items-start gap-2 sm:items-center">
                   <span
                     aria-hidden="true"
-                    className={`w-4 shrink-0 text-center ${outsideFocusRow ? 'text-ink-faint' : ''}`}
+                    className={`w-4 shrink-0 text-center ${
+                      rowState === 'fail'
+                        ? 'text-fail font-semibold'
+                        : rowState === 'pass'
+                          ? 'text-pass'
+                          : 'text-ink-faint'
+                    }`}
                   >
-                    {!condition.applicable ? '–' : condition.passed ? '✓' : '✗'}
+                    {rowIcon}
                   </span>
-                  <span
-                    className={
-                      !condition.applicable || outsideFocusRow ? 'text-ink-faint' : undefined
-                    }
-                  >
+                  <span className={rowState === 'none' ? 'text-ink-faint' : undefined}>
                     {docs.get(`condition:${condition.key}`)?.name ?? condition.key}
                   </span>
                   {/* The measured value on the row (launch item 8), so a reader
@@ -558,13 +586,29 @@ export default async function StockPage({
                     return valueText ? (
                       <span
                         className={`shrink-0 text-sm font-semibold tabular-nums ${
-                          outsideFocusRow ? 'text-ink-faint' : 'text-ink'
+                          rowState === 'fail'
+                            ? 'text-fail'
+                            : rowState === 'none'
+                              ? 'text-ink-faint'
+                              : 'text-ink'
                         }`}
                       >
                         {valueText}
                       </span>
                     ) : null;
                   })()}
+                  {/* The verdict in words, so a failed row does not rely on colour
+                      alone (item 3). A passed row needs no word — the ✓ says it. */}
+                  {rowState === 'fail' && (
+                    <span className="shrink-0 text-xs font-medium text-fail">
+                      {tSignal('status.notMet')}
+                    </span>
+                  )}
+                  {rowState === 'none' && (
+                    <span className="shrink-0 text-xs font-medium text-ink-faint">
+                      {tSignal('status.cantJudge')}
+                    </span>
+                  )}
                   {/* The condition-trend delta, folded in: only on rows that
                       flipped since the reference, coloured the way a pass and a
                       fail are coloured everywhere else. */}
@@ -762,7 +806,7 @@ export default async function StockPage({
           summary={
             position
               ? (() => {
-                  const result = positionReturn(position, snapshot?.price ?? null);
+                  const result = positionReturn(position, latestClose);
                   return {
                     change: result.change == null ? null : formatPercent(result.change, locale),
                     value:

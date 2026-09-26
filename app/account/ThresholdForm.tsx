@@ -116,8 +116,8 @@ export function ThresholdForm({
             aria-live="polite"
             className={`text-xs ${
               state.status === 'saved'
-                ? 'text-emerald-700 dark:text-emerald-300'
-                : 'text-rose-600 dark:text-rose-400'
+                ? 'text-pass'
+                : 'text-fail'
             }`}
           >
             {state.status === 'saved' ? labels.saved : labels.error}

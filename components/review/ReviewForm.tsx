@@ -85,17 +85,17 @@ export function ReviewForm({
           and a screen reader would otherwise never mention it. */}
       <p role="status" aria-live="polite" className="text-xs">
         {state.status === 'error' && (
-          <span className="text-rose-700 dark:text-rose-300">
+          <span className="text-fail">
             {labels.failed.replace('{message}', state.message)}
           </span>
         )}
         {state.status === 'saved' && !dirty && (
-          <span className="text-emerald-700 dark:text-emerald-300">
+          <span className="text-pass">
             {labels.savedAt.replace('{time}', savedAt ?? '')}
             {state.noteAdded && ` ${labels.noteAdded}`}
           </span>
         )}
-        {dirty && <span className="text-amber-700 dark:text-amber-300">{labels.unsaved}</span>}
+        {dirty && <span className="text-near">{labels.unsaved}</span>}
       </p>
     </form>
   );

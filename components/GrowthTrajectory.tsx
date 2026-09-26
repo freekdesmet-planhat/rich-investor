@@ -131,7 +131,7 @@ export function GrowthTrajectory({
                 rx="2"
                 className={
                   point.dip
-                    ? 'fill-rose-200 dark:fill-rose-900'
+                    ? 'fill-fail'
                     : 'fill-line'
                 }
               />
@@ -197,7 +197,7 @@ export function GrowthTrajectory({
                   <td
                     key={p.period}
                     className={`py-1 pr-3 text-right tabular-nums ${
-                      p.dip ? 'text-rose-700 dark:text-rose-300' : ''
+                      p.dip ? 'text-fail' : ''
                     }`}
                   >
                     {p.yoy == null ? '—' : formatPercent(p.yoy)}

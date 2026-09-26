@@ -217,7 +217,7 @@ export default async function ComparePage({
                     <tr
                       key={row.key}
                       className={`border-b border-line ${
-                        row.differs ? 'bg-amber-50/60 dark:bg-amber-950/20' : ''
+                        row.differs ? 'bg-near-wash/60' : ''
                       }`}
                     >
                       <th
@@ -238,8 +238,8 @@ export default async function ComparePage({
                             <span
                               className={
                                 cell.condition.passed
-                                  ? 'text-emerald-700 dark:text-emerald-300'
-                                  : 'text-rose-700 dark:text-rose-300'
+                                  ? 'text-pass'
+                                  : 'text-fail'
                               }
                             >
                               <span aria-hidden="true">{cell.condition.passed ? '✓' : '✗'}</span>{' '}

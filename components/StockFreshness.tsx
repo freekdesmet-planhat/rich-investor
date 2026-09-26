@@ -11,7 +11,7 @@ export function StockFreshness({ age, priceLine, financialsLine }: StockFreshnes
   if (!age && !priceLine && !financialsLine) return null;
 
   return (
-    <div className="text-ink-faint space-y-0.5 text-xs">
+    <div className="text-ink-subtle space-y-0.5 text-xs">
       {age && <p>{age}</p>}
       {priceLine && <p>{priceLine}</p>}
       {financialsLine && <p>{financialsLine}</p>}

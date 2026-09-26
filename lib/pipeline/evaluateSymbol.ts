@@ -187,7 +187,7 @@ export function evaluateSymbol(input: EvaluateSymbolInput): EvaluatedSymbol {
 
   const signal = evaluateSignal(ctx, ratios, lynch.category);
 
-  const explainInput = { symbol, name, signal, ratios };
+  const explainInput = { symbol, name, signal, ratios, currency: bundle.quote?.currency ?? null };
   const explanation = explainSignal(explainInput);
 
   const becameBuyWorthy = signal.status === 'buy_worthy' && previousStatus !== 'buy_worthy';

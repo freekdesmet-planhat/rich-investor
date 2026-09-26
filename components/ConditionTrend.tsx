@@ -78,8 +78,8 @@ export function ConditionTrend({
                     key={change.key}
                     className={`text-sm ${
                       change.gained
-                        ? 'text-emerald-700 dark:text-emerald-300'
-                        : 'text-rose-700 dark:text-rose-300'
+                        ? 'text-pass'
+                        : 'text-fail'
                     }`}
                   >
                     <span aria-hidden="true" className="mr-1">

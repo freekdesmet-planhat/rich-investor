@@ -64,10 +64,10 @@ export function PasswordForm({ labels }: { labels: PasswordLabels }) {
       <SaveButton labels={labels} />
 
       {state.status === 'saved' && (
-        <p className="text-sm text-emerald-700 dark:text-emerald-400">{labels.saved}</p>
+        <p className="text-sm text-pass">{labels.saved}</p>
       )}
       {state.status === 'error' && (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
+        <p className="text-sm text-fail">
           {labels.errors[state.message ?? ''] ?? labels.errors.generic}
         </p>
       )}

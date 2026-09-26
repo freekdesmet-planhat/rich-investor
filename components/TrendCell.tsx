@@ -53,7 +53,7 @@ export function TrendCell({ trend, labels }: { trend: Trend | null; labels: Tren
         <span
           className={`whitespace-nowrap rounded px-1.5 py-0.5 text-xs tabular-nums ${
             delta > 0
-              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+              ? 'bg-pass-wash text-pass'
               : 'bg-surface-sunken text-ink-muted'
           }`}
         >

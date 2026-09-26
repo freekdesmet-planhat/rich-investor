@@ -39,8 +39,8 @@ export function WhyBlock({
 
   const verdict = parts.filter((p) => p.section === 'verdict');
   const groups: Array<{ key: 'passes' | 'missing' | 'check'; label: string; tone: string }> = [
-    { key: 'passes', label: labels.passes, tone: 'text-emerald-700 dark:text-emerald-300' },
-    { key: 'missing', label: labels.missing, tone: 'text-amber-700 dark:text-amber-300' },
+    { key: 'passes', label: labels.passes, tone: 'text-pass' },
+    { key: 'missing', label: labels.missing, tone: 'text-near' },
     { key: 'check', label: labels.check, tone: 'text-ink-muted' },
   ];
 

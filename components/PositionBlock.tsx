@@ -41,8 +41,11 @@ function SubmitButton({ idle, busy, className }: { idle: string; busy: string; c
   );
 }
 
+// The one filled button of the position form, black like the rest of the app's
+// primaries (round 2, item 2). "I own this" (the collapsed state) is an outline
+// button — declaring ownership is a quiet choice, not the page's main action.
 const PRIMARY =
-  'rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition hover:bg-accent-hover disabled:opacity-60';
+  'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-ink transition hover:bg-primary-hover disabled:opacity-60';
 const SECONDARY =
   'rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink-muted transition hover:bg-surface-hover disabled:opacity-60';
 // Themed rather than the browser default: the fields carried `bg-white`, which
@@ -112,8 +115,8 @@ export function PositionBlock({
                   <dd
                     className={`text-lg font-semibold tabular-nums ${
                       summary.change.startsWith('-')
-                        ? 'text-rose-700 dark:text-rose-300'
-                        : 'text-emerald-700 dark:text-emerald-300'
+                        ? 'text-fail'
+                        : 'text-pass'
                     }`}
                   >
                     {summary.change}
@@ -161,7 +164,7 @@ export function PositionBlock({
         )}
 
         {!position && !showForm && (
-          <button type="button" onClick={() => setOpen(true)} className={PRIMARY}>
+          <button type="button" onClick={() => setOpen(true)} className={SECONDARY}>
             {labels.add}
           </button>
         )}
@@ -224,14 +227,14 @@ export function PositionBlock({
               <button type="button" onClick={() => setOpen(false)} className={SECONDARY}>
                 {labels.cancel}
               </button>
-              {error && <span className="text-xs text-rose-600 dark:text-rose-400">{error}</span>}
+              {error && <span className="text-xs text-fail">{error}</span>}
             </div>
           </form>
         )}
 
         <p role="status" aria-live="polite" className="mt-2 text-xs">
           {saveState.status === 'saved' && (
-            <span className="text-emerald-700 dark:text-emerald-300">{labels.saved}</span>
+            <span className="text-pass">{labels.saved}</span>
           )}
           {clearState.status === 'cleared' && (
             <span className="text-ink-subtle">{labels.cleared}</span>

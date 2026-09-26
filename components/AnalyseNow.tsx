@@ -113,7 +113,7 @@ export function AnalyseNow({
 
   if (state === 'done') {
     return (
-      <span className="text-xs text-emerald-700 dark:text-emerald-400">
+      <span className="text-xs text-pass">
         {labels.done.replace('{symbol}', symbol)}
       </span>
     );
@@ -133,7 +133,7 @@ export function AnalyseNow({
       >
         {state === 'running' ? labels.analysing : labels.analyse}
       </button>
-      {message && <span className="text-xs text-rose-600 dark:text-rose-400">{message}</span>}
+      {message && <span className="text-xs text-fail">{message}</span>}
     </span>
   );
 }

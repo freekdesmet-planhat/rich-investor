@@ -12,6 +12,8 @@ export interface RatioCardProps {
   /** Pre-formatted in the active locale by the server component. */
   displayValue: string;
   color: string;
+  /** What the colour dot means, for assistive tech: "Met" / "Not met" / "Can't judge" (item 6). */
+  statusLabel: string;
   targetLabel: string;
   targetSourceLabel: string;
   /**
@@ -70,6 +72,7 @@ export function RatioCard({
   explanation,
   displayValue,
   color,
+  statusLabel,
   targetLabel,
   targetSourceLabel,
   gateLabel,
@@ -96,7 +99,7 @@ export function RatioCard({
     <div className="bg-surface border-line rounded-lg border p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
-          <ColorDot color={color} label={color} />
+          <ColorDot color={color} label={statusLabel} />
           {/* Wraps rather than truncates: the name is the only thing saying
               which ratio this card is, and "Operating cash flow / net inc…"
               is not a thing you can look up. */}
@@ -169,10 +172,10 @@ export function RatioCard({
 
       <p className="mt-2 text-xs text-ink-subtle">
         {labels.target}: {targetLabel}{' '}
-        <span className="text-ink-faint">({targetSourceLabel})</span>
+        <span className="text-ink-subtle">({targetSourceLabel})</span>
       </p>
       {gateLabel && (
-        <p className="mt-0.5 text-xs text-ink-faint">{gateLabel}</p>
+        <p className="mt-0.5 text-xs text-ink-subtle">{gateLabel}</p>
       )}
 
       {/* The explanation opens in a modal dialog rather than inside the card.
@@ -205,7 +208,7 @@ export function RatioCard({
 
           <p className="text-xs text-ink-subtle">
             {labels.target}: {targetLabel}{' '}
-            <span className="text-ink-faint">({targetSourceLabel})</span>
+            <span className="text-ink-subtle">({targetSourceLabel})</span>
           </p>
 
           {/* One <p> per paragraph, rather than `whitespace-pre-line` over the
@@ -223,7 +226,7 @@ export function RatioCard({
           </div>
 
           {history.length > 1 && (
-            <p className="mt-3 text-xs text-ink-faint">
+            <p className="mt-3 text-xs text-ink-subtle">
               {/* The count is derived, not fixed at five — the window often holds four
                   annual points, and "5 years: 2022 · 2023 · 2024 · 2025" was wrong. */}
               {labels.fiveYears.replace('{count}', String(history.length))}:{' '}
@@ -232,7 +235,7 @@ export function RatioCard({
           )}
 
           {provenance && provenance.sources.length > 0 && (
-            <p className="mt-2 text-xs text-ink-faint">
+            <p className="mt-2 text-xs text-ink-subtle">
               {labels.source
                 .replace('{sources}', provenance.sources.join(', '))
                 .replace('{date}', provenance.asOf)}

@@ -77,7 +77,7 @@ export function SuggestionDecision({
 
   if (restored.status === 'restored') {
     return (
-      <p className="text-sm text-emerald-700 dark:text-emerald-400">
+      <p className="text-sm text-pass">
         {labels.restored.replace('{symbol}', symbol)}
       </p>
     );
@@ -85,7 +85,7 @@ export function SuggestionDecision({
 
   if (accepted.status === 'accepted') {
     return (
-      <p className="text-sm text-emerald-700 dark:text-emerald-400">
+      <p className="text-sm text-pass">
         {labels.accepted.replace('{symbol}', symbol)}
       </p>
     );
@@ -128,7 +128,7 @@ export function SuggestionDecision({
         <SubmitButton idle={labels.dismiss} busy={labels.dismissing} className={SECONDARY} />
       </form>
       {error && (
-        <p className="text-xs text-rose-600 dark:text-rose-400">{error.message}</p>
+        <p className="text-xs text-fail">{error.message}</p>
       )}
     </div>
   );

@@ -25,11 +25,11 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * The colour the browser paints around the app once installed.
  *
- * slate-900 is the app's own ink, so a phone's status bar does not flash a
- * colour that appears nowhere in the design.
+ * The warm dark canvas (round 2, item 7), so a phone's status bar matches the
+ * app rather than flashing a cool navy that appears nowhere in the design.
  */
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#131210',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -57,6 +57,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');var d=document.documentElement;if(t==='light'||t==='dark'){d.setAttribute('data-theme',t)}else if(t==='system'){d.removeAttribute('data-theme')}}catch(e){}`,
           }}
         />
+        {/* Theme-variant canary (round 2, item 7 fix). `dark:` is bound to the
+            `data-theme` attribute, not the OS media query, so a forced-light app
+            must stay light even when the OS is in dark mode. This hidden probe is
+            the one place a `dark:` utility is guaranteed to exist for the Playwright
+            theme check (verify:theme) to read: white in light, black in dark — if
+            the binding ever regresses to the OS query, its colour stops following
+            the toggle and the check fails. sr-only + aria-hidden: never seen. */}
+        <span data-theme-probe aria-hidden="true" className="sr-only bg-white dark:bg-black" />
+
         {/* Outside the provider and above every page, so it is listening
             before anything that might fail has rendered. */}
         <ClientErrorReporter />

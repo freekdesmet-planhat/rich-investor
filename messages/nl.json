@@ -134,7 +134,12 @@
       "gained": "nu gehaald",
       "lost": "nu niet meer"
     },
-    "youChangedRule": "Je hebt deze regel gewijzigd"
+    "youChangedRule": "Je hebt deze regel gewijzigd",
+    "status": {
+      "met": "Voldaan",
+      "notMet": "Niet voldaan",
+      "cantJudge": "Geen oordeel"
+    }
   },
   "data": {
     "staleBanner": "Gegevens van {date}, gegevensbron tijdelijk niet beschikbaar.",

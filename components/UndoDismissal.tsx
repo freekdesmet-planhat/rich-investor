@@ -21,7 +21,7 @@ function SubmitButton({ idle, busy }: { idle: string; busy: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="font-medium text-amber-900 underline underline-offset-2 disabled:opacity-60 dark:text-amber-200"
+      className="font-medium text-near underline underline-offset-2 disabled:opacity-60"
     >
       {pending ? busy : idle}
     </button>
@@ -51,7 +51,7 @@ export function UndoDismissal({ symbol, labels }: { symbol: string; labels: Undo
     return (
       <p
         role="status"
-        className="mb-4 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+        className="mb-4 rounded-md border border-pass-line bg-pass-wash px-3 py-2 text-sm text-pass"
       >
         {labels.restored.replace('{symbol}', symbol)}
       </p>
@@ -61,7 +61,7 @@ export function UndoDismissal({ symbol, labels }: { symbol: string; labels: Undo
   return (
     <div
       role="status"
-      className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+      className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-near-line bg-near-wash px-3 py-2 text-sm text-near"
     >
       <span>
         {labels.dismissed.replace('{symbol}', symbol).replace('{days}', labels.days)}

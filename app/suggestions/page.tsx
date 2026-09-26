@@ -190,7 +190,7 @@ export default async function SuggestionsPage({
                     <p className="text-ink-subtle mt-0.5 text-xs">
                       {tSector(row.focus_sector)} · {t('suggestedOn', { date: row.suggested_at })}
                       {daysLeft != null && (
-                        <span className="ml-1 text-amber-700 dark:text-amber-500">
+                        <span className="ml-1 text-near">
                           · {t('dismissedDaysLeft', { days: daysLeft })}
                         </span>
                       )}
@@ -206,7 +206,7 @@ export default async function SuggestionsPage({
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   {row.state === 'accepted' ? (
-                    <span className="text-sm text-emerald-700 dark:text-emerald-400">
+                    <span className="text-sm text-pass">
                       {t('onWatchlist')}
                     </span>
                   ) : (

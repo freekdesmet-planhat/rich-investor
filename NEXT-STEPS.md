@@ -436,6 +436,48 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Round 2 item 7 **review fixes** (direction approved; fixes on the
+  stock page before rollout, on a **preview deploy**). Eight points:
+  1. **Dark mode now follows the toggle, not the OS.** Added `@custom-variant dark`
+     in globals.css bound to the `data-theme` attribute (forced dark, or system
+     dark when no `light` override) — the exact mirror of the token scopes. This
+     fixes both directions (OS dark + app light, and the reverse). Replaced the raw
+     `emerald/amber/rose/sky` palette across the app with the semantic tokens
+     (`pass/fail/near/accent` + `-wash/-line`) so there is one source of truth;
+     stripped the now-redundant `dark:` duplicates. A Playwright theme check is
+     added (see below).
+  2. **One filled button per screen.** "Save review" → black `primary`; "I own
+     this" → outline; selected review chips → ink outline + light tint; the default
+     "Not yet assessed" chip now reads as unselected. Blue is links/focus/chart only.
+  3. **Failed rows stand out.** A failed checklist row shows the fail colour on
+     icon + value and the words "Not met"; a can't-judge/grey row shows a "?" icon,
+     muted text and "Can't judge". Reads in greyscale (icon shape + words).
+  4. **One price.** The whole stock page now reads the latest stored close (with
+     its close date on the freshness line): header, checklist drawdown, chart
+     end-point, drawdown and position return. The header previously showed a live
+     quote while the chart used the close — hence €875.50 vs €843.50 and −68% vs
+     −69.3%. (UI-side unification; a pipeline note is below.)
+  5. **Contrast.** `--ink-subtle` darkened to clear 4.5:1 on surface; provenance
+     text ("(core methodology)", "market closed", freshness) moved off `--ink-faint`
+     (2.4:1) onto `--ink-subtle`. Chart labels ("5y high", "−50% line", axis) → 11px
+     in the muted ink token; reference lines neutral, price line the accent.
+  6. **Colour roles.** Sparklines draw in neutral ink (trend, not verdict); ratio
+     status dots now carry "Met"/"Not met"/"Can't judge" aria-labels, not "green".
+  7. **Warm dark palette.** Dark neutrals shifted from cool navy to warm (base
+     ~#131210), same contrast rules, so light and dark feel like one product.
+  8. **Group A leftovers on ADYEN.AS:** the Why block no longer prints two
+     "what to check" sentences that both point to the review (generic handover is
+     suppressed when a specific check exists); the 5-year high in the Why prose now
+     carries its currency (was a bare "2745.00"). Why-parts are stored, so ADYEN was
+     re-analysed to refresh them. ("logarithmic-waterfall maths" / "high-conviction
+     entry points" wording deferred to the item-4 copy pass, per the brief.)
+  - FOLLOW-UP (noted, not blocking): the nightly pipeline still stores the drawdown
+    value and header price from the live quote; the page overrides the display.
+    Aligning the pipeline (engine drawdown + `daily_snapshots.price`) on the close
+    would make every surface consistent without the UI override, but needs a nightly
+    re-run to backfill. The digest email prose also still prints the high without a
+    currency (its `NotifiableSignal` carries none); low priority.
+
 - 2026-09-26: Round 2 item 7 (light-first design) — tokens + stock page shipped,
   **STOPPED for review before rollout** (per the brief). New tokens in
   docs/design-notes.md + globals.css: white page, warm off-white panels (#faf8f4)

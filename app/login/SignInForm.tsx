@@ -52,7 +52,7 @@ export function SignInForm({ next, labels }: { next?: string; labels: SignInLabe
 
   if (state.status === 'sent') {
     return (
-      <p className="rounded-md border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+      <p className="rounded-md border border-pass-line bg-pass-wash p-4 text-sm text-pass">
         {labels.linkSent}
       </p>
     );
@@ -97,7 +97,7 @@ export function SignInForm({ next, labels }: { next?: string; labels: SignInLabe
       <Buttons labels={labels} />
 
       {state.status === 'error' && (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
+        <p className="text-sm text-fail">
           {labels.errors[state.message ?? ''] ?? labels.errors.generic}
         </p>
       )}

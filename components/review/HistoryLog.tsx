@@ -14,8 +14,8 @@ export interface HistoryLabels {
 }
 
 const TONE: Record<string, string> = {
-  temporary: 'text-emerald-700 dark:text-emerald-300',
-  structural: 'text-rose-700 dark:text-rose-300',
+  temporary: 'text-pass',
+  structural: 'text-fail',
   not_assessed: 'text-ink-subtle',
 };
 
@@ -77,7 +77,7 @@ export function HistoryLog({
                   ...change.addedCatalysts.map((k) => label('catalyst', k)),
                   ...change.addedSellSignals.map((k) => label('sell_signal', k)),
                 ]}
-                tone="text-emerald-700 dark:text-emerald-300"
+                tone="text-pass"
               />
               <Movement
                 prefix={labels.removed}

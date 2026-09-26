@@ -50,13 +50,13 @@ export function StuckLoadingEscape({
     <div
       id={id}
       hidden
-      className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+      className="mt-6 rounded-lg border border-near-line bg-near-wash p-4 text-sm text-near"
     >
       <p data-stuck-message>{COPY.en.message}</p>
       <button
         type="button"
         data-stuck-retry
-        className="mt-2 rounded-md border border-amber-400 px-3 py-1.5 font-medium transition hover:bg-amber-100 dark:border-amber-600 dark:hover:bg-amber-900"
+        className="mt-2 rounded-md border border-near-line px-3 py-1.5 font-medium transition hover:bg-near-wash"
       >
         {COPY.en.retry}
       </button>

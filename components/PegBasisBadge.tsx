@@ -31,7 +31,7 @@ export function PegBasisBadge({
   return (
     <span
       title={title}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 font-medium text-amber-900 ring-1 ring-inset ring-amber-600/30 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-400/30 ${
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-near-wash font-medium text-near ring-1 ring-inset ring-near-line/30 ${
         compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-0.5 text-xs'
       }`}
     >

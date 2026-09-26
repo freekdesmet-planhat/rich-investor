@@ -4,16 +4,16 @@ import { useState } from 'react';
 import type { MacroTone } from '@/lib/macro/fetch';
 
 const TONE: Record<MacroTone, string> = {
-  good: 'border-emerald-300 dark:border-emerald-800',
-  warn: 'border-amber-400 dark:border-amber-700',
-  bad: 'border-rose-400 dark:border-rose-700',
+  good: 'border-pass-line',
+  warn: 'border-near-line',
+  bad: 'border-fail-line',
   neutral: 'border-line',
 };
 
 const VALUE_TONE: Record<MacroTone, string> = {
-  good: 'text-emerald-700 dark:text-emerald-300',
-  warn: 'text-amber-700 dark:text-amber-300',
-  bad: 'text-rose-700 dark:text-rose-300',
+  good: 'text-pass',
+  warn: 'text-near',
+  bad: 'text-fail',
   neutral: 'text-ink',
 };
 

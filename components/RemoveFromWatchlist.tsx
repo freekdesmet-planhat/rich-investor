@@ -73,7 +73,7 @@ export function RemoveFromWatchlist({
 
   if (restoreState.status === 'restored') {
     return (
-      <span className="text-xs text-emerald-700 dark:text-emerald-400">
+      <span className="text-xs text-pass">
         {labels.restored.replace('{symbol}', symbol)}
       </span>
     );
@@ -113,7 +113,7 @@ export function RemoveFromWatchlist({
         }
       />
       {state.status === 'error' && (
-        <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{state.message}</p>
+        <p className="mt-1 text-xs text-fail">{state.message}</p>
       )}
     </form>
   );

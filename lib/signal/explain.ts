@@ -47,6 +47,21 @@ const num = (v: number | null | undefined, lang: Lang, digits = 2): string => {
   return lang === 'nl' ? n.replace('.', ',') : n;
 };
 
+/** A price with its currency — never a bare "2745.00" (round 2, item 8). */
+const money = (v: number | null | undefined, lang: Lang, currency?: string | null): string => {
+  if (v == null) return lang === 'nl' ? 'onbekend' : 'unknown';
+  if (!currency) return num(v, lang);
+  try {
+    return new Intl.NumberFormat(lang === 'nl' ? 'nl-NL' : 'en-US', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+    }).format(v);
+  } catch {
+    return num(v, lang);
+  }
+};
+
 const billions = (v: number | null | undefined, lang: Lang): string => {
   if (v == null) return lang === 'nl' ? 'onbekend' : 'unknown';
   const n = (v / 1e9).toFixed(1);
@@ -72,6 +87,8 @@ export interface ExplainInput {
   name?: string | null;
   signal: SignalResult;
   ratios: Record<RatioKey, RatioResult>;
+  /** The price currency, so prices in the prose carry a symbol (item 8). */
+  currency?: string | null;
   /** Industry rank, when known (5.19). */
   industryRank?: { rank: number; industry: string; leadOverSecond?: number | null } | null;
 }
@@ -244,8 +261,8 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
     const decline = -drawdown.value;
     const base =
       lang === 'nl'
-        ? `De koers staat ${pct(decline, lang)} onder de hoogste slotkoers van de afgelopen vijf jaar (${num(dd.high, lang)})`
-        : `It trades ${pct(decline, lang)} below its 5-year high of ${num(dd.high, lang)}`;
+        ? `De koers staat ${pct(decline, lang)} onder de hoogste slotkoers van de afgelopen vijf jaar (${money(dd.high, lang, input.currency)})`
+        : `It trades ${pct(decline, lang)} below its 5-year high of ${money(dd.high, lang, input.currency)}`;
 
     const waterfall =
       dd.recoveryNeeded != null
@@ -358,7 +375,10 @@ function buildOne(input: ExplainInput, lang: Lang): WhyPart[] {
   }
 
   // --- the handover to the human -------------------------------------------
-  if (signal.status === 'buy_worthy') {
+  // Only when nothing more specific already sent the reader to the review block
+  // (e.g. the forward-PEG check), so the "check" group does not repeat itself
+  // with two sentences that both say "go do the qualitative review" (item 8).
+  if (signal.status === 'buy_worthy' && !parts.some((p) => p.section === 'check')) {
     parts.push({ section: 'check', text:
       lang === 'nl'
         ? `Eén ding moet je zelf beoordelen: de volgende stap is de vraag of het probleem tijdelijk of structureel is — zie het blok "Mijn kwalitatieve beoordeling" hieronder.`

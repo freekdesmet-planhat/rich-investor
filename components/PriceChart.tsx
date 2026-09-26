@@ -143,7 +143,7 @@ export function PriceChart({
             <text
               x={width - padding.right + 6}
               y={y(tick) + 3}
-              className="fill-ink-faint text-[10px]"
+              className="fill-ink-muted text-[11px]"
             >
               {formatMoney(tick)}
             </text>
@@ -158,7 +158,7 @@ export function PriceChart({
               y1={highY}
               y2={highY}
               strokeDasharray="4 4"
-              className="stroke-amber-500/70"
+              className="stroke-line-strong"
               strokeWidth="1"
             />
             {/* Anchored at the right edge, off the plot, rather than printed
@@ -167,7 +167,7 @@ export function PriceChart({
               x={width - padding.right - 4}
               y={highY - 4}
               textAnchor="end"
-              className="fill-amber-600 text-[10px] dark:fill-amber-400"
+              className="fill-ink-muted text-[11px]"
             >
               {labels.high}
               {highDate ? ` · ${highDate.slice(0, 7)}` : ''}
@@ -184,21 +184,21 @@ export function PriceChart({
               y1={entryY}
               y2={entryY}
               strokeDasharray="2 3"
-              className="stroke-emerald-600/70"
+              className="stroke-ink-subtle"
               strokeWidth="1"
             />
             <text
               x={width - padding.right - 4}
               y={entryY - 4}
               textAnchor="end"
-              className="fill-emerald-700 text-[10px] dark:fill-emerald-400"
+              className="fill-ink-muted text-[11px]"
             >
               {labels.entry}
             </text>
           </g>
         )}
 
-        <g className="text-sky-600 dark:text-sky-400">
+        <g className="text-accent">
           <path d={area} fill="url(#priceFill)" />
           <path d={line} fill="none" stroke="currentColor" strokeWidth="1.5" />
         </g>
@@ -207,7 +207,7 @@ export function PriceChart({
           cx={x(sampled.length - 1)}
           cy={y(last.close)}
           r="3"
-          className="fill-sky-600 dark:fill-sky-400"
+          className="fill-accent"
         />
 
         {active && hover != null && (
@@ -247,7 +247,7 @@ export function PriceChart({
           </span>
         )}
         {drawdown != null && (
-          <span className={drawdown <= -0.5 ? 'font-medium text-emerald-600 dark:text-emerald-400' : ''}>
+          <span className={drawdown <= -0.5 ? 'font-medium text-pass' : ''}>
             {labels.drawdown}{' '}
             <span className="tabular-nums">{formatPercent(drawdown, locale)}</span>
           </span>

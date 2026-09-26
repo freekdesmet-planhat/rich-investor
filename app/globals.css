@@ -1,6 +1,32 @@
 @import "tailwindcss";
 
 /**
+ * Bind Tailwind's `dark:` variant to our theme, not to the OS (round 2, item 7 fix).
+ *
+ * By default `dark:` compiles to `@media (prefers-color-scheme: dark)`, which
+ * ignores the toggle entirely: with the OS in dark mode and the app forced to
+ * light, every `dark:` utility fired anyway and painted dark styles onto the
+ * light page (dark-brown banners, 1.3:1 emerald text). The reverse was just as
+ * broken. So `dark:` must follow the same rule the tokens above do — the
+ * `data-theme` attribute the toggle sets, falling back to the OS only when the
+ * user has expressed no preference:
+ *   - forced dark:  [data-theme="dark"]
+ *   - system dark:  no [data-theme="light"] AND the OS prefers dark
+ * These two selectors are the exact mirror of the token scopes below, so a
+ * `dark:` utility and a token now always agree on which theme is showing.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/**
  * The design tokens the app is built from.
  *
  * Every page until now reached for raw Tailwind greys, in pairs: a card was
@@ -38,9 +64,9 @@
 
   /* --- text, by role rather than by lightness ---------------------------- */
   --ink: #1b1a17;           /* primary text — a warm near-black */
-  --ink-muted: #55514a;     /* secondary text, still meant to be read */
-  --ink-subtle: #7c766c;    /* captions, units, provenance */
-  --ink-faint: #a8a294;     /* placeholders, disabled, decorative */
+  --ink-muted: #55514a;     /* secondary text, still meant to be read (7.5:1 on white) */
+  --ink-subtle: #6f6a60;    /* captions, units, provenance — held at 4.5:1 on surface */
+  --ink-faint: #a8a294;     /* placeholders, disabled — decorative only, never body copy */
 
   /* --- accent — one colour, used sparingly for links and selection ------- */
   --accent: #2563eb;
@@ -96,43 +122,47 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --canvas: #020617;
-    --surface: #0f172a;
-    --surface-sunken: #1e293b;
-    --surface-hover: #1e293b;
+    /* Warm dark (round 2, item 7): the neutrals carry the same warmth as light
+       mode — a base around #131210 rather than cool navy — so the two themes
+       read as one product. Contrast rules are unchanged: ink-muted clears
+       4.5:1 on surface, ink-subtle is held at 4.5:1, ink-faint is decorative. */
+    --canvas: #131210;
+    --surface: #1c1a16;
+    --surface-sunken: #262119;
+    --surface-hover: #262119;
 
-    --line: #1e293b;
-    --line-strong: #334155;
+    --line: #2c2820;
+    --line-strong: #3d372d;
 
-    --ink: #f1f5f9;
-    --ink-muted: #cbd5e1;
-    --ink-subtle: #94a3b8;
-    --ink-faint: #64748b;
+    --ink: #f5f2ea;
+    --ink-muted: #ccc5b8;
+    --ink-subtle: #a49c8d;
+    --ink-faint: #6f685b;
 
     --accent: #60a5fa;
     --accent-hover: #93c5fd;
-    --accent-ink: #0f172a;
-    --accent-wash: #172554;
+    --accent-ink: #1c1a16;
+    --accent-wash: #1e2a3d;
 
-    --primary: #f5f4f1;
+    --primary: #f5f2ea;
     --primary-hover: #ffffff;
     --primary-ink: #1b1a17;
 
     --pass: #4ade80;
-    --pass-wash: #052e16;
-    --pass-line: #166534;
+    --pass-wash: #10250f;
+    --pass-line: #1c5730;
 
     --near: #fbbf24;
     --near-wash: #2c1a02;
     --near-line: #854d0e;
 
     --fail: #f87171;
-    --fail-wash: #300c0c;
-    --fail-line: #991b1b;
+    --fail-wash: #2e100c;
+    --fail-line: #8f2320;
 
-    --none: #94a3b8;
-    --none-wash: #0f172a;
-    --none-line: #1e293b;
+    --none: #a49c8d;
+    --none-wash: #1c1a16;
+    --none-line: #2c2820;
 
     --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
     --shadow-raised: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
@@ -144,43 +174,44 @@
    work — but the tokens are ready for it rather than needing a second pass. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #020617;
-  --surface: #0f172a;
-  --surface-sunken: #1e293b;
-  --surface-hover: #1e293b;
+  /* Warm dark — kept identical to the @media block above (round 2, item 7). */
+  --canvas: #131210;
+  --surface: #1c1a16;
+  --surface-sunken: #262119;
+  --surface-hover: #262119;
 
-  --line: #1e293b;
-  --line-strong: #334155;
+  --line: #2c2820;
+  --line-strong: #3d372d;
 
-  --ink: #f1f5f9;
-  --ink-muted: #cbd5e1;
-  --ink-subtle: #94a3b8;
-  --ink-faint: #64748b;
+  --ink: #f5f2ea;
+  --ink-muted: #ccc5b8;
+  --ink-subtle: #a49c8d;
+  --ink-faint: #6f685b;
 
   --accent: #60a5fa;
   --accent-hover: #93c5fd;
-  --accent-ink: #0f172a;
-  --accent-wash: #172554;
+  --accent-ink: #1c1a16;
+  --accent-wash: #1e2a3d;
 
-  --primary: #f5f4f1;
+  --primary: #f5f2ea;
   --primary-hover: #ffffff;
   --primary-ink: #1b1a17;
 
   --pass: #4ade80;
-  --pass-wash: #052e16;
-  --pass-line: #166534;
+  --pass-wash: #10250f;
+  --pass-line: #1c5730;
 
   --near: #fbbf24;
   --near-wash: #2c1a02;
   --near-line: #854d0e;
 
   --fail: #f87171;
-  --fail-wash: #300c0c;
-  --fail-line: #991b1b;
+  --fail-wash: #2e100c;
+  --fail-line: #8f2320;
 
-  --none: #94a3b8;
-  --none-wash: #0f172a;
-  --none-line: #1e293b;
+  --none: #a49c8d;
+  --none-wash: #1c1a16;
+  --none-line: #2c2820;
 
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
   --shadow-raised: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);

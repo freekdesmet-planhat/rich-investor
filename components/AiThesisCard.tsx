@@ -194,7 +194,7 @@ export function AiThesisCard({
           <p className="text-ink-subtle text-xs">{labels.signedOut}</p>
         )}
         {errorCode && (
-          <p className="text-xs text-rose-600 dark:text-rose-400">
+          <p className="text-xs text-fail">
             {labels.error} {labels.failed[errorCode] ?? labels.failed.unknown}
           </p>
         )}

@@ -55,8 +55,8 @@ export function DataFreshness({
         role="status"
         className={
           isVeryStale
-            ? 'mb-4 rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200'
-            : 'mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200'
+            ? 'mb-4 rounded border border-fail-line bg-fail-wash px-3 py-2 text-sm text-fail'
+            : 'mb-4 rounded border border-near-line bg-near-wash px-3 py-2 text-sm text-near'
         }
       >
         {message}
@@ -67,9 +67,9 @@ export function DataFreshness({
   if (warningOnly) return null;
 
   return (
-    <p className="text-ink-faint text-xs">
+    <p className="text-ink-subtle text-xs">
       {labels.updated.replace('{age}', age ?? '')}
-      <span className="ml-2 text-ink-faint">{labels.asOf}</span>
+      <span className="ml-2 text-ink-subtle">{labels.asOf}</span>
     </p>
   );
 }
