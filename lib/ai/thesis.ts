@@ -23,6 +23,7 @@
  */
 import type { Lang } from '@/lib/i18n/config';
 import { formatNumber, formatPercent } from '@/lib/i18n/format';
+import { CONDITION_LABEL } from '@/lib/signal/explain';
 import {
   thesisProvider,
   ThesisProviderError,
@@ -124,6 +125,13 @@ const CONSTRAINTS =
   '- For valuation, do not call the price cheap or expensive as an opinion. Name the ' +
   'specific rule the company meets or misses, and state it in the active voice — ' +
   '"the method asks for a fall of at least 50%", not "a fall of 50% was sought".\n' +
+  '- Name the checks the app’s own way: call them "conditions", and refer to each by ' +
+  'the name given in the checklist below. Do not call them "criteria", "rules", ' +
+  '"norms", "requirements" or "limits". It is the stock — the company — that meets or ' +
+  'misses conditions, never "the price".\n' +
+  '- Do not judge a figure with a bare opinion word ("very low", "high", "strong"). ' +
+  'State it against the method’s limit instead — for example "well below the limit of ' +
+  '2.5", not "very low at 0.27".\n' +
   '- Every number you write must be one of the figures listed below, copied exactly ' +
   'as written there: the same digits, the same decimal mark, and with the % sign — ' +
   'do not spell out "per cent" or "procent", and do not invent, round or recompute a ' +
@@ -162,9 +170,10 @@ export function systemPromptFor(
     lang === 'nl'
       ? 'Write in Dutch, as a Dutch financial journalist would write for a Dutch ' +
         'private investor. Use the ordinary Dutch terms for these concepts, written ' +
-        'naturally — for example "nettoschuld" as one word. Do not write English and ' +
-        'do not produce a word-for-word translation of an English sentence — write the ' +
-        'analysis directly in Dutch.'
+        'naturally — for example "nettoschuld" as one word. Call the conditions ' +
+        '"voorwaarden" (singular "voorwaarde"), not "criteria", "regel", "norm" or ' +
+        '"grens". Do not write English and do not produce a word-for-word translation ' +
+        'of an English sentence — write the analysis directly in Dutch.'
       : 'Write in English, for a private investor.';
 
   let constraints = CONSTRAINTS;
@@ -229,7 +238,10 @@ export function buildUserMessage(context: ThesisContext, lang: Lang = 'en'): str
   const checklist = context.checklist
     .map((condition) => {
       const mark = !condition.applicable ? 'n/a' : condition.passed ? 'PASS' : 'FAIL';
-      return `  - ${condition.key}: ${mark} (target: ${condition.target})`;
+      // The app's own name for the condition, so the summary reuses the reader's
+      // vocabulary rather than inventing "criteria" or "norms" (launch item 7).
+      const name = CONDITION_LABEL[condition.key]?.[lang] ?? condition.key;
+      return `  - ${name}: ${mark} (target: ${condition.target})`;
     })
     .join('\n');
 

@@ -181,10 +181,10 @@ describe('the prompt sent to the model', () => {
   it('carries the nine-point checklist with each outcome and target', () => {
     const message = buildUserMessage(context());
 
-    expect(message).toContain('drawdown: PASS (target: ≥ 50%)');
-    expect(message).toContain('peg: PASS (target: ≤ 1)');
+    expect(message).toContain('decline from the 5-year high: PASS (target: ≥ 50%)');
+    expect(message).toContain('PEG ratio: PASS (target: ≤ 1)');
     // A condition that does not apply is neither a pass nor a fail.
-    expect(message).toContain('cash_flow: n/a');
+    expect(message).toContain('cash flow quality: n/a');
   });
 
   it('carries PEG, ROE and ROA, and says when the ROA was adjusted', () => {
