@@ -59,3 +59,4 @@ supabase/.temp
 
 # Claude Code scratch worktrees: whole copies of this repo, never ours to track.
 .claude/
+Claude outputs/
