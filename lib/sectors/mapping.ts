@@ -230,6 +230,7 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
   symbolRule('ABNB', 'luxury_consumer', 'Airbnb — travel/hospitality, not entertainment_media.'),
   symbolRule('DASH', 'luxury_consumer', 'DoorDash — consumer delivery, not entertainment_media.'),
   symbolRule('FLUT', 'luxury_consumer', 'Flutter — gaming/leisure operator, filed as luxury_consumer here.'),
+  symbolRule('RACE.MI', 'luxury_consumer', 'Ferrari — luxury goods; rule on the Milan home listing (RACE.MI), the one the scan keeps.'),
   symbolRule('SINCH.ST', 'information_technology', 'Sinch — cloud communications software, not entertainment_media.'),
   symbolRule('TWLO', 'information_technology', 'Twilio — communications APIs (software), not entertainment_media.'),
   symbolRule('ZM', 'information_technology', 'Zoom — communications software, not entertainment_media.'),
