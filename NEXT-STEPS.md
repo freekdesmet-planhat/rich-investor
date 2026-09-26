@@ -436,6 +436,26 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Round 2 (click-through + pricing) items 0–6 shipped, one commit each,
+  prod-verified. **0** — price-alert: "entry level"→"50% line"/"50%-grens" on chart,
+  ratio card and alert; subject leads with the company name ("ASML fell below €X: the
+  price-fall condition now passes" / NL), body adds the nightly re-check; one email
+  per event (skip the price alert if a Checklist-complete alert already went out that
+  day); alert copy flagged FOR LEGAL. **1** — research tabs switch with router.replace
+  so one Back leaves research; "Back to the analysis" and "Full research" already
+  direct/analysis. **2** — statement tables run oldest-left→newest-right, open scrolled
+  to the newest, sticky row label. **3** — light/dark toggle in the header + System/
+  Light/Dark in Account; cookie for no-flash SSR + localStorage + settings.theme
+  (0048); new default light (moves to avatar menu in item 8). **4** — How it works +
+  Methodology merged into one page/nav item (four-step idea → nine conditions → four
+  sectors → why rules don't change → credit); /methodology redirects; primer is the
+  same page with ?step=. **5** — any company analyses on demand from its stock page
+  (opened from search, not auto-added; "Add to watchlist" on the page; stored for
+  instant repeat; /api/analyse opened to the whole universe). **6** — Compare any
+  company via a shared SearchBox (/api/search), on-demand analysis per pending column,
+  names on chips + column headers. Flags: item 0 alert copy for legal; item 10 will
+  make Compare's cap and on-demand analyses plan-based. **Next: item 7 (light design,
+  stock page) — STOP to show before rollout.**
 - 2026-09-26: Pre-traffic safety items shipped and prod-verified. **1** — landing +
   demo pages carry `noindex` and robots.txt is `Disallow: /` until `PUBLIC_INDEXING`
   (default false) is set; the demos show finance-query data whose display licence is
