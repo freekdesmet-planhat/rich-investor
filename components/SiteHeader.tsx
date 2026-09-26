@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { ThemeToggle } from './ThemeToggle';
 import { MobileNav } from './nav/MobileNav';
 import { NavLinks, type NavLink } from './nav/NavLinks';
 import { createClient } from '@/lib/supabase/server';
@@ -31,11 +32,13 @@ import { signOut } from '@/app/login/actions';
  * header instead of overflowing where it would have been noticed.
  */
 export async function SiteHeader() {
-  const [t, tAuth, tNav] = await Promise.all([
+  const [t, tAuth, tNav, tTheme] = await Promise.all([
     getTranslations('app'),
     getTranslations('auth'),
     getTranslations('nav'),
+    getTranslations('theme'),
   ]);
+  const themeLabels = { toLight: tTheme('toLight'), toDark: tTheme('toDark') };
   const supabase = await createClient();
   const {
     data: { user },
@@ -82,12 +85,14 @@ export async function SiteHeader() {
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-1 border-l border-line pl-3 lg:flex">
+          <ThemeToggle labels={themeLabels} />
           <LanguageSwitcher />
           {signOutButton}
         </div>
 
         <div className="ml-auto lg:hidden">
           <MobileNav links={links} label={tNav('menu')}>
+            <ThemeToggle labels={themeLabels} />
             <LanguageSwitcher />
             {signOutButton}
           </MobileNav>

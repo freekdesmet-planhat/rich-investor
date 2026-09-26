@@ -721,6 +721,8 @@ export interface MemberSettings {
   notify_enabled: boolean;
   notify_on_buy: boolean;
   weekly_summary: boolean;
+  /** 'system' | 'light' | 'dark' (round 2, item 3). */
+  theme: string;
 }
 
 /**
@@ -737,6 +739,7 @@ export async function getSettings(): Promise<MemberSettings> {
     notify_enabled: true,
     notify_on_buy: true,
     weekly_summary: true,
+    theme: 'light',
   };
 
   const supabase = await client();
@@ -747,7 +750,7 @@ export async function getSettings(): Promise<MemberSettings> {
 
   const { data } = await supabase
     .from('settings')
-    .select('language,notify_email,notify_enabled,notify_on_buy,weekly_summary')
+    .select('language,notify_email,notify_enabled,notify_on_buy,weekly_summary,theme')
     .eq('user_id', user.id)
     .maybeSingle<MemberSettings>();
 

@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
+import { cookies } from 'next/headers';
 import { ClientErrorReporter } from '@/components/ClientErrorReporter';
+import { THEME_COOKIE, DEFAULT_THEME, dataTheme, isTheme, THEME_STORAGE_KEY } from '@/lib/theme';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -34,12 +36,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   const t = await getTranslations('app');
 
+  // The theme is set server-side from the cookie so there is no flash; new users
+  // default to light (item 3). The inline script below then lets localStorage win
+  // on the client, which is where a logged-out preference lives.
+  const cookieTheme = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = isTheme(cookieTheme) ? cookieTheme : DEFAULT_THEME;
+
   return (
     <html
       lang={locale}
+      data-theme={dataTheme(theme)}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-canvas text-ink">
+        {/* Applies a logged-out localStorage preference before paint, so the theme
+            follows the reader on the public pages too (item 3). Cookie and storage
+            are written together, so this is a no-op on the common path. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');var d=document.documentElement;if(t==='light'||t==='dark'){d.setAttribute('data-theme',t)}else if(t==='system'){d.removeAttribute('data-theme')}}catch(e){}`,
+          }}
+        />
         {/* Outside the provider and above every page, so it is listening
             before anything that might fail has rendered. */}
         <ClientErrorReporter />

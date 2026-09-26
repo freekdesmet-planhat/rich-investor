@@ -701,5 +701,15 @@
   "privacy": {
     "title": "Privacyverklaring",
     "placeholder": "[Placeholder — nog af te maken en te laten toetsen vóór de lancering.] Deze pagina beschrijft welke gegevens Rich Investor verzamelt, waarom, hoe lang ze worden bewaard en hoe je ze laat verwijderen. Specifiek voor de wachtlijst: we bewaren alleen je e-mailadres en de datum waarop je je aanmeldde, gebruiken het uitsluitend om je te laten weten wanneer Rich Investor opengaat, en verwijderen het op verzoek."
+  },
+  "theme": {
+    "toLight": "Naar lichte modus",
+    "toDark": "Naar donkere modus",
+    "legend": "Thema",
+    "system": "Systeem",
+    "light": "Licht",
+    "dark": "Donker",
+    "heading": "Weergave",
+    "intro": "Kies hoe Rich Investor eruitziet. \"Systeem\" volgt je apparaat."
   }
 }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PasswordForm } from './PasswordForm';
 import { SettingsForms } from './SettingsForms';
 import { ThresholdForm } from './ThresholdForm';
+import { ThemePicker } from '@/components/ThemePicker';
 import { getThresholdOverrides } from '@/lib/data/queries';
 import { EDITABLE_KEYS, defaultFieldsFor } from '@/lib/ratios/editableThresholds';
 import { getSettings } from '@/lib/data/queries';
@@ -20,9 +21,10 @@ export const dynamic = 'force-dynamic';
  * change the caller's own password.
  */
 export default async function AccountPage() {
-  const [tAuth, tAccount, settings, locale, thresholds] = await Promise.all([
+  const [tAuth, tAccount, tTheme, settings, locale, thresholds] = await Promise.all([
     getTranslations('auth'),
     getTranslations('account'),
+    getTranslations('theme'),
     getSettings(),
     getLocale(),
     getThresholdOverrides(),
@@ -105,6 +107,22 @@ export default async function AccountPage() {
             },
           }}
         />
+
+        <section className="mt-8">
+          <SectionHeading>{tTheme('heading')}</SectionHeading>
+          <p className="text-ink-subtle mb-3 mt-1 text-sm">{tTheme('intro')}</p>
+          <ThemePicker
+            initial={
+              settings.theme === 'system' || settings.theme === 'dark' ? settings.theme : 'light'
+            }
+            labels={{
+              legend: tTheme('legend'),
+              system: tTheme('system'),
+              light: tTheme('light'),
+              dark: tTheme('dark'),
+            }}
+          />
+        </section>
 
         <ThresholdForm
           overrides={thresholds}

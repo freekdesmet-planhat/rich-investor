@@ -701,5 +701,15 @@
   "privacy": {
     "title": "Privacy notice",
     "placeholder": "[Placeholder — to be completed and reviewed before launch.] This page will describe what data Rich Investor collects, why, how long it is kept, and how to have it removed. For the waitlist specifically: we store only your email address and the date you joined, use it solely to notify you when Rich Investor opens, and delete it on request."
+  },
+  "theme": {
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode",
+    "legend": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "heading": "Appearance",
+    "intro": "Choose how Rich Investor looks. \"System\" follows your device."
   }
 }
