@@ -364,6 +364,23 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A12b follow-ups.
+  - **Missing caps diagnosed.** Of 473 priced, 100 got no cap: 54 no market-cap
+    in the response (secondary classes GOOGM/DISCB, preferreds, delisted), 30 no
+    quote at all (dead tickers like EA post-buyout), 16 all GBp. Only the GBp set
+    was a bug — LSE pence quotes whose cap is in GBP but has no USD rate; fixed
+    (caps 373→389). Dutch/Belgian coverage was already fine (AMS 1 miss, BRU 0).
+    The ratio engine has the same latent GBp gap → folded into A4.
+  - **Digest moved 02:10 → 02:20**, after the 02:15 scan, so a name the scan
+    finds tonight is in tonight's digest, not tomorrow's. Order is now watchlist
+    (02:00/03/06) → price-pass (02:12) → scan (02:15) → digest (02:20).
+  - **Alert scope confirmed:** only the watchlist pass (`runDaily`) fires the
+    "turned buy-worthy" email, on a crossing. The scan files suggestions but sends
+    no alert, so a scan-found buy-worthy name reaches users via the feed + digest,
+    not the instant email. (Left as-is; flag if we want scan finds to alert too.)
+  - **Pending (tomorrow):** check cron_runs for the first unattended night with
+    the price pass — the price-pass row (duration/requests/caps/queued), how many
+    queued names the scan drained, and the watchlist + digest rows.
 - 2026-09-26: A12b (nightly price pass) built. At 02:12 it batch-quotes the large
   universe cheaply (finance-query `/v2/quotes`, verified to hold at 25/batch):
   293 focus names nightly, ~1,042 other Large+Mega on a 1/7 rotation, 1,616 Mid
