@@ -436,6 +436,13 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Round 2 item 7 (light-first design) — tokens + stock page shipped,
+  **STOPPED for review before rollout** (per the brief). New tokens in
+  docs/design-notes.md + globals.css: white page, warm off-white panels (#faf8f4)
+  with thin light borders, warm near-black ink, one accent (#2563eb), and a black
+  `primary` button fill (inverted to light in dark). Applied to the stock page
+  (primary CTA now black). Verified ADYEN.AS desktop light/dark + mobile light.
+  Awaiting approval to roll the language out to nav/home/etc. (item 8).
 - 2026-09-26: Round 2 (click-through + pricing) items 0–6 shipped, one commit each,
   prod-verified. **0** — price-alert: "entry level"→"50% line"/"50%-grens" on chart,
   ratio card and alert; subject leads with the company name ("ASML fell below €X: the
