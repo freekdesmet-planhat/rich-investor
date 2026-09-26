@@ -364,6 +364,19 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A3 (copy/typo batch) shipped. "requiredr" fixed; ICU plurals for
+  "1 condition more/fewer" (EN+NL); the valuation percentile that read backwards
+  reframed to "lower/higher than on N% of days"; WhyBlock's redundant full-reasoning
+  expander removed and the two temporary/structural check sentences de-duplicated;
+  checklist metrics show one target (the pass mark), not two; language control is
+  text not a flag; NOTIFY_EMAILS removed from settings copy; growth threshold bands
+  read "at or above"; "these four" made count-neutral. NL section-8 calques applied
+  (bull/bear, "Ik bezit dit aandeel", "Zoek een bedrijf", "Dagelijkse update", "kan
+  de app niet", luxury-sector wording, gehaald consistency, "Nog afwachten"); EN+NL
+  drawdown jargon ("logarithmic-waterfall", "high-conviction") dropped; ROE-help
+  stray quote fixed and translations re-seeded. Note [26] (trillions) confirmed
+  already handled. Deferred: the "Afgelopen 5 jaar"/four-years label (windowing) and
+  the NL brand decision (item 4).
 - 2026-09-26: A4 sector follow-ups round 2.
   - RELX (REL.L), Wolters Kluwer (WKL.AS), Informa (INF.L) pinned in as
     entertainment_media (publishing/information, like NYT and S&P/Moody's). Tradeweb
