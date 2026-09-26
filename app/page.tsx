@@ -499,7 +499,7 @@ function RowList({
             </div>
           </Link>
 
-          <RemoveFromWatchlist symbol={entry.symbol} labels={removeLabels} compact />
+          <RemoveFromWatchlist symbol={entry.symbol} member labels={removeLabels} compact />
         </li>
       ))}
     </ul>

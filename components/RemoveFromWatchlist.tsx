@@ -41,13 +41,25 @@ function SubmitButton({
  * read — it stays until the row is navigated away from. Restoring is a single
  * row insert: the analysis history is never deleted, so nothing has to be
  * recomputed to put the ticker back.
+ *
+ * `member` seeds the initial state, but membership is then tracked in this
+ * component's own action state, not re-read from the prop. That is deliberate:
+ * removing revalidates this page so its "on the watchlist" state is fresh on the
+ * next visit (audit 14), which re-renders the server tree with member=false — and
+ * if this control were gated on that prop by its parent, that re-render would
+ * unmount it and take the just-shown "Removed · Undo" with it. Always mounted,
+ * it keeps the undo through the refresh and simply renders nothing when the
+ * ticker was never on the list.
  */
 export function RemoveFromWatchlist({
   symbol,
+  member,
   labels,
   compact = false,
 }: {
   symbol: string;
+  /** Whether the ticker is on the watchlist as of the server render. */
+  member: boolean;
   labels: RemoveLabels;
   compact?: boolean;
 }) {
@@ -82,6 +94,11 @@ export function RemoveFromWatchlist({
       </span>
     );
   }
+
+  // Not on the list and nothing pending: the control has nothing to offer. This
+  // gate lives here rather than in the parent so an add/remove revalidation that
+  // re-renders the page cannot unmount a live "Removed · Undo" above.
+  if (!member) return null;
 
   return (
     <form action={action}>

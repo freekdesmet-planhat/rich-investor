@@ -284,19 +284,21 @@ export default async function StockPage({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <StatusBadge status={signal.status} size="lg" />
-            {onWatchlist && (
-              <RemoveFromWatchlist
-                symbol={symbol}
-                labels={{
-                  remove: tWatchlist('remove'),
-                  removing: tWatchlist('removing'),
-                  // See app/page.tsx: {symbol} is substituted on the client.
-                  removed: tWatchlist.raw('removed') as string,
-                  undo: tWatchlist('undo'),
-                  restored: tWatchlist.raw('restored') as string,
-                }}
-              />
-            )}
+            {/* Always mounted, gated on `member` inside: removing revalidates
+                this page, and a gate here would unmount the "Removed · Undo" the
+                click just produced (audit A6). */}
+            <RemoveFromWatchlist
+              symbol={symbol}
+              member={onWatchlist}
+              labels={{
+                remove: tWatchlist('remove'),
+                removing: tWatchlist('removing'),
+                // See app/page.tsx: {symbol} is substituted on the client.
+                removed: tWatchlist.raw('removed') as string,
+                undo: tWatchlist('undo'),
+                restored: tWatchlist.raw('restored') as string,
+              }}
+            />
           </div>
         </div>
 
