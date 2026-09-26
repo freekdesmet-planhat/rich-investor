@@ -206,6 +206,38 @@ export const DEFAULT_SECTOR_RULES: SectorRule[] = [
       'the industry rule swept a pest-control (commercial services) company into ' +
       'luxury_consumer. It is outside the four focus sectors.',
   ),
+
+  // --- 2026-09-26 focus-universe review: not actually in-focus companies ------
+  // Misfiled by FinanceDatabase's industry into a focus sector; each is genuinely
+  // outside the four. Symbol rules (specificity 100) override the industry sweep.
+  symbolRule('Z', 'outside_focus', 'Zillow — real-estate marketplace, misfiled under Diversified Telecom.'),
+  symbolRule('SYM', 'outside_focus', 'Symbotic — warehouse automation (industrials), misfiled under Diversified Financials.'),
+  symbolRule('CNM', 'outside_focus', 'Core & Main — water/utility infrastructure distribution, not electronic equipment.'),
+  symbolRule('FPS', 'outside_focus', 'Electrical power equipment (industrials), not electronic equipment.'),
+  symbolRule('FSLR', 'outside_focus', 'First Solar — solar panels (industrials/energy), not tech hardware.'),
+  symbolRule('GEHC', 'outside_focus', 'GE HealthCare — health-care equipment, misfiled under Software.'),
+  symbolRule('MSTR', 'outside_focus', 'Strategy (MicroStrategy) — a bitcoin treasury vehicle, not a software business.'),
+  symbolRule('NXT', 'outside_focus', 'Nextracker — solar trackers (industrials), not semiconductors.'),
+  symbolRule('QXO', 'outside_focus', 'QXO — building-products distribution, misfiled under Software.'),
+  symbolRule('SCI', 'outside_focus', 'Service Corp — funeral services, misfiled under Hotels/Restaurants/Leisure.'),
+
+  // Bank-charter holders: consumer-finance names that take deposits. Out of focus,
+  // like the banks the book excludes.
+  symbolRule('ALLY', 'outside_focus', 'Ally — holds a bank charter (Ally Bank); a bank, out of focus.'),
+  symbolRule('SOFI', 'outside_focus', 'SoFi — holds a bank charter (SoFi Bank); a bank, out of focus.'),
+  symbolRule('SYF', 'outside_focus', 'Synchrony — holds a bank charter (Synchrony Bank); a bank, out of focus.'),
+
+  // --- 2026-09-26 review: in focus, but under the wrong focus label -----------
+  symbolRule('ABNB', 'luxury_consumer', 'Airbnb — travel/hospitality, not entertainment_media.'),
+  symbolRule('DASH', 'luxury_consumer', 'DoorDash — consumer delivery, not entertainment_media.'),
+  symbolRule('FLUT', 'luxury_consumer', 'Flutter — gaming/leisure operator, filed as luxury_consumer here.'),
+  symbolRule('SINCH.ST', 'information_technology', 'Sinch — cloud communications software, not entertainment_media.'),
+  symbolRule('TWLO', 'information_technology', 'Twilio — communications APIs (software), not entertainment_media.'),
+  symbolRule('ZM', 'information_technology', 'Zoom — communications software, not entertainment_media.'),
+  symbolRule('ANET', 'information_technology', 'Arista — networking hardware (IT), not financial services.'),
+  symbolRule('FFIV', 'information_technology', 'F5 — application networking (IT), not financial services.'),
+  symbolRule('PANW', 'information_technology', 'Palo Alto Networks — security software (IT), not financial services.'),
+  symbolRule('TTWO', 'entertainment_media', 'Take-Two — video games (entertainment_media), not financial services.'),
 ];
 
 /**
