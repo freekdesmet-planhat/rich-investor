@@ -45,12 +45,15 @@ interface NumberToken {
 
 function numberTokens(text: string): NumberToken[] {
   const out: NumberToken[] = [];
-  for (const match of text.matchAll(/-?\d[\d,]*(?:\.\d+)?/g)) {
-    const raw = match[0].replace(/,/g, '');
-    const value = Math.abs(Number(raw));
+  // A whole number with at most one decimal group, whose separator may be a dot
+  // (English) or a comma (Dutch: "148,8%"). The thesis figures carry no thousands
+  // separators, so a single "," or "." is always the decimal point.
+  for (const match of text.matchAll(/-?\d+(?:[.,]\d+)?/g)) {
+    const raw = match[0];
+    const value = Math.abs(Number(raw.replace(',', '.')));
     if (!Number.isFinite(value)) continue;
-    const dot = raw.indexOf('.');
-    out.push({ value, decimals: dot === -1 ? 0 : raw.length - dot - 1 });
+    const sep = raw.search(/[.,]/);
+    out.push({ value, decimals: sep === -1 ? 0 : raw.length - sep - 1 });
   }
   return out;
 }

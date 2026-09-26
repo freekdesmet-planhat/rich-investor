@@ -134,6 +134,10 @@ describe('numbers guardrail (A7)', () => {
   it('flags a fabricated figure', () => {
     expect(unmatchedNumbers('Revenue grew 45% last year.', given)).toContain('45');
   });
+  it('accepts a Dutch decimal comma against a dot-formatted figure', () => {
+    // The user message uses "1.17"; a Dutch summary writes "1,17".
+    expect(unmatchedNumbers('De PEG is 1,17 en het rendement is 22,3%.', given)).toEqual([]);
+  });
   it('matches an unsigned mention of a negative figure', () => {
     // The drawdown is given as a negative percentage; "fell 20%" should match.
     const withDraw = buildUserMessage(context({ drawdown: -0.2 }));
