@@ -364,6 +364,14 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Parked for the **item 4 copy pass** (thesis vocabulary, not done yet):
+  1. The summary should use the app's own words. The UI says "voorwaarde" and names
+     each condition; the summary says "criteria", "regel", "norm", "grens". Pass the
+     condition names and the word for "condition" from the i18n files into the prompt
+     so both use the same words — and it is the stock that meets conditions, not the
+     price ("Daarmee voldoet het aandeel nu niet aan alle voorwaarden").
+  2. One stray opinion word: "met 0,27 erg laag". Same rule as valuation — refer to
+     the method's limit instead, e.g. "ruim onder de grens van 2,5".
 - 2026-09-26: A7 (AI thesis) shipped, with the agreed guardrails.
   - **Prompt:** rewritten for beginners — no investor names ("Peter Lynch" gone),
     no superlatives, no buy/sell language, no price targets; and it states every
