@@ -494,7 +494,8 @@
     "condition": "Condition",
     "notApplicable": "n/a",
     "differing": "They disagree on {count} of the conditions — those rows are highlighted.",
-    "identical": "They pass and fail exactly the same conditions."
+    "identical": "They pass and fail exactly the same conditions.",
+    "searchPlaceholder": "Search any company to compare…"
   },
   "analyse": {
     "analyse": "Analyse now",

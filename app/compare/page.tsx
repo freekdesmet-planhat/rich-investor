@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StatusBadge } from '@/components/StatusBadge';
-import { getWatchlist } from '@/lib/data/queries';
+import { CompareAdd } from '@/components/CompareAdd';
+import { AnalyseNow } from '@/components/AnalyseNow';
+import { getWatchlist, getSignal, getCompanyNames } from '@/lib/data/queries';
 import {
   compareHref,
   compareRows,
-  parseCompared,
   toggleCompared,
   MAX_COMPARED,
+  type ComparableEntry,
 } from '@/lib/data/compareView';
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { formatConditionValue } from '@/lib/signal/conditionFormat';
@@ -30,22 +32,59 @@ export default async function ComparePage({
       : [];
 
   const locale = (await getLocale()) as Lang;
-  const [t, tStatus] = await Promise.all([
+  const [t, tStatus, tAnalyse] = await Promise.all([
     getTranslations('compare'),
     getTranslations('status'),
+    getTranslations('analyse'),
   ]);
 
-  const watchlist = await getWatchlist();
-  const chosen = parseCompared(
-    requested,
-    watchlist.map((e) => e.symbol),
-  );
-  const entries = chosen
-    .map((symbol) => watchlist.find((e) => e.symbol === symbol)!)
-    .filter(Boolean);
+  // Any company can be compared now, not only watchlist names (round 2, item 6):
+  // dedupe, cap, and keep the ones that exist in the universe.
+  const chosen: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of requested) {
+    const symbol = raw.trim().toUpperCase();
+    if (!symbol || seen.has(symbol)) continue;
+    seen.add(symbol);
+    chosen.push(symbol);
+    if (chosen.length === MAX_COMPARED) break;
+  }
 
-  const rows = compareRows(entries);
+  const names = await getCompanyNames(chosen);
+  const known = chosen.filter((s) => names.has(s));
+  const signals = await Promise.all(known.map((s) => getSignal(s)));
+
+  const entries: ComparableEntry[] = known.map((symbol, i) => {
+    const sig = signals[i];
+    return {
+      symbol,
+      name: names.get(symbol) ?? null,
+      signal: sig
+        ? {
+            status: sig.status,
+            conditions_met: sig.conditions_met,
+            conditions_applicable: sig.conditions_applicable,
+            lynch_category: sig.lynch_category,
+            checklist: sig.checklist.map((c) => ({
+              key: c.key,
+              applicable: c.applicable,
+              passed: c.passed,
+              value: c.value,
+              target: c.target,
+            })),
+          }
+        : null,
+    };
+  });
+
+  // A chosen company with no evaluation yet is analysed on demand, then the page
+  // refreshes into the table (item 5's flow, one per column).
+  const pending = entries.filter((e) => e.signal == null);
+  const ready = entries.filter((e) => e.signal != null);
+  const rows = compareRows(ready);
   const differing = rows.filter((r) => r.differs).length;
+
+  const watchlist = await getWatchlist();
 
   return (
     <>
@@ -55,48 +94,82 @@ export default async function ComparePage({
         <h1 className="mb-1 text-xl font-semibold">{t('title')}</h1>
         <p className="text-ink-subtle mb-4 text-sm">{t('intro')}</p>
 
-        {/* Picking is a list of links rather than a form: each one toggles its
-            own ticker in the URL, so the choice is shareable, survives a
-            reload, and needs no JavaScript. */}
-        <section className="mb-6">
-          <SectionHeading>{t('pick', { max: MAX_COMPARED })}</SectionHeading>
-          <ul className="flex flex-wrap gap-2">
-            {watchlist.map((entry) => {
-              const selected = chosen.includes(entry.symbol);
-              const next = toggleCompared(chosen, entry.symbol);
-              const full = !selected && chosen.length >= MAX_COMPARED;
-
-              return (
-                <li key={entry.symbol}>
-                  {full ? (
-                    // A fourth choice would do nothing; saying so is better than
-                    // a link that silently ignores the click.
-                    <span
-                      title={t('full', { max: MAX_COMPARED })}
-                      className="border-line inline-block cursor-not-allowed rounded-full border px-3 py-1.5 text-xs text-ink-faint"
-                    >
-                      {entry.symbol}
-                    </span>
-                  ) : (
-                    <Link
-                      href={compareHref(next)}
-                      aria-pressed={selected}
-                      className={`inline-block rounded-full border px-3 py-1.5 text-xs transition ${
-                        selected
-                          ? 'border-accent bg-accent font-medium text-accent-ink'
-                          : 'border-line-strong text-ink-muted hover:bg-surface-hover'
-                      }`}
-                    >
-                      {entry.symbol}
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+        {/* Search adds any company; the chips are a quick pick from the watchlist. */}
+        <section className="mb-6 space-y-3">
+          <CompareAdd
+            chosen={chosen}
+            placeholder={t('searchPlaceholder')}
+            full={chosen.length >= MAX_COMPARED}
+            fullLabel={t('full', { max: MAX_COMPARED })}
+          />
+          <div>
+            <SectionHeading>{t('pick', { max: MAX_COMPARED })}</SectionHeading>
+            <ul className="flex flex-wrap gap-2">
+              {watchlist.map((entry) => {
+                const selected = chosen.includes(entry.symbol);
+                const next = toggleCompared(chosen, entry.symbol);
+                const full = !selected && chosen.length >= MAX_COMPARED;
+                const chip = (
+                  <>
+                    <span className="font-medium">{entry.name ?? entry.symbol}</span>
+                    <span className="ml-1.5 text-[11px] opacity-60">{entry.symbol}</span>
+                  </>
+                );
+                return (
+                  <li key={entry.symbol}>
+                    {full ? (
+                      <span
+                        title={t('full', { max: MAX_COMPARED })}
+                        className="border-line inline-block cursor-not-allowed rounded-full border px-3 py-1.5 text-xs text-ink-faint"
+                      >
+                        {chip}
+                      </span>
+                    ) : (
+                      <Link
+                        href={compareHref(next)}
+                        aria-pressed={selected}
+                        className={`inline-block rounded-full border px-3 py-1.5 text-xs transition ${
+                          selected
+                            ? 'border-accent bg-accent font-medium text-accent-ink'
+                            : 'border-line-strong text-ink-muted hover:bg-surface-hover'
+                        }`}
+                      >
+                        {chip}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </section>
 
-        {entries.length < 2 ? (
+        {/* Analyse any picked company that has no evaluation yet. */}
+        {pending.map((entry) => (
+          <div
+            key={entry.symbol}
+            className="border-line bg-surface-sunken mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm"
+          >
+            <span className="text-ink-muted">
+              <span className="font-medium text-ink">{entry.name ?? entry.symbol}</span>{' '}
+              <span className="text-ink-subtle text-xs">{entry.symbol}</span> — {tAnalyse('firstRun')}
+            </span>
+            <AnalyseNow
+              symbol={entry.symbol}
+              auto
+              compact
+              labels={{
+                analyse: tAnalyse('analyse'),
+                analysing: tAnalyse('analysing'),
+                done: tAnalyse.raw('done') as string,
+                failed: tAnalyse('failed'),
+                noData: tAnalyse('noData'),
+              }}
+            />
+          </div>
+        ))}
+
+        {ready.length < 2 ? (
           <p className="border-line-strong text-ink-subtle rounded-lg border border-dashed p-6 text-center text-sm">
             {t('chooseTwo')}
           </p>
@@ -106,9 +179,6 @@ export default async function ComparePage({
               {differing === 0 ? t('identical') : t('differing', { count: differing })}
             </p>
 
-            {/* The table scrolls rather than shrinking: three columns of
-                pass/fail plus a label do not fit a phone, and squeezing them
-                would cost the labels that say what is being compared. */}
             <div className="overflow-x-auto">
               <table className="w-full min-w-[32rem] border-collapse text-sm">
                 <thead>
@@ -116,14 +186,17 @@ export default async function ComparePage({
                     <th className="text-ink-subtle py-2 pr-3 text-left font-normal">
                       {t('condition')}
                     </th>
-                    {entries.map((entry) => (
+                    {ready.map((entry) => (
                       <th key={entry.symbol} className="px-3 py-2 text-left align-bottom">
                         <Link
                           href={`/stock/${encodeURIComponent(entry.symbol)}`}
-                          className="font-medium underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+                          className="block font-medium underline decoration-line-strong underline-offset-4 hover:decoration-ink"
                         >
-                          {entry.symbol}
+                          {entry.name ?? entry.symbol}
                         </Link>
+                        <span className="text-ink-subtle mt-0.5 block text-xs font-normal tabular-nums">
+                          {entry.symbol}
+                        </span>
                         <span className="mt-1 block">
                           {entry.signal && <StatusBadge status={entry.signal.status} />}
                         </span>
@@ -143,8 +216,6 @@ export default async function ComparePage({
                   {rows.map((row) => (
                     <tr
                       key={row.key}
-                      // The rows they disagree on are the reason to be here, so
-                      // they are the ones that stand out; the rest is context.
                       className={`border-b border-line ${
                         row.differs ? 'bg-amber-50/60 dark:bg-amber-950/20' : ''
                       }`}
@@ -152,9 +223,7 @@ export default async function ComparePage({
                       <th
                         scope="row"
                         className={`py-2 pr-3 text-left font-normal ${
-                          row.differs
-                            ? 'text-ink'
-                            : 'text-ink-subtle'
+                          row.differs ? 'text-ink' : 'text-ink-subtle'
                         }`}
                       >
                         {CONDITION_LABEL[row.key]?.[locale] ?? row.key}
@@ -164,9 +233,7 @@ export default async function ComparePage({
                           {cell.condition == null ? (
                             <span className="text-ink-faint">—</span>
                           ) : !cell.condition.applicable ? (
-                            <span className="text-ink-faint">
-                              {t('notApplicable')}
-                            </span>
+                            <span className="text-ink-faint">{t('notApplicable')}</span>
                           ) : (
                             <span
                               className={
@@ -176,11 +243,6 @@ export default async function ComparePage({
                               }
                             >
                               <span aria-hidden="true">{cell.condition.passed ? '✓' : '✗'}</span>{' '}
-                              {/* Through the same formatters as every other
-                                  surface: this printed a market cap as a
-                                  twelve-digit integer and a 61% decline as
-                                  -0,61, because it formatted all nine
-                                  conditions as if they were plain numbers. */}
                               <span className="text-ink-muted tabular-nums">
                                 {formatConditionValue(cell.condition.key, cell.condition.value, locale)}
                               </span>

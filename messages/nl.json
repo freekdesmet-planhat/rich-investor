@@ -494,7 +494,8 @@
     "condition": "Voorwaarde",
     "notApplicable": "n.v.t.",
     "differing": "Ze verschillen op {count} van de voorwaarden — die rijen zijn gemarkeerd.",
-    "identical": "Ze halen en missen precies dezelfde voorwaarden."
+    "identical": "Ze halen en missen precies dezelfde voorwaarden.",
+    "searchPlaceholder": "Zoek een bedrijf om te vergelijken…"
   },
   "analyse": {
     "analyse": "Nu analyseren",
