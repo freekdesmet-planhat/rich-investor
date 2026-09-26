@@ -364,6 +364,18 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A6 (remove flow) shipped and browser-verified on prod. Add/remove
+  now also `revalidatePath('/stock/<symbol>')`, so the stock page no longer keeps a
+  stale "on the watchlist" state after a removal elsewhere. That revalidation
+  re-renders the current page too, which would have unmounted the just-shown
+  "Removed · Undo" — so RemoveFromWatchlist gained a `member` prop, its membership
+  gate moved inside (after the removed/restored branches), and it is now mounted
+  unconditionally on the stock page. Verified: same-page undo survives the
+  re-render; watchlist-row remove works; a real navigation to the stock page after
+  removal shows no Remove. (Browser back/forward can still show a bfcache snapshot —
+  that is a browser feature outside revalidatePath's reach, not a state bug.)
+  Files: `app/watchlist/actions.ts`, `components/RemoveFromWatchlist.tsx`, stock
+  page, `app/page.tsx`.
 - 2026-09-26: A5 (freshness) shipped and smoke-tested on prod. The stock-page
   footer's "Updated 17h ago · As of <date>" is replaced by three plain lines:
   the age from `signal_history.created_at` (the real instant, so a fresh run reads
