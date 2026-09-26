@@ -1,5 +1,13 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { applyScanScreen } from '@/lib/pipeline/scan';
+import {
+  DEFAULT_SECTOR_RULES,
+  resolveFocusSector,
+  type FocusSector,
+  type SectorRule,
+} from '@/lib/sectors/mapping';
+import { keepDistinctCompanies } from '@/lib/data/searchFilters';
 
 /** The three companies shown as read-only demos on the public site (item 11). */
 export const DEMO_SYMBOLS = ['ASML.AS', 'HEIA.AS', 'AAPL'] as const;
@@ -12,27 +20,62 @@ export function isDemoSymbol(symbol: string): symbol is DemoSymbol {
 /**
  * How many focus-sector companies the app checks, for the landing cadence line.
  *
- * Counted live from the most recent evaluation date — on a single date each
- * company appears once, so a head count of that day's non-outside rows is the
- * distinct company count, cheaply. Read with the service-role client because the
- * landing page is public and signal_history is behind RLS.
+ * This is the scan's actual weekly domain, not the handful in signal_history: it
+ * runs the same `applyScanScreen` the nightly scan and the Suggestions page use,
+ * then reduces to distinct companies exactly as the scan does (resolve the focus
+ * sector, collapse cross-listings and preferreds). Read with the service-role
+ * client because the landing page is public and the universe is behind RLS.
  */
 export async function getFocusCompanyCount(): Promise<number> {
   const admin = createAdminClient();
-  const { data: latest } = await admin
-    .from('signal_history')
-    .select('as_of')
-    .order('as_of', { ascending: false })
-    .limit(1)
-    .maybeSingle<{ as_of: string }>();
-  if (!latest) return 0;
 
-  const { count } = await admin
-    .from('signal_history')
-    .select('symbol', { count: 'exact', head: true })
-    .eq('as_of', latest.as_of)
-    .neq('focus_sector', 'outside_focus');
-  return count ?? 0;
+  const { data: mapRows } = await admin
+    .from('sector_mapping')
+    .select('symbol,sector,industry,focus_sector,specificity,is_excluded,is_payment_processor')
+    .returns<
+      Array<{
+        symbol: string | null;
+        sector: string | null;
+        industry: string | null;
+        focus_sector: FocusSector;
+        specificity: number;
+        is_excluded: boolean;
+        is_payment_processor: boolean;
+      }>
+    >();
+  const rules: SectorRule[] = (mapRows ?? []).length
+    ? (mapRows ?? []).map((r) => ({
+        symbol: r.symbol ?? undefined,
+        sector: r.sector ?? undefined,
+        industry: r.industry ?? undefined,
+        focusSector: r.focus_sector,
+        specificity: r.specificity,
+        isExcluded: r.is_excluded,
+        isPaymentProcessor: r.is_payment_processor,
+      }))
+    : DEFAULT_SECTOR_RULES;
+
+  const { data: domain } = await applyScanScreen(
+    admin.from('universe').select('symbol,name,sector,industry,exchange,country,currency'),
+    rules,
+  ).returns<
+    Array<{
+      symbol: string;
+      name: string | null;
+      sector: string | null;
+      industry: string | null;
+      exchange: string | null;
+      country: string | null;
+      currency: string | null;
+    }>
+  >();
+
+  const eligible = (domain ?? []).filter(
+    (r) =>
+      resolveFocusSector(rules, { symbol: r.symbol, sector: r.sector, industry: r.industry })
+        .focusSector !== 'outside_focus',
+  );
+  return keepDistinctCompanies(eligible).length;
 }
 
 import type { SignalRow, SnapshotRow, RatioRow, Translation } from './queries';
