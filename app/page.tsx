@@ -345,12 +345,9 @@ export default async function WatchlistPage({
           {groups
             ? [...groups].map(([sector, rows]) => (
                 <section key={sector}>
-                  <SectionHeading>{tSector(sector)}
-                    {sector === 'outside_focus' && (
-                      <span className="ml-2 rounded bg-near-wash px-1.5 py-0.5 text-xs font-normal text-near">
-                        !
-                      </span>
-                    )}</SectionHeading>
+                  {/* No "!" badge on the outside-focus group: being in a different
+                      sector is a fact about the company, not an alert (launch item 6). */}
+                  <SectionHeading>{tSector(sector)}</SectionHeading>
                   <RowList
                     rows={rows}
                     labels={rowLabels}

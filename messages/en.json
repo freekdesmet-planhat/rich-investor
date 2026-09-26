@@ -526,7 +526,13 @@
     "honestTitle": "What it does not know",
     "honestBody": "The app measures what can be measured and says so when it cannot. A condition with missing data is shown grey rather than failed, a figure that could not be reconciled says why, and the qualitative judgement — whether a decline is temporary or structural — is left to you, because no screen can answer it. It is an analysis tool, not investment advice.",
     "creditTitle": "Credit",
-    "creditBody": "The framework this app applies is drawn from “Rijke Belegger, Arme Belegger”. The implementation, the data handling and the wording throughout the app are our own; the underlying investment method is the book's."
+    "creditBody": "The framework this app applies is drawn from “Rijke Belegger, Arme Belegger”. The implementation, the data handling and the wording throughout the app are our own; the underlying investment method is the book's.",
+    "fourSectors": {
+      "heading": "Why only four sectors?",
+      "body": "The book's research found four sectors that beat the market most consistently: information technology; luxury and consumer brands; media and entertainment; and financial services outside banking — payments, exchanges and financial-data providers, but not banks, brokers or asset managers. They tend to earn high returns without needing much capital.\n\nWhat the rule can't promise: sector leadership changes. Energy led the S&P 500 in 2021 and 2022, and it is outside the four. That is why a company outside the focus sectors is shown separately rather than hidden — it can still pass every number, and the app says so.",
+      "source": "Study period and source: to be added from the book.",
+      "link": "Why only four sectors?"
+    }
   },
   "onboarding": {
     "navLabel": "How it works",

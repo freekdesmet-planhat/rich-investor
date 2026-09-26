@@ -526,7 +526,13 @@
     "honestTitle": "Wat de app niet weet",
     "honestBody": "De app meet wat meetbaar is en zegt het wanneer dat niet lukt. Een voorwaarde zonder gegevens is grijs en niet gezakt, een cijfer dat niet te herleiden was vermeldt waarom, en het kwalitatieve oordeel — of een daling tijdelijk of structureel is — blijft aan jou, omdat geen enkele screening die vraag kan beantwoorden. Dit is een analyse-instrument, geen beleggingsadvies.",
     "creditTitle": "Verantwoording",
-    "creditBody": "Het raamwerk dat deze app toepast is ontleend aan “Rijke Belegger, Arme Belegger”. De uitvoering, de dataverwerking en alle teksten in de app zijn van onszelf; de onderliggende beleggingsmethode is die van het boek."
+    "creditBody": "Het raamwerk dat deze app toepast is ontleend aan “Rijke Belegger, Arme Belegger”. De uitvoering, de dataverwerking en alle teksten in de app zijn van onszelf; de onderliggende beleggingsmethode is die van het boek.",
+    "fourSectors": {
+      "heading": "Waarom maar vier sectoren?",
+      "body": "Het onderzoek in het boek vond vier sectoren die de markt het meest consistent verslaan: informatietechnologie; luxe- en consumentenmerken; media en entertainment; en financiële diensten buiten het bankwezen — betalingen, beurzen en financiële-dataleveranciers, maar geen banken, brokers of vermogensbeheerders. Ze behalen doorgaans hoge rendementen zonder veel kapitaal nodig te hebben.\n\nWat de regel niet kan beloven: sectorleiderschap verschuift. Energie leidde de S&P 500 in 2021 en 2022, en valt buiten de vier. Daarom wordt een bedrijf buiten de focussectoren apart getoond in plaats van verborgen — het kan nog steeds aan elk cijfer voldoen, en de app zegt dat ook.",
+      "source": "Onderzoeksperiode en bron: nog toe te voegen uit het boek.",
+      "link": "Waarom maar vier sectoren?"
+    }
   },
   "onboarding": {
     "navLabel": "Hoe het werkt",

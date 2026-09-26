@@ -71,7 +71,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, listingExchange] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, tMethod, listingExchange] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -95,6 +95,7 @@ export default async function StockPage({
     getTranslations('earnings'),
     getTranslations('liquidity'),
     getTranslations('research'),
+    getTranslations('methodology'),
     getListingExchange(symbol),
   ]);
 
@@ -282,6 +283,14 @@ export default async function StockPage({
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Chip>{tSector(signal.focus_sector)}</Chip>
+            {/* The sector rule judges a company on identity, not numbers, so the
+                reasoning sits one click behind the tag (launch item 6). */}
+            <Link
+              href="/methodology#four-sectors"
+              className="text-ink-subtle hover:text-ink text-xs underline underline-offset-2"
+            >
+              {tMethod('fourSectors.link')}
+            </Link>
             {lynch && <Chip>{lynch.name}</Chip>}
             {/* Says on the page header what the PEG card says in a caption:
                 the valuation test was carried by expected growth. */}
@@ -474,6 +483,13 @@ export default async function StockPage({
           <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border text-sm">
             {signal.checklist.map((condition) => {
               const flipped = changeByKey.get(condition.key);
+              // Being outside the four focus sectors is a fact about what the
+              // company is, not a failure of its numbers, so it reads in neutral
+              // grey rather than as a red ✗ (launch item 6).
+              const outsideFocusRow =
+                condition.key === 'focus_sector' &&
+                signal.focus_sector === 'outside_focus' &&
+                !condition.passed;
               return (
               // Condition and criterion sit side by side where there is room
               // and stack where there is not. They used to share one line at
@@ -485,12 +501,15 @@ export default async function StockPage({
                 className="bg-surface flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
               >
                 <span className="flex min-w-0 items-start gap-2 sm:items-center">
-                  <span aria-hidden="true" className="w-4 shrink-0 text-center">
+                  <span
+                    aria-hidden="true"
+                    className={`w-4 shrink-0 text-center ${outsideFocusRow ? 'text-ink-faint' : ''}`}
+                  >
                     {!condition.applicable ? '–' : condition.passed ? '✓' : '✗'}
                   </span>
                   <span
                     className={
-                      !condition.applicable ? 'text-ink-faint' : undefined
+                      !condition.applicable || outsideFocusRow ? 'text-ink-faint' : undefined
                     }
                   >
                     {docs.get(`condition:${condition.key}`)?.name ?? condition.key}

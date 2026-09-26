@@ -70,6 +70,25 @@ export default async function MethodologyPage() {
           </Card>
         </Section>
 
+        {/* Anchored so the "Why only four sectors?" links elsewhere land here
+            (launch item 6). The sector rule fails a company on identity, not on
+            its numbers, so the reasoning — and its limits — are stated plainly. */}
+        <Section>
+          <div id="four-sectors" className="scroll-mt-6">
+            <SectionHeading>{t('fourSectors.heading')}</SectionHeading>
+            <Card tone="sunken">
+              <div className="space-y-3 text-sm leading-relaxed text-ink-muted">
+                {(t.raw('fourSectors.body') as string)
+                  .split('\n\n')
+                  .map((paragraph, i) => (
+                    <p key={i}>{paragraph}</p>
+                  ))}
+              </div>
+              <p className="mt-3 text-xs text-ink-faint">{t('fourSectors.source')}</p>
+            </Card>
+          </div>
+        </Section>
+
         <Section>
           <SectionHeading>{t('fixedTitle')}</SectionHeading>
           <p className="text-sm leading-relaxed text-ink-muted">{t('fixedBody')}</p>
