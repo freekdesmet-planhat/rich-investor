@@ -364,6 +364,17 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A5 (freshness) shipped and smoke-tested on prod. The stock-page
+  footer's "Updated 17h ago · As of <date>" is replaced by three plain lines:
+  the age from `signal_history.created_at` (the real instant, so a fresh run reads
+  "Just analysed" not "17h ago"), "Price: close of <weekday date> (<venue name>)"
+  from the newest `price_history` date + `lib/data/exchangeNames.ts`, and
+  "Financials: annual report <year>" from the newest annual statement's endDate.
+  The top stale-pipeline banner is unchanged (that is a days question, still reads
+  `as_of`). Files: `lib/data/stockFreshness.ts` (+test), `lib/data/exchangeNames.ts`,
+  `lib/data/freshness.ts` (hoursSince), `components/StockFreshness.tsx`, stock page.
+  Prod: AAPL "close of Fri 25 Sept (Nasdaq)"; ADYEN.AS "close of Thu 24 Sept
+  (Euronext Amsterdam)"; both "annual report 2025"; old "As of" line gone.
 - 2026-09-26: A8 (news + research tabs) shipped. News items are dated (kept), and
   analyst rating / price-target headlines are hidden (`isAnalystRatingHeadline`) — a
   rating is a recommendation this app does not surface. The analyst **price target**
