@@ -36,9 +36,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   const t = await getTranslations('app');
 
-  // The theme is set server-side from the cookie so there is no flash; new users
-  // default to light (item 3). The inline script below then lets localStorage win
-  // on the client, which is where a logged-out preference lives.
+  // The theme is set server-side from the cookie so there is no flash. With no
+  // saved preference the attribute is left off ("system"), so the CSS media query
+  // follows the OS at first paint (round 2, item 7 review). The inline script
+  // below then lets localStorage win on the client, where a logged-out choice lives.
   const cookieTheme = (await cookies()).get(THEME_COOKIE)?.value;
   const theme = isTheme(cookieTheme) ? cookieTheme : DEFAULT_THEME;
 

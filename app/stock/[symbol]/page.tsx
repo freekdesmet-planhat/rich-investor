@@ -160,6 +160,17 @@ export default async function StockPage({
     priceCloseDate != null
       ? (snapshot?.price_history?.find((p) => p.date === priceCloseDate)?.close ?? null)
       : null;
+  // Compact close date for beside the header price ("· close 24 Sept"), item 3
+  // review: the date belongs next to the number it dates, not only in the footer.
+  // en-GB for English so the day-month order matches the freshness line.
+  const closeDateShort =
+    priceCloseDate != null
+      ? new Intl.DateTimeFormat(locale.startsWith('en') ? 'en-GB' : locale, {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        }).format(Date.parse(`${priceCloseDate}T00:00:00Z`))
+      : null;
   const freshness = buildStockFreshness({
     createdAt: signal.created_at,
     priceCloseDate,
@@ -331,10 +342,17 @@ export default async function StockPage({
                   // The latest close (item 4), formatted as money rather than a
                   // bare number with a code appended: "928.70 EUR" sat three
                   // inches from a market cap printed as "$34.0B" and nothing said
-                  // whether the two were the same currency or converted. The
-                  // close date is on the freshness line just below.
-                  <span className="text-xl font-medium tabular-nums text-ink-muted">
-                    {formatCurrency(latestClose, snapshot?.currency ?? null, locale)}
+                  // whether the two were the same currency or converted. The close
+                  // date sits right beside it, so the price is never undated.
+                  <span className="flex items-baseline gap-x-2">
+                    <span className="text-xl font-medium tabular-nums text-ink-muted">
+                      {formatCurrency(latestClose, snapshot?.currency ?? null, locale)}
+                    </span>
+                    {closeDateShort && (
+                      <span className="text-xs text-ink-subtle">
+                        · {tData('priceCloseShort', { date: closeDateShort })}
+                      </span>
+                    )}
                   </span>
                 )}
               </div>

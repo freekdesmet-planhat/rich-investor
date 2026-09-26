@@ -113,7 +113,7 @@ export default async function AccountPage() {
           <p className="text-ink-subtle mb-3 mt-1 text-sm">{tTheme('intro')}</p>
           <ThemePicker
             initial={
-              settings.theme === 'system' || settings.theme === 'dark' ? settings.theme : 'light'
+              settings.theme === 'light' || settings.theme === 'dark' ? settings.theme : 'system'
             }
             labels={{
               legend: tTheme('legend'),

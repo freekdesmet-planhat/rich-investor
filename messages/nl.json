@@ -161,7 +161,8 @@
     "justAnalysed": "Zojuist geanalyseerd",
     "priceClose": "Koers: slotkoers van {date} ({exchange})",
     "priceCloseNoExchange": "Koers: slotkoers van {date}",
-    "financials": "Cijfers: jaarrekening {year}"
+    "financials": "Cijfers: jaarrekening {year}",
+    "priceCloseShort": "slotkoers {date}"
   },
   "review": {
     "title": "Mijn kwalitatieve beoordeling",

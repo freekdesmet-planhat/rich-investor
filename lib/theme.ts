@@ -10,7 +10,11 @@ export type Theme = 'system' | 'light' | 'dark';
 
 export const THEME_COOKIE = 'rib-theme';
 export const THEME_STORAGE_KEY = 'theme';
-export const DEFAULT_THEME: Theme = 'light';
+// No saved preference means "follow the OS" (round 2, item 7 review): a first
+// visit with the OS in dark mode paints dark, and light paints light, with no
+// flash — the CSS media query decides at first paint, before any JS. A reader
+// only leaves this "system" default by choosing a theme in the header or Account.
+export const DEFAULT_THEME: Theme = 'system';
 
 export function isTheme(value: unknown): value is Theme {
   return value === 'system' || value === 'light' || value === 'dark';

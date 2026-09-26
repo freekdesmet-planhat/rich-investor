@@ -739,7 +739,7 @@ export async function getSettings(): Promise<MemberSettings> {
     notify_enabled: true,
     notify_on_buy: true,
     weekly_summary: true,
-    theme: 'light',
+    theme: 'system',
   };
 
   const supabase = await client();

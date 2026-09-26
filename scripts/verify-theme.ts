@@ -48,26 +48,29 @@ const check = (ok: boolean, message: string) => {
 };
 
 /**
- * Opens the page with the OS emulated one way and the app forced the other (via
- * the rib-theme cookie the toggle sets), and reads the canvas + probe colours.
+ * Opens the page with the OS emulated one way and, optionally, the app forced the
+ * other (via the rib-theme cookie the toggle sets). `js: false` disables
+ * JavaScript so what is measured is the pre-hydration first paint — the only way
+ * to prove there is no flash of the wrong theme before the client runs.
  */
 async function inspect(
   browser: Browser,
-  os: 'light' | 'dark',
-  app: 'light' | 'dark',
+  { os, app, js = true }: { os: 'light' | 'dark'; app?: 'light' | 'dark'; js?: boolean },
 ): Promise<{ canvas: string; probe: string; attr: string | null }> {
   const url = new URL(BASE);
-  const context = await browser.newContext({ colorScheme: os });
-  await context.addCookies([
-    {
-      name: 'rib-theme',
-      value: app,
-      domain: url.hostname,
-      path: '/',
-      secure: url.protocol === 'https:',
-      sameSite: 'Lax',
-    },
-  ]);
+  const context = await browser.newContext({ colorScheme: os, javaScriptEnabled: js });
+  if (app) {
+    await context.addCookies([
+      {
+        name: 'rib-theme',
+        value: app,
+        domain: url.hostname,
+        path: '/',
+        secure: url.protocol === 'https:',
+        sameSite: 'Lax',
+      },
+    ]);
+  }
   const page = await context.newPage();
   await page.goto(`${BASE}${ROUTE}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-theme-probe]', { state: 'attached', timeout: 10_000 });
@@ -98,17 +101,33 @@ async function run(): Promise<void> {
     // Case A: OS dark, app forced light — the page must stay light and no dark:
     // utility may fire (the probe stays white).
     console.log('OS dark  · app light  (the original bug):');
-    const a = await inspect(browser, 'dark', 'light');
+    const a = await inspect(browser, { os: 'dark', app: 'light' });
     check(a.attr === 'light', `html data-theme is "light" (${a.attr})`);
     check(a.canvas === LIGHT_CANVAS, `canvas is the light token (${a.canvas})`);
     check(a.probe === WHITE, `dark: does not leak — probe is white, not black (${a.probe})`);
 
     // Case B: OS light, app forced dark — the reverse.
     console.log('OS light · app dark   (the reverse):');
-    const b = await inspect(browser, 'light', 'dark');
+    const b = await inspect(browser, { os: 'light', app: 'dark' });
     check(b.attr === 'dark', `html data-theme is "dark" (${b.attr})`);
     check(b.canvas === DARK_CANVAS, `canvas is the dark token (${b.canvas})`);
     check(b.probe === BLACK, `dark: applies under the toggle — probe is black (${b.probe})`);
+
+    // Case C: first visit, no saved preference, OS dark. Measured with JS off, so
+    // this is the pre-hydration first paint: it must already be dark (follow the
+    // OS) with no attribute set, i.e. no flash of light before the client runs.
+    console.log('OS dark  · no preference, first paint (JS off):');
+    const c = await inspect(browser, { os: 'dark', js: false });
+    check(c.attr === null, `no data-theme attribute — "system" (${c.attr})`);
+    check(c.canvas === DARK_CANVAS, `first paint follows OS dark (${c.canvas})`);
+    check(c.probe === BLACK, `dark: applies under OS dark with no override (${c.probe})`);
+
+    // Case D: first visit, no saved preference, OS light — the reverse first paint.
+    console.log('OS light · no preference, first paint (JS off):');
+    const d = await inspect(browser, { os: 'light', js: false });
+    check(d.attr === null, `no data-theme attribute — "system" (${d.attr})`);
+    check(d.canvas === LIGHT_CANVAS, `first paint follows OS light (${d.canvas})`);
+    check(d.probe === WHITE, `dark: does not fire under OS light (${d.probe})`);
   } finally {
     await browser.close();
   }

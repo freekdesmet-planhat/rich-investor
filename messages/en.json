@@ -161,7 +161,8 @@
     "justAnalysed": "Just analysed",
     "priceClose": "Price: close of {date} ({exchange})",
     "priceCloseNoExchange": "Price: close of {date}",
-    "financials": "Financials: annual report {year}"
+    "financials": "Financials: annual report {year}",
+    "priceCloseShort": "close {date}"
   },
   "review": {
     "title": "My qualitative review",
