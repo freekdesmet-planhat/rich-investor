@@ -65,8 +65,11 @@
   /* --- text, by role rather than by lightness ---------------------------- */
   --ink: #1b1a17;           /* primary text — a warm near-black */
   --ink-muted: #55514a;     /* secondary text, still meant to be read (7.5:1 on white) */
-  --ink-subtle: #6f6a60;    /* captions, units, provenance — held at 4.5:1 on surface */
-  --ink-faint: #a8a294;     /* placeholders, disabled — decorative only, never body copy */
+  --ink-subtle: #625d54;    /* captions, units, provenance — ~5.7:1 on the sunken panel */
+  /* The lowest tier still has to be readable: it carries step numbers, form hints
+     and market caps, not only decoration. Held at 4.5:1 on the sunken panel too
+     (round 2, item 7 review). */
+  --ink-faint: #6f6a60;
 
   /* --- accent — one colour, used sparingly for links and selection ------- */
   --accent: #2563eb;
@@ -127,8 +130,8 @@
     color-scheme: dark;
     /* Warm dark (round 2, item 7): the neutrals carry the same warmth as light
        mode — a base around #131210 rather than cool navy — so the two themes
-       read as one product. Contrast rules are unchanged: ink-muted clears
-       4.5:1 on surface, ink-subtle is held at 4.5:1, ink-faint is decorative. */
+       read as one product. Every text tier clears 4.5:1 on the surfaces it
+       appears on, including the sunken panel (round 2, item 7 review). */
     --canvas: #131210;
     --surface: #1c1a16;
     --surface-sunken: #262119;
@@ -139,8 +142,8 @@
 
     --ink: #f5f2ea;
     --ink-muted: #ccc5b8;
-    --ink-subtle: #a49c8d;
-    --ink-faint: #6f685b;
+    --ink-subtle: #b0a798;
+    --ink-faint: #a49c8d;
 
     --accent: #60a5fa;
     --accent-hover: #93c5fd;
@@ -188,8 +191,8 @@
 
   --ink: #f5f2ea;
   --ink-muted: #ccc5b8;
-  --ink-subtle: #a49c8d;
-  --ink-faint: #6f685b;
+  --ink-subtle: #b0a798;
+  --ink-faint: #a49c8d;
 
   --accent: #60a5fa;
   --accent-hover: #93c5fd;

@@ -72,8 +72,12 @@ async function inspect(
     ]);
   }
   const page = await context.newPage();
-  await page.goto(`${BASE}${ROUTE}`, { waitUntil: 'domcontentloaded' });
+  // `load`, not `domcontentloaded`: it waits for the stylesheet, which matters
+  // with JS disabled (no hydration to keep the connection busy) against a remote
+  // deploy — otherwise body background is read before the CSS has applied.
+  await page.goto(`${BASE}${ROUTE}`, { waitUntil: 'load' });
   await page.waitForSelector('[data-theme-probe]', { state: 'attached', timeout: 10_000 });
+  await page.waitForTimeout(300);
 
   const result = await page.evaluate(() => {
     const probeEl = document.querySelector('[data-theme-probe]');
@@ -128,6 +132,24 @@ async function run(): Promise<void> {
     check(d.attr === null, `no data-theme attribute — "system" (${d.attr})`);
     check(d.canvas === LIGHT_CANVAS, `first paint follows OS light (${d.canvas})`);
     check(d.probe === WHITE, `dark: does not fire under OS light (${d.probe})`);
+
+    // Case E: a SAVED preference opposite the OS must paint on the FIRST frame, not
+    // only after hydration. Measured with JS off, so this is purely the server's
+    // output: the theme must come from the cookie via SSR (data-theme on <html>),
+    // not from a client script that would flash the OS theme first. Cookie dark,
+    // OS light — the server must already say dark.
+    console.log('OS light · saved dark, first frame (JS off):');
+    const e = await inspect(browser, { os: 'light', app: 'dark', js: false });
+    check(e.attr === 'dark', `SSR set data-theme="dark" from the cookie (${e.attr})`);
+    check(e.canvas === DARK_CANVAS, `first frame is dark, not a flash of light (${e.canvas})`);
+    check(e.probe === BLACK, `dark: applies on the first frame (${e.probe})`);
+
+    // Case F: the reverse — cookie light, OS dark. The server must already say light.
+    console.log('OS dark  · saved light, first frame (JS off):');
+    const f = await inspect(browser, { os: 'dark', app: 'light', js: false });
+    check(f.attr === 'light', `SSR set data-theme="light" from the cookie (${f.attr})`);
+    check(f.canvas === LIGHT_CANVAS, `first frame is light, not a flash of dark (${f.canvas})`);
+    check(f.probe === WHITE, `dark: does not fire on the first frame (${f.probe})`);
   } finally {
     await browser.close();
   }
