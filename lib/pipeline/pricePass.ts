@@ -138,20 +138,27 @@ async function loadRules(client: SupabaseClient): Promise<SectorRule[]> {
     : DEFAULT_SECTOR_RULES;
 }
 
-/** A universe query builder, narrowed to the two calls the pager makes. */
+/** A universe query builder, narrowed to the calls the pager makes. */
 interface SymbolQuery {
-  range: (
-    from: number,
-    to: number,
-  ) => PromiseLike<{ data: Array<{ symbol: string }> | null; error: { message: string } | null }>;
+  order: (column: string) => {
+    range: (
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: Array<{ symbol: string }> | null; error: { message: string } | null }>;
+  };
 }
 
-/** Every symbol matching a filtered universe query, paged past PostgREST's cap. */
+/**
+ * Every symbol matching a filtered universe query, paged past PostgREST's 1,000
+ * row cap. The `order('symbol')` is load-bearing: without a stable sort, paging
+ * returns rows in an arbitrary order that overlaps and misses across pages, so
+ * the cohort would differ run to run.
+ */
 async function allSymbols(build: () => SymbolQuery): Promise<string[]> {
   const out: string[] = [];
   const page = 1000;
   for (let from = 0; ; from += page) {
-    const { data, error } = await build().range(from, from + page - 1);
+    const { data, error } = await build().order('symbol').range(from, from + page - 1);
     if (error) throw new Error(`universe query failed: ${error.message}`);
     const rows = data ?? [];
     for (const r of rows) out.push(r.symbol);
