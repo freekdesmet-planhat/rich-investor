@@ -436,6 +436,22 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Launch quick batch (items 1–7) shipped, one commit each, all prod
+  smoke-tested EN+NL. **1** — 9/9 verdict renamed "Checklist complete" / "Alle
+  voorwaarden gehaald" everywhere incl. emails; stock page gains a "Start my
+  review" CTA to the review section. **2** — Ferrari RACE.MI → luxury_consumer,
+  synced (db:check-sectors clean). **3** — market-decline "since 1870" line removed
+  from under the P/E chart, declineHistory module retired. **4** — ratio caption is
+  now distance to the rule's threshold ("7.3 points above the 15% minimum"); the
+  watchlist-peer feature (comparePeers, getSectorPeerRatios, PeerComparison) is
+  retired. **5** — a verdict on a user-changed threshold shows "You changed this
+  rule" on the debt row + verdict line + Account note. **6** — outside-focus reads
+  neutral grey (no red ✗, no "!" badge); "Why only four sectors?" explainer on
+  Methodology (#four-sectors) + linked behind the sector tag, final sector
+  definitions, study-period/source placeholder (legal flag). **7** — AI prompt uses
+  the app's condition vocabulary (voorwaarde + CONDITION_LABEL names, the stock not
+  the price) and states figures against the method's limit, not opinion words.
+  Next: bigger items 8–11.
 - 2026-09-26: Launch build order decided (see "Launch build order" section near the
   top). Quick batch items 1–7 (one commit each), then bigger items 8–11 in order.
   Two ground rules updated: the stock-page order is now verdict → checklist → chart
