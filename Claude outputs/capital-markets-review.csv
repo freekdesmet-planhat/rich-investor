@@ -1,0 +1,54 @@
+symbol,name,exchange,country,proposed,reason
+AMP,"Ameriprise Financial, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+AMUN.PA,Amundi SA,PAR,France,out,asset manager / investment bank / broker / BDC / holdco
+APO,"Apollo Global Management, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+ARCC,Ares Capital Corporation,NMS,United States,out,asset manager / investment bank / broker / BDC / holdco
+ARES,Ares Management Corporation,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+BAER.SW,Julius Bar Gruppe AG,EBS,Switzerland,out,asset manager / investment bank / broker / BDC / holdco
+BAERE.SW,Julius Bar Gruppe AG,EBS,Switzerland,out,asset manager / investment bank / broker / BDC / holdco
+BEN,"Franklin Resources, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+BK,The Bank of New York Mellon Corporation,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+BLK,"BlackRock, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+CET,Central Securities Corp.,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+CG,The Carlyle Group Inc.,NMS,United States,out,asset manager / investment bank / broker / BDC / holdco
+CME,CME Group Inc.,NMS,United States,in,exchange operator
+CRBG,Corebridge Financial Inc. Common Stock,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+DB1.DE,Deutsche Borse AG,GER,Germany,in,exchange operator
+DB1.F,Deutsche Borse AG,FRA,Germany,out,asset manager / investment bank / broker / BDC / holdco
+EQT.ST,EQT AB,STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+EVR,Evercore Inc.,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+FDS,FactSet Research Systems Inc.,NYQ,United States,in,ratings/index/data provider
+GBLB.BR,Groupe Bruxelles Lambert SA,BRU,Belgium,out,asset manager / investment bank / broker / BDC / holdco
+GS,"The Goldman Sachs Group, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+HLI,"Houlihan Lokey, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+HOOD,Robinhood Markets Inc. Class A Common Stock,NMS,United States,flag,"brokerage — retail/prime, bank-adjacent"
+IBKR,"Interactive Brokers Group, Inc. Class A",NMS,United States,flag,"brokerage — retail/prime, bank-adjacent"
+ICE,"Intercontinental Exchange, Inc.",NYQ,United States,in,exchange operator
+INDU-A.ST,AB Industrivarden (publ),STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+INDU-C.ST,AB Industrivarden (publ),STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+IVZ,Invesco Ltd.,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+KINV-A.ST,Kinnevik AB,STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+KINV-B.ST,Kinnevik AB,STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+KKR,KKR & Co. Inc.,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+LATO-B.ST,Investment AB Latour (publ),STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+LPLA,LPL Financial Holdings Inc.,NMS,United States,out,asset manager / investment bank / broker / BDC / holdco
+LSEG.L,London Stock Exchange Group plc,LSE,United Kingdom,in,exchange operator
+LUND-B.ST,L E Lundbergforetagen AB (publ),STO,Sweden,out,asset manager / investment bank / broker / BDC / holdco
+MCO,Moody's Corporation,NYQ,United States,in,ratings/index/data provider
+MS,Morgan Stanley,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+MSCI,MSCI Inc.,NYQ,United States,in,ratings/index/data provider
+NDAQ,"Nasdaq, Inc.",NMS,United States,in,exchange operator
+NTRS,Northern Trust Corporation,NMS,United States,out,asset manager / investment bank / broker / BDC / holdco
+OWL,Blue Owl Capital Inc. Class A Common Stock,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+PGHN.SW,Partners Group Holding AG,EBS,Switzerland,out,asset manager / investment bank / broker / BDC / holdco
+RJF,"Raymond James Financial, Inc.",NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+SCHW,The Charles Schwab Corporation,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+SDR.L,Schroders plc,LSE,United Kingdom,out,asset manager / investment bank / broker / BDC / holdco
+SDRC.L,Schroders plc,LSE,United Kingdom,out,asset manager / investment bank / broker / BDC / holdco
+SOF.BR,Sofina Societe Anonyme,BRU,Belgium,out,asset manager / investment bank / broker / BDC / holdco
+SPGI,S&P Global Inc.,NYQ,United States,in,ratings/index/data provider
+STJ.L,St. James Place Capital Plc.,LSE,United Kingdom,out,asset manager / investment bank / broker / BDC / holdco
+STT,State Street Corporation,NYQ,United States,out,asset manager / investment bank / broker / BDC / holdco
+TPG,TPG Inc. Class A Common Stock,NMS,United States,out,asset manager / investment bank / broker / BDC / holdco
+TROW,"T. Rowe Price Group, Inc.",NMS,United States,out,asset manager / investment bank / broker / BDC / holdco
+TW,"Tradeweb Markets, Inc. Class A",NMS,United States,flag,"Tradeweb — electronic marketplace, exchange-like but not a listing venue"

@@ -309,6 +309,21 @@ export default async function StockPage({
           </Link>
         </div>
 
+        {/* Checklist complete: the measurable part is done, so the page points
+            straight at the part only the reader can do (launch item 1). The
+            colour matches the "pass" verdict. */}
+        {signal.status === 'buy_worthy' && (
+          <div className="border-pass-line bg-pass-wash mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3">
+            <p className="text-pass text-sm font-medium">{tStatus('reviewPrompt')}</p>
+            <a
+              href="#review"
+              className="bg-pass text-accent-ink rounded-md px-3 py-1.5 text-sm font-medium transition hover:opacity-90"
+            >
+              {tStatus('startReview')}
+            </a>
+          </div>
+        )}
+
         {/* A stopped pipeline affects every figure on this page. */}
         <DataFreshness
           asOf={signal.as_of}
@@ -629,6 +644,9 @@ export default async function StockPage({
         />
 
         {/* --- the judgement the app cannot make (section 8) ------------------ */}
+        {/* Anchor for the "Start my review" button shown when the checklist is
+            complete; scroll-margin keeps the heading clear of the top edge. */}
+        <div id="review" className="scroll-mt-6">
         <QualitativeReview
           symbol={symbol}
           mine={mine ? toRecord(mine) : null}
@@ -638,6 +656,7 @@ export default async function StockPage({
           conditionsApplicable={signal.conditions_applicable}
           docs={docs}
         />
+        </div>
 
         {/* --- provenance ---------------------------------------------------- */}
         {/* Not a single "As of <date>": how old the price is and which annual

@@ -63,7 +63,7 @@ export interface Digest {
 }
 
 const STATUS_LABEL: Record<SignalStatus, { en: string; nl: string }> = {
-  buy_worthy: { en: 'buy-worthy', nl: 'koopwaardig' },
+  buy_worthy: { en: 'checklist complete', nl: 'alle voorwaarden gehaald' },
   almost: { en: 'almost there', nl: 'bijna zover' },
   watching: { en: 'watching', nl: 'in de gaten houden' },
 };
@@ -71,8 +71,8 @@ const STATUS_LABEL: Record<SignalStatus, { en: string; nl: string }> = {
 const COPY = {
   subject: {
     flipped: {
-      en: (n: number) => `${n} stock${n === 1 ? '' : 's'} now buy-worthy`,
-      nl: (n: number) => `${n} aande${n === 1 ? 'el' : 'len'} nu koopwaardig`,
+      en: (n: number) => `${n} stock${n === 1 ? '' : 's'} completed the checklist`,
+      nl: (n: number) => `${n} aande${n === 1 ? 'el' : 'len'} met complete checklist`,
     },
     changes: {
       en: (n: number) => `${n} change${n === 1 ? '' : 's'} on your watchlist`,
@@ -84,7 +84,7 @@ const COPY = {
     },
   },
   heading: {
-    flipped: { en: 'Now buy-worthy', nl: 'Nu koopwaardig' },
+    flipped: { en: 'Checklist now complete', nl: 'Checklist nu compleet' },
     changed: { en: 'Changed', nl: 'Gewijzigd' },
     oneAway: { en: 'One condition away', nl: 'Nog één voorwaarde' },
   },

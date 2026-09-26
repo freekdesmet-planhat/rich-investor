@@ -131,7 +131,7 @@ describe('mailer without an API key', () => {
 
     const result = await mailer.send({
       to: 'me@example.com',
-      subject: 'ADYEN.AS is now buy-worthy',
+      subject: 'ADYEN.AS: checklist complete',
       text: 'why…',
     });
 

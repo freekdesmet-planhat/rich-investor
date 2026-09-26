@@ -24,16 +24,21 @@
     "switchTo": "Overschakelen naar {language}"
   },
   "status": {
-    "buy_worthy": "Koopwaardig, nu jouw kwalitatieve beoordeling",
+    "buy_worthy": "Alle voorwaarden gehaald",
     "almost": "Bijna zover, blijven volgen",
     "watching": "Nog afwachten",
     "conditionsMet": "{met} van {total} voorwaarden gehaald",
     "cantJudge": "{count} niet te beoordelen: {names}",
     "short": {
-      "buy_worthy": "Koopwaardig",
+      "buy_worthy": "Alle voorwaarden gehaald",
       "almost": "Bijna zover",
       "watching": "Nog afwachten"
-    }
+    },
+    "headline": {
+      "buy_worthy": "Alle voorwaarden gehaald: nu jouw onderzoek"
+    },
+    "startReview": "Begin mijn beoordeling",
+    "reviewPrompt": "Nu jouw onderzoek"
   },
   "sector": {
     "information_technology": "Informatietechnologie",
@@ -67,7 +72,7 @@
     "adjusted": {
       "label": "gecorrigeerd",
       "raw": "Ruw",
-      "roaNote": "De ruwe ROA wordt vertekend door settlementsaldi die typisch zijn voor betaalbedrijven; voor de koopwaardigheidstoets wordt de gecorrigeerde ROA gebruikt.",
+      "roaNote": "De ruwe ROA wordt vertekend door settlementsaldi die typisch zijn voor betaalbedrijven; voor de checklist wordt de gecorrigeerde ROA gebruikt.",
       "approximation": "De correctie is een benadering."
     },
     "gate": "Drempel voor de checklist: {value}",
@@ -101,7 +106,7 @@
       "full": "Lees de volledige onderbouwing",
       "title": "Waarom"
     },
-    "checklist": "Checklist koopwaardigheid",
+    "checklist": "Checklist",
     "pegBasis": {
       "trailing": "gehaald op gerealiseerde groei",
       "forward": "alleen gehaald op verwachte groei",
@@ -219,7 +224,7 @@
     "sortBy": "Sorteer op",
     "sort": {
       "newest": "Nieuwste",
-      "status": "Dichtst bij koopwaardig",
+      "status": "Dichtst bij compleet",
       "symbol": "Ticker"
     },
     "empty": {
@@ -246,7 +251,7 @@
   },
   "macro": {
     "title": "Marktcontext",
-    "subtitle": "Een temperatuurmeter, geen timinginstrument: een indicatie van hoeveel moeite het kost om een koopwaardig aandeel te vinden.",
+    "subtitle": "Een temperatuurmeter, geen timinginstrument: een indicatie van hoeveel moeite het kost om een aandeel te vinden dat de checklist compleet maakt.",
     "asOf": "Peildatum {date}",
     "unavailable": "Niet beschikbaar",
     "buffett": {
@@ -312,7 +317,7 @@
       "email": "Stuur naar",
       "emailHint": "Laat leeg om niets te ontvangen.",
       "enabled": "Stuur mij de samenvatting",
-      "onBuy": "Laat het weten als iets koopwaardig wordt",
+      "onBuy": "Laat het weten als een aandeel de checklist compleet maakt",
       "weekly": "Inclusief het weekoverzicht"
     },
     "language": {
@@ -437,7 +442,8 @@
     "sectorBy": "Sector",
     "sectorAny": "Alles",
     "pegForward": "verwachte PEG",
-    "pegForwardHelp": "De waarderingstoets slaagt op verwachte groei, niet op al gerealiseerde winst."
+    "pegForwardHelp": "De waarderingstoets slaagt op verwachte groei, niet op al gerealiseerde winst.",
+    "readyHeading": "Klaar voor jouw onderzoek"
   },
   "chart": {
     "high": "5-jaarstop",
@@ -502,9 +508,9 @@
   },
   "methodology": {
     "title": "Methodiek",
-    "intro": "Hoe Rich Investor bepaalt of een aandeel koopwaardig is, er bijna is, of nog op de volglijst hoort — en wat de app bewust niet pretendeert te weten.",
+    "intro": "Hoe Rich Investor bepaalt of de checklist van een aandeel compleet is, of het er bijna is, of nog op de volglijst hoort — en wat de app bewust niet pretendeert te weten.",
     "conditionsTitle": "De negen voorwaarden",
-    "conditionsIntro": "Elk aandeel op je volglijst wordt elke nacht langs dezelfde negen voorwaarden gelegd. Er wordt niets gewogen, gescoord of gemiddeld: een voorwaarde geldt wel of niet, en het oordeel is een telling. Voldoet een aandeel aan alle negen, dan is het koopwaardig; mist het er één of twee, dan is het er bijna; verder terug blijft het volgen.",
+    "conditionsIntro": "Elk aandeel op je volglijst wordt elke nacht langs dezelfde negen voorwaarden gelegd. Er wordt niets gewogen, gescoord of gemiddeld: een voorwaarde geldt wel of niet, en het oordeel is een telling. Voldoet een aandeel aan alle negen, dan is de checklist compleet; mist het er één of twee, dan is het er bijna; verder terug blijft het volgen.",
     "fixedTitle": "Waarom de drempels niet bewegen",
     "fixedBody": "De kerndrempels — het koers-winstplafond van 30, de PEG-banden, de daling van 50% ten opzichte van de vijfjaarstop, de ondergrens van 10 miljard dollar — liggen vast en zijn niet aanpasbaar. Dat is precies het nut van een raamwerk: een regel die je versoepelt zodra een aandeel dat je mooi vindt eraan zakt, is geen regel. Een handvol secundaire drempels die de app zelf koos, kun je onder Account aanpassen; elk cijfer dat daaraan getoetst is, vermeldt dat op de kaart.",
     "revisitTitle": "Vast is niet voor altijd",
@@ -528,7 +534,7 @@
       },
       "verdicts": {
         "title": "Drie antwoorden, en wat ze werkelijk betekenen",
-        "body": "**Koopwaardig** betekent dat alle negen voorwaarden gelden. Het is geen koopopdracht. Het betekent dat het bedrijf elke meetbare horde heeft genomen, en dat wat overblijft alleen jij kunt doen.\n\n**Bijna zover** betekent dat er één of twee voorwaarden ontbreken. Dat zijn meestal de interessante gevallen — het loont te weten wélke voorwaarde ontbreekt, want een bedrijf dat alleen op de koersvoorwaarde struikelt is iets heel anders dan een bedrijf dat op de schuldvoorwaarde struikelt.\n\n**Volgen** betekent dat het verder achterloopt. De meeste bedrijven staan hier het grootste deel van de tijd, en dat is normaal en geen falen."
+        "body": "**Alle voorwaarden gehaald** betekent dat alle negen voorwaarden gelden. Het is geen koopopdracht. Het betekent dat het bedrijf elke meetbare horde heeft genomen, en dat wat overblijft alleen jij kunt doen.\n\n**Bijna zover** betekent dat er één of twee voorwaarden ontbreken. Dat zijn meestal de interessante gevallen — het loont te weten wélke voorwaarde ontbreekt, want een bedrijf dat alleen op de koersvoorwaarde struikelt is iets heel anders dan een bedrijf dat op de schuldvoorwaarde struikelt.\n\n**Volgen** betekent dat het verder achterloopt. De meeste bedrijven staan hier het grootste deel van de tijd, en dat is normaal en geen falen."
       },
       "priceAndGrowth": {
         "title": "Waarom koers en groei samen beoordeeld worden",

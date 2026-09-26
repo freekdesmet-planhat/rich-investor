@@ -24,16 +24,21 @@
     "switchTo": "Switch to {language}"
   },
   "status": {
-    "buy_worthy": "Buy-worthy, over to your qualitative review",
+    "buy_worthy": "Checklist complete",
     "almost": "Almost there, keep watching",
     "watching": "Watching",
     "conditionsMet": "{met} of {total} conditions met",
     "cantJudge": "{count} can't be judged: {names}",
     "short": {
-      "buy_worthy": "Buy-worthy",
+      "buy_worthy": "Checklist complete",
       "almost": "Almost there",
       "watching": "Watching"
-    }
+    },
+    "headline": {
+      "buy_worthy": "Checklist complete: now it's your research"
+    },
+    "startReview": "Start my review",
+    "reviewPrompt": "Now it's your research"
   },
   "sector": {
     "information_technology": "Information technology",
@@ -67,7 +72,7 @@
     "adjusted": {
       "label": "adjusted",
       "raw": "Raw",
-      "roaNote": "Raw ROA is distorted by settlement balances typical of payment processors; adjusted ROA is used for the buy-worthy check.",
+      "roaNote": "Raw ROA is distorted by settlement balances typical of payment processors; adjusted ROA is used for the checklist.",
       "approximation": "The adjustment is an approximation."
     },
     "gate": "Checklist pass mark: {value}",
@@ -101,7 +106,7 @@
       "full": "Read the full reasoning",
       "title": "Why"
     },
-    "checklist": "Buy-worthy checklist",
+    "checklist": "Checklist",
     "pegBasis": {
       "trailing": "passed on realised growth",
       "forward": "passed on expected growth only",
@@ -219,7 +224,7 @@
     "sortBy": "Sort by",
     "sort": {
       "newest": "Newest",
-      "status": "Closest to buyable",
+      "status": "Closest to complete",
       "symbol": "Ticker"
     },
     "empty": {
@@ -246,7 +251,7 @@
   },
   "macro": {
     "title": "Market context",
-    "subtitle": "A temperature gauge, not a timing tool: an indication of how much effort finding a buy-worthy stock will take.",
+    "subtitle": "A temperature gauge, not a timing tool: an indication of how much effort finding a stock that completes the checklist will take.",
     "asOf": "As of {date}",
     "unavailable": "Not available",
     "buffett": {
@@ -312,7 +317,7 @@
       "email": "Send it to",
       "emailHint": "Leave blank to receive nothing.",
       "enabled": "Send me the digest",
-      "onBuy": "Tell me when something turns buy-worthy",
+      "onBuy": "Tell me when a stock completes its checklist",
       "weekly": "Include the weekly summary"
     },
     "language": {
@@ -437,7 +442,8 @@
     "sectorBy": "Sector",
     "sectorAny": "All",
     "pegForward": "forward PEG",
-    "pegForwardHelp": "The valuation test passes on expected growth, not on earnings already delivered."
+    "pegForwardHelp": "The valuation test passes on expected growth, not on earnings already delivered.",
+    "readyHeading": "Ready for your research"
   },
   "chart": {
     "high": "5y high",
@@ -502,9 +508,9 @@
   },
   "methodology": {
     "title": "Methodology",
-    "intro": "How Rich Investor decides that a stock is buy-worthy, almost there, or still one to watch — and what it deliberately does not claim to know.",
+    "intro": "How Rich Investor decides that a stock's checklist is complete, that it is almost there, or still one to watch — and what it deliberately does not claim to know.",
     "conditionsTitle": "The nine conditions",
-    "conditionsIntro": "Every stock on your watchlist is measured against the same nine conditions, every night. Nothing is weighted, scored or averaged: a condition either holds or it does not, and the verdict is a count. A stock meeting all nine is buy-worthy; one or two short is almost there; anything further back is still watching.",
+    "conditionsIntro": "Every stock on your watchlist is measured against the same nine conditions, every night. Nothing is weighted, scored or averaged: a condition either holds or it does not, and the verdict is a count. A stock meeting all nine has a complete checklist; one or two short is almost there; anything further back is still watching.",
     "fixedTitle": "Why the thresholds do not move",
     "fixedBody": "The core thresholds — the P/E ceiling of 30, the PEG bands, the 50% decline from the five-year high, the $10bn floor — are fixed and cannot be edited. That is the point of a framework: a rule you relax when a stock you like fails it is not a rule. A handful of secondary thresholds the app chose for itself are editable under Account, and any figure judged against one says so on the card.",
     "revisitTitle": "Fixed is not permanent",
@@ -528,7 +534,7 @@
       },
       "verdicts": {
         "title": "Three answers, and what they actually mean",
-        "body": "**Buy-worthy** means all nine conditions hold. It is not an instruction to buy. It means the company has cleared every measurable bar, and the part that is left is the part only you can do.\n\n**Almost there** means it is one or two conditions short. These are usually the interesting ones — worth knowing which condition is missing, because a company missing only the price condition is a different proposition from one missing the debt condition.\n\n**Watching** means it is further back than that. Most companies sit here most of the time, and that is normal rather than a failure."
+        "body": "**Checklist complete** means all nine conditions hold. It is not an instruction to buy. It means the company has cleared every measurable bar, and the part that is left is the part only you can do.\n\n**Almost there** means it is one or two conditions short. These are usually the interesting ones — worth knowing which condition is missing, because a company missing only the price condition is a different proposition from one missing the debt condition.\n\n**Watching** means it is further back than that. Most companies sit here most of the time, and that is normal rather than a failure."
       },
       "priceAndGrowth": {
         "title": "Why the price and the growth are judged together",

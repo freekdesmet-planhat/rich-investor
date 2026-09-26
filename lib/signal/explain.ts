@@ -401,8 +401,8 @@ export function explainForEmail(
   return {
     subject:
       lang === 'nl'
-        ? `${input.symbol} is koopwaardig geworden`
-        : `${input.symbol} is now buy-worthy`,
+        ? `${input.symbol}: alle voorwaarden gehaald`
+        : `${input.symbol}: checklist complete`,
     body: `${label} (${input.symbol})\n\n${explanation[lang]}`,
   };
 }

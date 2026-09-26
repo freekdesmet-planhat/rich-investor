@@ -33,7 +33,7 @@ const render = (entries: DigestEntry[], lang: 'en' | 'nl' = 'en') =>
     asOf: '2026-09-14',
     lang,
     baseUrl: 'https://richinvestor.netlify.app',
-    subject: lang === 'nl' ? '1 aandeel nu koopwaardig' : '1 stock now buy-worthy',
+    subject: lang === 'nl' ? '1 aandeel met complete checklist' : '1 stock completed the checklist',
   });
 
 describe('mail-client compatibility', () => {
@@ -72,7 +72,7 @@ describe('mail-client compatibility', () => {
 describe('what it shows', () => {
   it('leads with what flipped, and links to it', () => {
     const html = render([entry()]);
-    expect(html).toContain('Now buy-worthy');
+    expect(html).toContain('Checklist now complete');
     expect(html).toContain('ADYEN.AS');
     expect(html).toContain('Open analysis');
   });
@@ -111,7 +111,7 @@ describe('what it shows', () => {
 
   it('drops a section that has nothing in it', () => {
     const html = render([entry()]);
-    expect(html).toContain('Now buy-worthy');
+    expect(html).toContain('Checklist now complete');
     expect(html).not.toContain('One condition away');
   });
 });

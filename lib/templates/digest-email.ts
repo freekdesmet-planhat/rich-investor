@@ -34,7 +34,7 @@ const FONT =
   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 const BADGE: Record<SignalStatus, { fg: string; bg: string; en: string; nl: string }> = {
-  buy_worthy: { fg: COLOR.green, bg: COLOR.greenBg, en: 'Buy-worthy', nl: 'Koopwaardig' },
+  buy_worthy: { fg: COLOR.green, bg: COLOR.greenBg, en: 'Checklist complete', nl: 'Alle voorwaarden gehaald' },
   almost: { fg: COLOR.amber, bg: COLOR.amberBg, en: 'Almost there', nl: 'Bijna zover' },
   watching: { fg: COLOR.slate, bg: COLOR.slateBg, en: 'Watching', nl: 'Volgen' },
 };
@@ -45,7 +45,7 @@ const COPY = {
     nl: 'Wat er op je volglijst is veranderd',
   },
   heading: {
-    flipped: { en: 'Now buy-worthy', nl: 'Nu koopwaardig' },
+    flipped: { en: 'Checklist now complete', nl: 'Checklist nu compleet' },
     changed: { en: 'Changed', nl: 'Gewijzigd' },
     oneAway: { en: 'One condition away', nl: 'Nog één voorwaarde' },
   },

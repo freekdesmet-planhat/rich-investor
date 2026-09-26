@@ -103,7 +103,7 @@ describe('what the mail says', () => {
   ];
 
   it('leads the subject with the most important thing that happened', () => {
-    expect(buildDigest(moved, '2026-09-14', 'en')?.subject).toContain('buy-worthy');
+    expect(buildDigest(moved, '2026-09-14', 'en')?.subject).toContain('completed the checklist');
   });
 
   it('falls back to changes, then to one-away, in the subject', () => {
@@ -128,12 +128,12 @@ describe('what the mail says', () => {
 
   it('writes the whole mail in Dutch when that is the reader’s language', () => {
     const nl = buildDigest(moved, '2026-09-14', 'nl')!;
-    expect(nl.subject).toMatch(/koopwaardig/);
-    expect(nl.body).toContain('Nu koopwaardig');
+    expect(nl.subject).toMatch(/complete checklist/);
+    expect(nl.body).toContain('Checklist nu compleet');
     expect(nl.body).toContain('daling vanaf de 5-jaarstop');
     expect(nl.body).toContain('geen beleggingsadvies');
     // No English section headings leaking through.
-    expect(nl.body).not.toMatch(/Now buy-worthy|One condition away|Changed:/);
+    expect(nl.body).not.toMatch(/Checklist now complete|One condition away|Changed:/);
   });
 
   it('carries the ticker and the company name', () => {
@@ -216,8 +216,8 @@ describe('sending', () => {
 
     expect(outcomes.map((o) => o.state)).toEqual(['sent', 'sent']);
     expect(sent.map((s) => s.to)).toEqual(['a@example.com', 'b@example.com']);
-    expect(sent[0].subject).toMatch(/buy-worthy/);
-    expect(sent[1].subject).toMatch(/koopwaardig/);
+    expect(sent[0].subject).toMatch(/completed the checklist/);
+    expect(sent[1].subject).toMatch(/complete checklist/);
   });
 
   it('claims the row before sending, so a crash leaves a record', async () => {
