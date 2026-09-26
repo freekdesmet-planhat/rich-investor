@@ -146,6 +146,17 @@ export default async function StockPage({
   const mine = reviewData.reviews.find((r) => r.user_id === user?.id);
   const others = reviewData.reviews.filter((r) => r.user_id !== user?.id).map(toRecord);
 
+  // The cached AI summary is shown only while it still describes the current
+  // signal. A changed verdict (status or conditions met) hides it, so a stale
+  // summary is never shown behind a warning; the reader regenerates instead. Rows
+  // written before the fingerprint existed fall back to the as-of comparison (A7).
+  const summaryLive =
+    summary != null &&
+    (summary.signal_status != null
+      ? summary.signal_status === signal.status &&
+        summary.signal_conditions_met === signal.conditions_met
+      : summary.signal_as_of === signal.as_of);
+
   const name = snapshot?.quote?.name ?? symbol;
   const lynch = docs.get(`lynch:${signal.lynch_category}`);
   const earnings = upcomingEarnings(snapshot?.quote?.nextEarningsDate);
@@ -489,11 +500,11 @@ export default async function StockPage({
               key={`${symbol}-${locale}`}
               symbol={symbol}
               lang={locale}
-              thesis={summary?.thesis ?? null}
-              // A thesis written against an older signal may no longer describe
-              // the figures on the page, so the card says so rather than pretending.
-              isStale={Boolean(summary && summary.signal_as_of !== signal.as_of)}
-              generatedAt={summary?.generated_at ?? null}
+              // Hidden once the signal has moved, so a stale summary is never shown.
+              thesis={summaryLive ? summary!.thesis : null}
+              generatedAt={summaryLive ? summary!.generated_at : null}
+              // The figures the summary is written from are this evaluation's.
+              figuresAsOf={signal.as_of}
               canGenerate={Boolean(user)}
               labels={{
                 title: tThesis('title'),
@@ -502,14 +513,15 @@ export default async function StockPage({
                 refresh: tThesis('refresh'),
                 generating: tThesis('generating'),
                 empty: tThesis('empty'),
-                staleNotice: tThesis('staleNotice'),
                 // {date} is only known once a generation finishes, on the client.
                 generatedAt: tThesis.raw('generatedAt') as string,
+                figuresAsOf: tThesis.raw('figuresAsOf') as string,
                 error: tThesis('error'),
                 signedOut: tThesis('signedOut'),
                 failed: {
                   truncated: tThesis('failed.truncated'),
                   no_text: tThesis('failed.no_text'),
+                  numbers: tThesis('failed.numbers'),
                   api: tThesis('failed.api'),
                   disabled: tThesis('failed.disabled'),
                   missing_symbol: tThesis('failed.missing_symbol'),

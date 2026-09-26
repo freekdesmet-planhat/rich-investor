@@ -10,8 +10,9 @@ export interface ThesisLabels {
   refresh: string;
   generating: string;
   empty: string;
-  staleNotice: string;
   generatedAt: string;
+  /** "Figures as of {date}", shown under the summary. */
+  figuresAsOf: string;
   error: string;
   signedOut: string;
   /** One sentence per failure code, from `thesis.failed` in the active language. */
@@ -52,16 +53,16 @@ export function AiThesisCard({
   symbol,
   lang,
   thesis: cached,
-  isStale,
   generatedAt: cachedAt,
+  figuresAsOf,
   canGenerate,
   labels,
 }: {
   symbol: string;
   lang: string;
   thesis: string | null;
-  isStale: boolean;
   generatedAt: string | null;
+  figuresAsOf: string | null;
   canGenerate: boolean;
   labels: ThesisLabels;
 }) {
@@ -69,7 +70,6 @@ export function AiThesisCard({
   const [generatedAt, setGeneratedAt] = useState<string | null>(cachedAt);
   const [pending, setPending] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [fresh, setFresh] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   const generate = useCallback(async () => {
@@ -128,7 +128,6 @@ export function AiThesisCard({
               setText(streamed);
             } else if (event.type === 'done') {
               setGeneratedAt(event.generatedAt ?? null);
-              setFresh(true);
             } else if (event.type === 'error') {
               failed = event.code ?? 'unknown';
             }
@@ -165,9 +164,6 @@ export function AiThesisCard({
 
       {hasText && (
         <>
-          {isStale && !fresh && (
-            <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">{labels.staleNotice}</p>
-          )}
           <p
             aria-live="polite"
             className="whitespace-pre-line text-sm leading-relaxed text-ink-muted"
@@ -175,10 +171,11 @@ export function AiThesisCard({
             {text}
             {pending && <span className="ml-0.5 animate-pulse">▍</span>}
           </p>
-          {generatedAt && !pending && (
-            <p className="text-ink-faint mt-2 text-xs">
-              {labels.generatedAt.replace('{date}', generatedAt.slice(0, 10))}
-            </p>
+          {!pending && (
+            <div className="text-ink-faint mt-2 space-y-0.5 text-xs">
+              {figuresAsOf && <p>{labels.figuresAsOf.replace('{date}', figuresAsOf.slice(0, 10))}</p>}
+              {generatedAt && <p>{labels.generatedAt.replace('{date}', generatedAt.slice(0, 10))}</p>}
+            </div>
           )}
         </>
       )}

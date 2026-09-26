@@ -336,6 +336,9 @@ export interface TickerSummary {
   thesis: string;
   model: string | null;
   signal_as_of: string | null;
+  /** The verdict the summary was written against, to detect a signal change (A7). */
+  signal_status: string | null;
+  signal_conditions_met: number | null;
   generated_at: string;
 }
 
@@ -353,7 +356,7 @@ export async function getTickerSummary(
 ): Promise<TickerSummary | null> {
   const { data } = await (await client())
     .from('ticker_summaries')
-    .select('symbol,lang,thesis,model,signal_as_of,generated_at')
+    .select('symbol,lang,thesis,model,signal_as_of,signal_status,signal_conditions_met,generated_at')
     .eq('symbol', symbol)
     .eq('lang', lang)
     .maybeSingle<TickerSummary>();

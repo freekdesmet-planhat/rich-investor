@@ -364,6 +364,24 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A7 (AI thesis) shipped, with the agreed guardrails.
+  - **Prompt:** rewritten for beginners — no investor names ("Peter Lynch" gone),
+    no superlatives, no buy/sell language, no price targets; and it states every
+    number must be one of the given figures.
+  - **Numbers check in code** (`unmatchedNumbers`): the finished summary is validated
+    against the exact user message (targets, the N-of-M count, every metric value);
+    a fabricated figure discards it. The route now buffers the generation, validates,
+    retries once, and shows nothing on a second failure — so text is never shown
+    before it passes (streaming-then-discard avoided).
+  - **Hide on signal change:** the summary stores the verdict it was written against
+    (`signal_status`, `signal_conditions_met`, 0044); the page hides it when either
+    moves and offers to regenerate — no stale text behind a warning (the old
+    as-of-based staleNotice is gone).
+  - **Language + date:** already per-language; a "Figures as of {date}" caption now
+    sits under the summary (EN + NL).
+  - Also shipped this round: brand → "Rich Investor" in both languages (book title
+    kept only on the Methodology credit line); scan buy-worthy suggestions now fire
+    the same alert as the watchlist, deduped per ticker/day.
 - 2026-09-26: A3 (copy/typo batch) shipped. "requiredr" fixed; ICU plurals for
   "1 condition more/fewer" (EN+NL); the valuation percentile that read backwards
   reframed to "lower/higher than on N% of days"; WhyBlock's redundant full-reasoning

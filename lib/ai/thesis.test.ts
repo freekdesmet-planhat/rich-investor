@@ -45,7 +45,7 @@ vi.mock('@/lib/thesis/provider', async (importOriginal) => {
   };
 });
 
-const { buildUserMessage, streamThesis, systemPromptFor, thesisEnabled, ThesisError } =
+const { buildUserMessage, streamThesis, systemPromptFor, thesisEnabled, ThesisError, unmatchedNumbers } =
   await import('./thesis');
 const { ThesisProviderError } = await import('@/lib/thesis/provider');
 type ThesisContext = import('./thesis').ThesisContext;
@@ -96,6 +96,41 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.restoreAllMocks());
+
+describe('prompt guardrails (A7)', () => {
+  it('does not name investors or investing styles', () => {
+    const p = systemPromptFor('en');
+    expect(p).not.toContain('Peter Lynch');
+    expect(p).not.toContain('One Up on Wall Street');
+    expect(p).toContain('Do not name investors');
+  });
+  it('forbids superlatives, buy/sell language, price targets and invented numbers', () => {
+    const p = systemPromptFor('en');
+    expect(p).toContain('No superlatives');
+    expect(p).toContain('Do not tell the reader to buy, sell');
+    expect(p).toContain('no price targets');
+    expect(p).toContain('Every number you write must be one of the figures given');
+  });
+});
+
+describe('numbers guardrail (A7)', () => {
+  const given = buildUserMessage(context());
+  it('accepts an output whose figures are all from the data', () => {
+    // 1.17 (PEG), 22.3% (ROE), and a "5 of 9"-style count are all in the message.
+    expect(unmatchedNumbers('The PEG is 1.17 and ROE is 22.3%.', given)).toEqual([]);
+  });
+  it('tolerates a beginner rounding a given figure', () => {
+    expect(unmatchedNumbers('ROE is about 22%.', given)).toEqual([]); // given 22.3
+  });
+  it('flags a fabricated figure', () => {
+    expect(unmatchedNumbers('Revenue grew 45% last year.', given)).toContain('45');
+  });
+  it('matches an unsigned mention of a negative figure', () => {
+    // The drawdown is given as a negative percentage; "fell 20%" should match.
+    const withDraw = buildUserMessage(context({ drawdown: -0.2 }));
+    expect(unmatchedNumbers('It has fallen 20% from its high.', withDraw)).toEqual([]);
+  });
+});
 
 describe('the prompt sent to the model', () => {
   it('carries the identity, sector and growth category', () => {

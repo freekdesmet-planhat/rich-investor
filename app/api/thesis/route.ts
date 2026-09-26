@@ -167,19 +167,33 @@ export async function POST(request: NextRequest) {
         }
       };
 
-      try {
-        // Driven by hand rather than `for await`, which discards a generator's
-        // return value — and the return value is what gets stored.
+      // One full generation, drained to completion. Deltas are not forwarded as
+      // they arrive: the numbers guardrail can only run on the finished text, and
+      // showing text we might then discard is worse than a short wait. See below.
+      const runOnce = async () => {
         const generation = streamThesis(context, lang, request.signal);
         let step = await generation.next();
-        while (!step.done) {
-          send({ type: 'delta', text: step.value });
-          step = await generation.next();
+        while (!step.done) step = await generation.next();
+        return step.value;
+      };
+
+      try {
+        // Every number in the summary must be one we gave the model. On a stray
+        // figure streamThesis throws `numbers`; retry once, and a second failure
+        // throws through to the catch, which shows nothing (audit A7).
+        let result;
+        try {
+          result = await runOnce();
+        } catch (error) {
+          if (error instanceof ThesisError && error.code === 'numbers') {
+            result = await runOnce();
+          } else {
+            throw error;
+          }
         }
-        // Reaching here is the server's own completion of the provider call.
-        // An aborted stream throws above and never gets this far, so a partial
-        // reply cannot be stored.
-        const result = step.value;
+
+        // The validated text, sent in one piece now that it has passed.
+        send({ type: 'delta', text: result.text });
 
         const generatedAt = new Date().toISOString();
         const { error } = await supabase.from('ticker_summaries').upsert(
@@ -189,6 +203,8 @@ export async function POST(request: NextRequest) {
             thesis: result.text,
             model: result.model,
             signal_as_of: signal.as_of,
+            signal_status: signal.status,
+            signal_conditions_met: signal.conditions_met,
             generated_by: user.id,
             generated_at: generatedAt,
             input_tokens: result.inputTokens,

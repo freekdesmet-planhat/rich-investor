@@ -36,7 +36,45 @@ import {
  * environment variable was missing). The code travels instead, and each
  * language supplies its own sentence under `thesis.failed`.
  */
-export type ThesisErrorCode = 'truncated' | 'no_text' | 'api' | 'disabled';
+export type ThesisErrorCode = 'truncated' | 'no_text' | 'api' | 'disabled' | 'numbers';
+
+interface NumberToken {
+  value: number;
+  decimals: number;
+}
+
+function numberTokens(text: string): NumberToken[] {
+  const out: NumberToken[] = [];
+  for (const match of text.matchAll(/-?\d[\d,]*(?:\.\d+)?/g)) {
+    const raw = match[0].replace(/,/g, '');
+    const value = Math.abs(Number(raw));
+    if (!Number.isFinite(value)) continue;
+    const dot = raw.indexOf('.');
+    out.push({ value, decimals: dot === -1 ? 0 : raw.length - dot - 1 });
+  }
+  return out;
+}
+
+/**
+ * Numbers in the output that were not among the figures the model was given.
+ *
+ * The guardrail: a beginner summary must not contain a figure we did not hand it,
+ * because an invented number reads as fact. `allowedText` is the exact user message
+ * (targets, the "N of M" count and every metric value), so a number counts as
+ * given when some allowed value rounds to it at the precision the model wrote —
+ * "15%" is fine against a given 15.0, "1.2" against 1.23, but an invented 45 is not.
+ * Values are compared unsigned, so "fell 30%" matches a −30.0% drawdown.
+ */
+export function unmatchedNumbers(output: string, allowedText: string): string[] {
+  const allowed = numberTokens(allowedText).map((t) => t.value);
+  const round = (v: number, d: number) => Number(v.toFixed(d));
+  const bad: string[] = [];
+  for (const token of numberTokens(output)) {
+    const ok = allowed.some((a) => Math.abs(round(a, token.decimals) - token.value) < 1e-9);
+    if (!ok) bad.push(token.decimals === 0 ? String(token.value) : token.value.toFixed(token.decimals));
+  }
+  return bad;
+}
 
 export class ThesisError extends Error {
   constructor(
@@ -61,11 +99,26 @@ export class ThesisError extends Error {
 const MAX_TOKENS = 1200;
 
 const SHARED_INSTRUCTIONS =
-  "You are a pragmatic, no-nonsense equity analyst applying Peter Lynch's " +
-  "'One Up on Wall Street' philosophy. Summarise the fundamental bull and bear " +
-  'case for the company described by the figures below. Focus strictly on ' +
-  'earnings growth consistency, debt resilience, cash flow quality, and the ' +
-  'valuation (PEG). Ignore technical analysis.';
+  'You explain, in plain language for someone new to investing, what a company’s ' +
+  'figures show: how steadily its earnings have grown, how much debt it carries, ' +
+  'whether its cash flow backs up its reported profit, and whether the price looks ' +
+  'reasonable against its growth (the PEG). Balance the strengths against the ' +
+  'weaknesses. Ignore chart patterns and technical analysis.';
+
+/**
+ * The hard constraints, in the prompt as well as enforced in code (numbers) — the
+ * summary is shown to beginners and must not read as a recommendation.
+ */
+const CONSTRAINTS =
+  'Rules you must follow:\n' +
+  '- Use plain words a beginner understands; explain a term the first time you use it.\n' +
+  '- Do not name investors or investing styles, and do not describe the company as ' +
+  'fitting any named investor’s profile.\n' +
+  '- No superlatives or salesy words (no "fortress", "dirt-cheap", "best-in-class").\n' +
+  '- Do not tell the reader to buy, sell, hold or wait, and give no price targets or ' +
+  'price predictions.\n' +
+  '- Every number you write must be one of the figures given below, exactly as given. ' +
+  'Do not invent numbers, round them differently, or calculate new ones.';
 
 const FORMAT_INSTRUCTIONS =
   'Reply with the summary itself and nothing else: no preamble, no heading, no ' +
@@ -83,7 +136,7 @@ export function systemPromptFor(lang: Lang): string {
         'sentence — write the analysis directly in Dutch.'
       : 'Write in English, for a private investor.';
 
-  return `${SHARED_INSTRUCTIONS}\n\n${language}\n\n${FORMAT_INSTRUCTIONS}`;
+  return `${SHARED_INSTRUCTIONS}\n\n${language}\n\n${CONSTRAINTS}\n\n${FORMAT_INSTRUCTIONS}`;
 }
 
 export interface ThesisContext {
@@ -220,6 +273,13 @@ export async function* streamThesis(
   // put a half-written analysis on the page as though it were finished.
   if (outcome.truncated) {
     throw new ThesisError('truncated', `hit maxOutputTokens (${MAX_TOKENS})`);
+  }
+
+  // Every number in the summary must be one we handed the model. A stray figure
+  // is a fabrication to a beginner; the caller retries once, then shows nothing.
+  const invented = unmatchedNumbers(trimmed, buildUserMessage(context));
+  if (invented.length > 0) {
+    throw new ThesisError('numbers', `invented figures: ${invented.join(', ')}`);
   }
 
   return {
