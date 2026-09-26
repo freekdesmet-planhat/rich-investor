@@ -19,7 +19,6 @@ import {
   getPosition,
   getRatios,
   getReviews,
-  getSectorPeerRatios,
   getSignal,
   getSignalHistory,
   getSnapshot,
@@ -40,7 +39,6 @@ import { CHART_RANGES, isChartRange, pointsInRange, type ChartRange } from '@/li
 import { CONDITION_LABEL } from '@/lib/signal/explain';
 import { upcomingEarnings } from '@/lib/data/earnings';
 import { LiquidityNote } from '@/components/LiquidityNote';
-import { comparePeers, PEER_METRICS } from '@/lib/data/peerComparison';
 import { formatCurrency, formatDate, formatPercent } from '@/lib/i18n/format';
 import { thesisEnabled } from '@/lib/ai/thesis';
 
@@ -72,7 +70,7 @@ export default async function StockPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, peerRows, listingExchange] =
+  const [ratios, snapshot, docs, reviewData, position, history, thresholdOverrides, summary, tRatio, tSignal, tData, tSector, tStatus, tThesis, tChart, tNav, tPosition, tEarnings, tLiquidity, tResearch, listingExchange] =
     await Promise.all([
     getRatios(symbol, signal.as_of),
     getSnapshot(symbol),
@@ -96,7 +94,6 @@ export default async function StockPage({
     getTranslations('earnings'),
     getTranslations('liquidity'),
     getTranslations('research'),
-    getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
     getListingExchange(symbol),
   ]);
 
@@ -192,11 +189,6 @@ export default async function StockPage({
   // Peer comparison is no longer a section; it survives as a one-line caption
   // on the headline ratio cards below (and on the full grid in Full research).
   // Computed here, unchanged, and handed to the grid.
-  const peers = comparePeers(
-    new Map(PEER_METRICS.map((key) => [key, byKey.get(key)?.value ?? null])),
-    peerRows,
-  );
-
   // Resolved here so the client block carries no translation bundle of its own.
   const liquidityLabels = {
     heading: tLiquidity('heading'),
@@ -532,7 +524,6 @@ export default async function StockPage({
             docs={docs}
             snapshot={snapshot}
             thresholdOverrides={thresholdOverrides}
-            peers={peers}
             locale={locale}
           />
         </Section>

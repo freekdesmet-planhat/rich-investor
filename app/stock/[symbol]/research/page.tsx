@@ -13,7 +13,6 @@ import { GrowthTrajectory } from '@/components/GrowthTrajectory';
 import {
   getListingExchange,
   getRatios,
-  getSectorPeerRatios,
   getSignal,
   getSnapshot,
   getThresholdOverrides,
@@ -28,7 +27,6 @@ import {
   type StatementKind,
   type StatementPeriodicity,
 } from '@/lib/data/statementTable';
-import { comparePeers, PEER_METRICS } from '@/lib/data/peerComparison';
 import { peHistory, summariseValuation } from '@/lib/ratios/valuationHistory';
 import { earningsQualityNotes } from '@/lib/ratios/earningsQuality';
 import { buildTrajectory } from '@/lib/ratios/trajectory';
@@ -79,12 +77,11 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
   const signal = await getSignal(symbol);
   if (!signal) return null;
 
-  const [ratios, docs, thresholdOverrides, peerRows, tRatio, tData, tValuation, tQuality] =
+  const [ratios, docs, thresholdOverrides, tRatio, tData, tValuation, tQuality] =
     await Promise.all([
       getRatios(symbol, signal.as_of),
       getDocTranslations(locale),
       getThresholdOverrides(),
-      getSectorPeerRatios(signal.focus_sector, signal.as_of, symbol, PEER_METRICS),
       getTranslations('ratio'),
       getTranslations('data'),
       getTranslations('valuationHistory'),
@@ -92,11 +89,6 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
     ]);
 
   const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
-
-  const peers = comparePeers(
-    new Map(PEER_METRICS.map((key) => [key, byKey.get(key)?.value ?? null])),
-    peerRows,
-  );
 
   const valuation = summariseValuation(
     peHistory(
@@ -142,7 +134,6 @@ async function loadAnalysis(symbol: string, locale: Lang, snapshot: SnapshotRow)
     byKey,
     docs,
     thresholdOverrides,
-    peers,
     valuation,
     qualityNotes,
     trajectory,
@@ -325,7 +316,6 @@ export default async function ResearchPage({
                     docs={analysis.docs}
                     snapshot={snapshot}
                     thresholdOverrides={analysis.thresholdOverrides}
-                    peers={analysis.peers}
                     locale={locale}
                   />
                 </Section>

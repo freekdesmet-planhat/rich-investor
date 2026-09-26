@@ -96,6 +96,12 @@
       "yoy": "Jaar op jaar",
       "curve": "Winst per aandeel per jaar, met het gefitte groeipercentage erdoorheen getekend.",
       "noFit": "Te weinig positieve jaren om een percentage te fitten; het eindpuntcijfer wordt gebruikt."
+    },
+    "aboveThreshold": "{distance} punten boven het {kind} van {threshold}",
+    "belowThreshold": "{distance} punten onder het {kind} van {threshold}",
+    "thresholdKind": {
+      "minimum": "minimum",
+      "maximum": "maximum"
     }
   },
   "signal": {
@@ -596,23 +602,6 @@
     "cashConversion": "De vrije kasstroom per aandeel was {fcfPerShare} tegenover een gerapporteerde winst van {eps} — ongeveer {percent}% van de winst werd kasgeld dat een eigenaar eruit kan halen. De kasstroomvoorwaarde vergelijkt operationele kasstroom met nettowinst, dus vóór investeringen; dit is erna.",
     "stockComp": "De beloning in aandelen bedroeg {percent}% van de omzet. Het is een echte kostenpost die nooit als kasgeld vertrekt, waardoor de operationele kasstroom er beter uitziet — en daarmee ook de kasstroomvoorwaarde zelf.",
     "dilution": "Het verwaterde aantal aandelen steeg {total}% in {years} jaar, ongeveer {percent}% per jaar. Elk cijfer per aandeel op deze pagina deelt erdoor, dus de winst kan groeien terwijl de winst per aandeel dat niet doet."
-  },
-  "peers": {
-    "heading": "Tegenover de andere namen die je volgt",
-    "intro": "Mediaan van de {count} andere namen in {sector} op je volglijst. Geen sectormediaan — een volglijst is een selectie, en juist op ongeveer deze maatstaven geselecteerd.",
-    "yours": "Dit aandeel",
-    "median": "Mediaan volglijst",
-    "vsMedian": "t.o.v. de anderen die je volgt",
-    "difference": "Verschil",
-    "above": "{percent}% hoger",
-    "below": "{percent}% lager",
-    "level": "gelijk",
-    "metric": {
-      "pe": "Koers/winst",
-      "roe": "Rendement op eigen vermogen",
-      "gross_margin": "Brutomarge",
-      "net_margin": "Nettomarge"
-    }
   },
   "research": {
     "title": "Volledig onderzoek",

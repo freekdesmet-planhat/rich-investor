@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { RatioCard } from '@/components/RatioCard';
 import type { RatioRow, SignalRow, Translation } from '@/lib/data/queries';
-import type { PeerSummary } from '@/lib/data/peerComparison';
 import type { Lang } from '@/lib/i18n/config';
 import { stripSourceSuffix, unwrapParagraphs } from '@/lib/i18n/docs';
 import { sourcesForRatio } from '@/lib/data/dataQuality';
@@ -12,6 +11,25 @@ import {
 } from '@/lib/ratios/editableThresholds';
 import { DEFAULT_THRESHOLDS } from '@/lib/ratios/thresholds';
 import { formatBillions, formatNumber, formatPercent } from '@/lib/i18n/format';
+
+/**
+ * The metrics that carry a "distance to the rule's threshold" caption, with the
+ * threshold in force and which way the rule runs (launch item 4). All four are
+ * book thresholds, so there is nothing user-overridable to fold in here.
+ */
+const THRESHOLD_LINE: Record<
+  string,
+  { threshold: number; kind: 'minimum' | 'maximum'; percent: boolean }
+> = {
+  pe: { threshold: DEFAULT_THRESHOLDS.pe.value.green, kind: 'maximum', percent: false },
+  roe: { threshold: DEFAULT_THRESHOLDS.roe.value.green, kind: 'minimum', percent: true },
+  gross_margin: {
+    threshold: DEFAULT_THRESHOLDS.grossMargin.value.green,
+    kind: 'minimum',
+    percent: true,
+  },
+  net_margin: { threshold: DEFAULT_THRESHOLDS.netMargin.value.green, kind: 'minimum', percent: true },
+};
 
 /**
  * Full grid order: valuation, then returns, then growth, then the core signal.
@@ -94,11 +112,10 @@ function checklistGate(ratioKey: string, lang: Lang): string | null {
  * the numbers; nothing here computes a ratio or decides a colour. The values
  * arrive already computed in `byKey`.
  *
- * Peer comparison is no longer its own section. For the four metrics it covers
- * (P/E, ROE, and the two margins) it collapses to a one-line caption on the
- * card itself — "vs. the others you follow: 12% below" — read from the same
- * watchlist median as before, and never called a sector median, because it is
- * not one (see peerComparison.ts).
+ * Four metrics (P/E, ROE, and the two margins) carry a one-line caption saying
+ * how far the value sits from the rule's own threshold — "7.3 points above the
+ * 15% minimum" — in place of the earlier watchlist-peer comparison, which said
+ * something about the watchlist rather than about the method (launch item 4).
  */
 export async function RatioGrid({
   keys,
@@ -107,7 +124,6 @@ export async function RatioGrid({
   docs,
   snapshot,
   thresholdOverrides,
-  peers,
   locale,
 }: {
   keys: readonly string[];
@@ -116,14 +132,12 @@ export async function RatioGrid({
   docs: Map<string, Translation>;
   snapshot: SnapshotLike | null;
   thresholdOverrides: Record<string, Record<string, number>>;
-  peers: PeerSummary | null;
   locale: Lang;
 }) {
-  const [tRatio, tSignal, tData, tPeers] = await Promise.all([
+  const [tRatio, tSignal, tData] = await Promise.all([
     getTranslations('ratio'),
     getTranslations('signal'),
     getTranslations('data'),
-    getTranslations('peers'),
   ]);
 
   return (
@@ -227,21 +241,27 @@ export async function RatioGrid({
           caption = tRatio('roeBuybackNote');
         }
 
-        // Peer comparison, downgraded from a section to a caption. Only for
-        // the metrics it covers, and only where the card has nothing more
-        // pressing to say — the PEG and drawdown captions above win the slot.
+        // Distance to the rule's own threshold, in place of a watchlist-peer
+        // comparison (launch item 4): "7.3 points above the 15% minimum" says
+        // something about the method; "12% above the others you follow" did
+        // not. Only where the card has nothing more pressing to say — the PEG,
+        // drawdown and ROE-buyback captions above win the slot.
         if (caption == null) {
-          const cmp = peers?.comparisons.find((c) => c.metric === key);
-          if (cmp) {
-            const rounded = Math.round(Math.abs(cmp.differencePercent));
-            const delta =
-              rounded < 1
-                ? tPeers('level')
-                : (cmp.differencePercent > 0 ? tPeers.raw('above') : tPeers.raw('below')).replace(
-                    '{percent}',
-                    String(rounded),
-                  );
-            caption = `${tPeers('vsMedian')}: ${delta}`;
+          const line = THRESHOLD_LINE[key];
+          if (line && row.value != null) {
+            const above = row.value > line.threshold;
+            const distanceRaw = Math.abs(row.value - line.threshold);
+            const distance = line.percent
+              ? formatNumber(distanceRaw * 100, locale, 1)
+              : formatNumber(distanceRaw, locale, 1);
+            const thresholdText = line.percent
+              ? formatPercent(line.threshold, locale, 0)
+              : formatNumber(line.threshold, locale, 0);
+            caption = tRatio
+              .raw(above ? 'aboveThreshold' : 'belowThreshold')
+              .replace('{distance}', distance)
+              .replace('{threshold}', thresholdText)
+              .replace('{kind}', tRatio(`thresholdKind.${line.kind}`));
           }
         }
 
