@@ -10,6 +10,8 @@ import { RemoveFromWatchlist } from '@/components/RemoveFromWatchlist';
 import { DataFreshness } from '@/components/DataFreshness';
 import { StockFreshness } from '@/components/StockFreshness';
 import { PriceAlertToggle } from '@/components/PriceAlertToggle';
+import { AnalyseNow } from '@/components/AnalyseNow';
+import { AddToWatchlist } from '@/components/AddToWatchlist';
 import { QualitativeReview, type ReviewRecord } from '@/components/review/QualitativeReview';
 import { PegBasisBadge } from '@/components/PegBasisBadge';
 import { Card, Chip, Section, SectionHeading } from '@/components/ui/Surface';
@@ -18,6 +20,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   getListingExchange,
   getPriceAlert,
+  isKnownSymbol,
   getPosition,
   getRatios,
   getReviews,
@@ -67,7 +70,41 @@ export default async function StockPage({
   const locale = (await getLocale()) as Lang;
 
   const signal = await getSignal(symbol);
-  if (!signal) notFound();
+  if (!signal) {
+    // No evaluation yet. If it is a real company, analyse it on demand (round 2,
+    // item 5) — opened from search without being added — and let the result render
+    // once stored. An unknown ticker is a genuine 404.
+    if (!(await isKnownSymbol(symbol))) notFound();
+    const [tAnalyse, tNav] = await Promise.all([
+      getTranslations('analyse'),
+      getTranslations('nav'),
+    ]);
+    return (
+      <>
+        <SiteHeader />
+        <main className="mx-auto max-w-2xl px-4 py-16 text-center">
+          <div className="text-left">
+            <BackLink href="/" label={tNav('backToWatchlist')} />
+          </div>
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-ink">{symbol}</h1>
+          <p className="text-ink-subtle mx-auto mt-2 max-w-sm text-sm">{tAnalyse('firstRun')}</p>
+          <div className="mt-4 flex justify-center">
+            <AnalyseNow
+              symbol={symbol}
+              auto
+              labels={{
+                analyse: tAnalyse('analyse'),
+                analysing: tAnalyse('analysing'),
+                done: tAnalyse.raw('done') as string,
+                failed: tAnalyse('failed'),
+                noData: tAnalyse('noData'),
+              }}
+            />
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const supabase = await createClient();
   const {
@@ -105,6 +142,7 @@ export default async function StockPage({
 
   const tWatchlist = await getTranslations('watchlist');
   const tPriceAlert = await getTranslations('priceAlert');
+  const tSearch = await getTranslations('search');
   const onWatchlist = (await getWatchlistSymbols()).has(symbol);
 
   // The two facts the old "Updated 17h ago · As of <date>" line got wrong: how
@@ -290,18 +328,34 @@ export default async function StockPage({
                 this page, and a gate here would unmount the "Removed · Undo" the
                 click just produced (audit A6). */}
             <div className="shrink-0">
-              <RemoveFromWatchlist
-                symbol={symbol}
-                member={onWatchlist}
-                labels={{
-                  remove: tWatchlist('remove'),
-                  removing: tWatchlist('removing'),
-                  // See app/page.tsx: {symbol} is substituted on the client.
-                  removed: tWatchlist.raw('removed') as string,
-                  undo: tWatchlist('undo'),
-                  restored: tWatchlist.raw('restored') as string,
-                }}
-              />
+              {onWatchlist ? (
+                <RemoveFromWatchlist
+                  symbol={symbol}
+                  member={onWatchlist}
+                  labels={{
+                    remove: tWatchlist('remove'),
+                    removing: tWatchlist('removing'),
+                    // See app/page.tsx: {symbol} is substituted on the client.
+                    removed: tWatchlist.raw('removed') as string,
+                    undo: tWatchlist('undo'),
+                    restored: tWatchlist.raw('restored') as string,
+                  }}
+                />
+              ) : (
+                // Analysed from search but not followed: adding is a choice, not
+                // automatic (round 2, item 5).
+                <AddToWatchlist
+                  symbol={symbol}
+                  alreadyAdded={false}
+                  labels={{
+                    add: tSearch('add'),
+                    adding: tSearch('adding'),
+                    onWatchlist: tSearch('onWatchlist'),
+                    unknownSymbol: tSearch('unknownSymbol'),
+                    failed: tSearch('failed'),
+                  }}
+                />
+              )}
             </div>
           </div>
 

@@ -110,15 +110,15 @@ describe('POST /api/analyse', () => {
   });
 
   /**
-   * The check that stops this being an open endpoint against the whole
-   * universe: the ticker has to be one the household already follows.
+   * The check that keeps this from analysing gibberish: the ticker has to exist
+   * in the universe (round 2, item 5 — any real company, not only watchlist ones).
    */
-  it('refuses a ticker that is not on the watchlist', async () => {
+  it('refuses a ticker that is not in the universe', async () => {
     db.member = null;
     const response = await post({ symbol: 'ZZZZ' });
 
     expect(response.status).toBe(404);
-    expect((await response.json()).code).toBe('not_on_watchlist');
+    expect((await response.json()).code).toBe('unknown_symbol');
     expect(pipeline.calls).toHaveLength(0);
   });
 

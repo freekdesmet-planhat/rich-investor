@@ -913,3 +913,13 @@ export async function getPriceAlert(symbol: string): Promise<boolean> {
     .maybeSingle<{ price_alert: boolean }>();
   return data?.price_alert ?? false;
 }
+
+/** Whether a symbol exists in the universe — analysable on demand (round 2, item 5). */
+export async function isKnownSymbol(symbol: string): Promise<boolean> {
+  const { data } = await (await client())
+    .from('universe')
+    .select('symbol')
+    .eq('symbol', symbol)
+    .maybeSingle<{ symbol: string }>();
+  return data != null;
+}

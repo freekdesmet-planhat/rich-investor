@@ -501,7 +501,8 @@
     "analysing": "Analysing…",
     "done": "{symbol} analysed",
     "failed": "Could not analyse it. The nightly scan will try again.",
-    "noData": "No usable figures from the data providers for this ticker."
+    "noData": "No usable figures from the data providers for this ticker.",
+    "firstRun": "Analysing this company now — this runs once and is then saved."
   },
   "position": {
     "title": "Do you own this?",

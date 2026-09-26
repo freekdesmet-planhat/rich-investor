@@ -60,17 +60,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, code: 'missing_symbol' }, { status: 400 });
   }
 
-  // Read through the session, so RLS decides whether this household may see the
-  // row — a symbol nobody here follows is indistinguishable from one that does
-  // not exist, and neither gets analysed.
-  const { data: member } = await supabase
-    .from('watchlist_items')
+  // Any real company can be analysed on demand now, not only watchlist names
+  // (round 2, item 5): a reader can look one up from search without adding it.
+  // The symbol must exist in the universe — an unknown ticker is not analysed —
+  // and the per-plan on-demand limit (item 10) is what keeps this bounded.
+  const { data: known } = await supabase
+    .from('universe')
     .select('symbol')
     .eq('symbol', symbol)
     .maybeSingle<{ symbol: string }>();
 
-  if (!member) {
-    return NextResponse.json({ ok: false, code: 'not_on_watchlist' }, { status: 404 });
+  if (!known) {
+    return NextResponse.json({ ok: false, code: 'unknown_symbol' }, { status: 404 });
   }
 
   try {

@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 
-/**
- * Merged into How it works (round 2, item 4). Kept as a permanent redirect so old
- * links and the #four-sectors anchor still land on the right place.
- */
+// Runtime redirect (not prerendered), so old links and the #four-sectors anchor
+// always land on the merged How it works page (round 2, item 4).
+export const dynamic = 'force-dynamic';
+
 export default function MethodologyPage() {
   redirect('/how-it-works#four-sectors');
 }

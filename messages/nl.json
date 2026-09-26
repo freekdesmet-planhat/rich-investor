@@ -501,7 +501,8 @@
     "analysing": "Analyseren…",
     "done": "{symbol} geanalyseerd",
     "failed": "Analyseren is niet gelukt. De nachtelijke scan probeert het opnieuw.",
-    "noData": "Geen bruikbare cijfers van de databronnen voor deze ticker."
+    "noData": "Geen bruikbare cijfers van de databronnen voor deze ticker.",
+    "firstRun": "Dit bedrijf wordt nu geanalyseerd — dit gebeurt één keer en wordt daarna bewaard."
   },
   "position": {
     "title": "Heb je dit in bezit?",
