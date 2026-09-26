@@ -94,13 +94,26 @@ export function isExcludedInstrument(name: string | null, symbol: string): boole
   return false;
 }
 
+/** V1's "large company" line, in real dollars (matches thresholds.ts). */
+export const LARGE_CAP_FLOOR_USD = 10_000_000_000;
+
 /**
- * Whether a row clears the size floor. Large and Mega always pass; a null band
- * passes only when the typed query is its exact ticker (the recent-IPO rescue).
- * Mid/Small/Micro/Nano never pass, even on an exact match — they are known to be
- * too small.
+ * Whether a row clears the size floor.
+ *
+ * A real USD market cap is the authority when we have written one back (A1c): a
+ * name labelled "Large cap" that has since fallen to $0.39bn is filtered out on
+ * the real figure, not admitted on the stale label. Without a real figure, the
+ * band decides — Large and Mega pass, a null band passes only on an exact ticker
+ * (the recent-IPO rescue), and Mid/Small never pass even on an exact match.
  */
-export function passesSizeFloor(band: string | null, isExactSymbol: boolean): boolean {
+export function passesSizeFloor(
+  band: string | null,
+  marketCapUsd: number | null,
+  isExactSymbol: boolean,
+): boolean {
+  if (marketCapUsd != null && Number.isFinite(marketCapUsd)) {
+    return marketCapUsd >= LARGE_CAP_FLOOR_USD;
+  }
   if ((SEARCHABLE_BANDS as readonly string[]).includes(band ?? '')) return true;
   if (band == null && isExactSymbol) return true;
   return false;

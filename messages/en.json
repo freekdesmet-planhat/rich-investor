@@ -200,7 +200,7 @@
   },
   "suggestions": {
     "title": "Suggestions",
-    "provenance": "{shown} waiting, from {screened} screened names ({universe} in the universe).",
+    "provenance": "We check {screened} large companies in the four focus sectors (US and Europe) about once a week. Your watchlist is checked every night.",
     "lastRaised": "Last raised {date}.",
     "pending": "Waiting for your decision",
     "suggestedOn": "Found {date}",

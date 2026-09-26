@@ -10,19 +10,19 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import type { RatioColor, RatioKey } from '@/lib/ratios/engine';
-import type { FocusSector } from '@/lib/sectors/mapping';
+import { DEFAULT_SECTOR_RULES, type FocusSector, type SectorRule } from '@/lib/sectors/mapping';
 import type { WhyPart } from '@/lib/signal/explain';
 import type { Position } from './position';
 import { sanitiseOverrides } from '@/lib/ratios/editableThresholds';
 import { buildTrend, windowStart, type Trend, type TrendPoint } from './trend';
-import { PRIMARY_EXCHANGE_CODES } from '@/lib/pipeline/scan';
+import { applyScanScreen } from '@/lib/pipeline/scan';
 import { rankUniverseMatches } from './rankMatches';
 import {
   collapseCompanies,
   isExcludedInstrument,
+  LARGE_CAP_FLOOR_USD,
   normaliseQuery,
   passesSizeFloor,
-  SEARCHABLE_BANDS,
   sizeLabelOf,
   type SizeLabel,
 } from './searchFilters';
@@ -530,20 +530,48 @@ export interface ScreeningProvenance {
  * dozen and four out of six thousand are different claims, and the page was
  * making neither.
  *
- * The screened figure applies the scan's own filters — see `runScan`, which
- * walks `region in (US, Europe)`, `market_cap_band = Large Cap` and the primary
- * exchanges. Counted with `head`, so no rows cross the wire.
+ * The screened figure is the exact population the scan cursor walks: it runs
+ * through `applyScanScreen`, the same region / band / primary-listing /
+ * focus-sector screen `runScan` uses, counted with `head` so no rows cross the
+ * wire. Sharing that one screen is deliberate — the page used to count a looser
+ * set (all primary exchanges, no focus filter) and so claimed "3,422 screened"
+ * while the scan only ever evaluated the few hundred names in the focus sectors.
+ * Now the figure cannot drift from what is actually checked.
  */
 export async function getScreeningProvenance(): Promise<ScreeningProvenance> {
   const supabase = await client();
 
+  const { data: mapRows } = await supabase
+    .from('sector_mapping')
+    .select('symbol,sector,industry,focus_sector,specificity,is_excluded,is_payment_processor')
+    .returns<
+      Array<{
+        symbol: string | null;
+        sector: string | null;
+        industry: string | null;
+        focus_sector: FocusSector;
+        specificity: number;
+        is_excluded: boolean;
+        is_payment_processor: boolean;
+      }>
+    >();
+  const rules: SectorRule[] = (mapRows ?? []).length
+    ? (mapRows ?? []).map((r) => ({
+        symbol: r.symbol ?? undefined,
+        sector: r.sector ?? undefined,
+        industry: r.industry ?? undefined,
+        focusSector: r.focus_sector,
+        specificity: r.specificity,
+        isExcluded: r.is_excluded,
+        isPaymentProcessor: r.is_payment_processor,
+      }))
+    : DEFAULT_SECTOR_RULES;
+
   const [screened, universe, latest] = await Promise.all([
-    supabase
-      .from('universe')
-      .select('symbol', { count: 'exact', head: true })
-      .in('region', ['US', 'Europe'])
-      .in('market_cap_band', ['Large Cap'])
-      .in('exchange', PRIMARY_EXCHANGE_CODES),
+    applyScanScreen(
+      supabase.from('universe').select('symbol', { count: 'exact', head: true }),
+      rules,
+    ),
     supabase.from('universe').select('symbol', { count: 'exact', head: true }),
     supabase
       .from('suggestions')
@@ -741,7 +769,9 @@ export interface UniverseMatch {
   exchange: string | null;
   country: string | null;
   region: string | null;
-  /** Size label to show: large / mega, or "checked on analysis" for a rescued null band. */
+  /** Real USD market cap when known (A1c), else null and the band label is used. */
+  marketCapUsd: number | null;
+  /** Band label fallback: large / mega, or "checked on analysis" for a null band. */
   sizeLabel: SizeLabel;
   /** Readable venues the same company also trades on, for "Also listed on …". */
   alsoListedOn: string[];
@@ -758,6 +788,7 @@ interface UniverseRowMatch {
   country: string | null;
   region: string | null;
   market_cap_band: string | null;
+  market_cap_usd: number | null;
 }
 
 /**
@@ -787,16 +818,19 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
   if (!q) return [];
 
   const supabase = await client();
-  const cols = 'symbol,name,exchange,country,region,market_cap_band';
+  const cols = 'symbol,name,exchange,country,region,market_cap_band,market_cap_usd';
 
   const [floored, exact] = await Promise.all([
-    // Name (folded) or symbol prefix, within the size bands. `*` is PostgREST's
-    // ILIKE wildcard; the folded pattern already spans spaces and hyphens.
+    // Name (folded) or symbol prefix, within the size floor. A row clears the
+    // floor on either the Large/Mega band or a real USD cap at/above the line
+    // (A1c) — a name whose band is stale but whose written-back cap is large
+    // still surfaces. `*` is PostgREST's ILIKE wildcard; the folded pattern
+    // already spans spaces and hyphens.
     supabase
       .from('universe')
       .select(cols)
       .or(`search_text.ilike.${q.pattern},symbol.like.${q.symbol}*`)
-      .in('market_cap_band', SEARCHABLE_BANDS)
+      .or(`market_cap_band.in.("Large Cap","Mega Cap"),market_cap_usd.gte.${LARGE_CAP_FLOOR_USD}`)
       .limit(200)
       .returns<UniverseRowMatch[]>(),
     // The exact-ticker rescue, any band — the floor/valve below decides whether
@@ -812,7 +846,7 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
     // Hard-drop wins over the exact-ticker rescue, so a warrant's own symbol
     // does not resurrect it.
     if (isExcludedInstrument(r.name, r.symbol)) return false;
-    return passesSizeFloor(r.market_cap_band, r.symbol === q.symbol);
+    return passesSizeFloor(r.market_cap_band, r.market_cap_usd, r.symbol === q.symbol);
   });
   if (kept.length === 0) return [];
 
@@ -832,6 +866,7 @@ export async function searchUniverse(query: string, limit = 10): Promise<Univers
     exchange: row.exchange,
     country: row.country,
     region: row.region,
+    marketCapUsd: row.market_cap_usd,
     sizeLabel: sizeLabelOf(row.market_cap_band),
     alsoListedOn: row.alsoListedOn,
     onWatchlist: onWatchlist.has(row.symbol),

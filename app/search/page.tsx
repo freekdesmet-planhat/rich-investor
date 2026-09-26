@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteHeader } from '@/components/SiteHeader';
 import { AddToWatchlist } from '@/components/AddToWatchlist';
 import { searchUniverse } from '@/lib/data/queries';
+import { formatBillions } from '@/lib/i18n/format';
+import type { Lang } from '@/lib/i18n/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +24,7 @@ export default async function SearchPage({
   const { q } = await searchParams;
   const query = (q ?? '').trim();
 
+  const locale = (await getLocale()) as Lang;
   const [t, tNav, tAnalyse] = await Promise.all([
     getTranslations('search'),
     getTranslations('nav'),
@@ -83,10 +86,19 @@ export default async function SearchPage({
                     <span>
                       {[row.exchange, row.country].filter(Boolean).join(' · ') || '—'}
                     </span>
-                    {row.sizeLabel && (
-                      // Size, not a verdict: the ✓ belongs to the checklist,
-                      // which re-checks the real USD figure on analysis.
-                      <span className="text-ink-faint">{t(`size.${row.sizeLabel}`)}</span>
+                    {row.marketCapUsd != null ? (
+                      // The real USD cap once we have written one back (A1c) —
+                      // the size itself, not the band label. Still not a verdict:
+                      // the ✓ belongs to the checklist.
+                      <span className="text-ink-faint">
+                        {formatBillions(row.marketCapUsd, 'USD', locale)}
+                      </span>
+                    ) : (
+                      row.sizeLabel && (
+                        // Falls back to the band label where we have not
+                        // evaluated a real figure yet.
+                        <span className="text-ink-faint">{t(`size.${row.sizeLabel}`)}</span>
+                      )
                     )}
                     {row.analysed ? (
                       <Link

@@ -26,6 +26,7 @@ import { createSupabaseCache } from '@/lib/providers/supabaseCache';
 import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { readThresholdOverrides } from './thresholdStore';
 import { evaluateSymbol } from './evaluateSymbol';
+import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -40,6 +41,60 @@ import {
 
 /** How long a dismissed ticker stays out of the feed (section 3.1). */
 export const DISMISS_DAYS = 90;
+
+/** The regions the scan walks, US first (book, chapter 2). */
+export const SCAN_REGIONS = ['US', 'Europe'];
+
+/**
+ * The bands the scan screens. Large Cap approximates the $10bn floor without a
+ * live quote; Mega Cap sits above it and was being skipped until A12 added it.
+ */
+export const SCAN_BANDS = ['Large Cap', 'Mega Cap'];
+
+/**
+ * Applies the scan's candidate screen — region, band, primary-listing pairing,
+ * focus-sector superset — to a universe query.
+ *
+ * Both the scan's candidate fetch and the Suggestions "we check N companies"
+ * count run through this one function, so the figure the page shows is the same
+ * population the cursor walks and cannot drift from it. That drift is exactly
+ * what produced the "3,422 screened" claim on the page while the scan only ever
+ * evaluated a few hundred names in the focus sectors.
+ */
+/**
+ * The `.in`/`.or` surface both callers' PostgREST builders share. The query is
+ * cast to this minimal shape and back to `Q`, rather than constraining `Q`
+ * against the builder itself — the builder's own recursive generics are what
+ * make a self-referential constraint blow the type instantiation depth.
+ */
+interface FilterOps {
+  in(column: string, values: readonly string[]): FilterOps;
+  or(filters: string): FilterOps;
+}
+
+export function applyScanScreen<Q>(
+  query: Q,
+  rules: SectorRule[],
+  options: { regions?: readonly string[]; bands?: readonly string[] } = {},
+): Q {
+  let q = (query as unknown as FilterOps)
+    .in('region', options.regions ?? SCAN_REGIONS)
+    .in('market_cap_band', options.bands ?? SCAN_BANDS)
+    .or(primaryListingFilter());
+  const focus = focusSectorFilter(rules);
+  if (focus != null) q = q.or(focus);
+  return q as unknown as Q;
+}
+
+/**
+ * Rows fetched per candidate wanted. Most listings in the raw window are
+ * secondary venues that get filtered out, so the page over-fetches; the atomic
+ * cursor claim advances by this same multiple so parallel slices never overlap.
+ */
+export const SCAN_PAGE_MULTIPLIER = 2;
+
+/** A quote provider telling us to slow down. Trips the circuit breaker. */
+const RATE_LIMITED = /\b429\b|rate.?limit|too many requests|throttl/i;
 
 /**
  * The venue table, the primary-listing test and the query builders all live in
@@ -119,6 +174,10 @@ export interface ScanResult {
   skipped: number;
   /** Where the next run should resume. */
   nextCursor: number;
+  /** True when this batch ran off the end of the screened universe. */
+  exhausted: boolean;
+  /** True when the quote provider was rate-limiting this batch. */
+  throttled: boolean;
   candidates: Array<{ symbol: string; status: string; conditionsMet: number }>;
 }
 
@@ -136,8 +195,8 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     client,
     limit = 40,
     cursor = 0,
-    regions = ['US', 'Europe'],
-    marketCapBands = ['Large Cap'],
+    regions = SCAN_REGIONS,
+    marketCapBands = SCAN_BANDS,
     onProgress,
   } = options;
   const log = onProgress ?? (() => {});
@@ -222,20 +281,19 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   // `limit * 2`, where it used to be `limit * 6`. The page is now mostly
   // candidates, so the headroom only has to cover the exact focus check and the
   // de-duplication of a company's remaining listings.
-  const pageEnd = cursor + limit * 2;
+  const pageEnd = cursor + limit * SCAN_PAGE_MULTIPLIER;
 
-  let query = client
-    .from('universe')
-    .select('symbol,name,sector,industry,exchange,country')
-    .in('region', regions)
-    .in('market_cap_band', marketCapBands)
-    // The venue/country *pairing*, not the venue alone. `exchange in (...)` was
-    // the old prefilter and is what let Frankfurt cross-listings of US
-    // companies through: FRA is a real primary venue for German companies, so
-    // only the pairing can separate the two.
-    .or(primaryListingFilter());
-
-  if (focusFilter != null) query = query.or(focusFilter);
+  // The region/band/primary-pairing/focus screen, shared with the Suggestions
+  // provenance count (applyScanScreen) so the page's "we check N" figure is the
+  // same population this cursor walks. The primary filter is the venue/country
+  // *pairing*, not the venue alone: FRA is a real primary venue for German
+  // companies, so only the pairing separates it from Frankfurt cross-listings
+  // of US companies.
+  const query = applyScanScreen(
+    client.from('universe').select('symbol,name,sector,industry,exchange,country'),
+    rules,
+    { regions, bands: marketCapBands },
+  );
 
   const { data: universe, error: universeError } = await query
     .order('symbol')
@@ -294,6 +352,8 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
       suggested: 0,
       skipped: 0,
       nextCursor: exhausted ? 0 : cursor + consumed,
+      exhausted,
+      throttled: false,
       candidates: [],
     };
   }
@@ -309,6 +369,15 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
 
   const symbols = candidates.map((c) => c.symbol);
   const bundles = await service.getBundles(symbols, '5y');
+
+  // Circuit-breaker signal: if the provider rate-limited a real share of this
+  // batch, say so, and the route trips the breaker so the night's later slices
+  // stop calling it. Half the batch, or five outright, is well past noise.
+  const rateLimited = [...bundles.values()].filter((b) =>
+    (b.errors ?? []).some((e) => RATE_LIMITED.test(e)),
+  ).length;
+  const throttled = symbols.length > 0 && (rateLimited >= 5 || rateLimited / symbols.length >= 0.5);
+  if (throttled) log(`provider rate-limited ${rateLimited} of ${symbols.length} — signalling the breaker`);
 
   const fx = createFxRates();
   const pairs: Array<[string, string]> = [];
@@ -333,6 +402,7 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   // A suggested candidate's stock page reads signal_history and ratios, so the
   // scan persists both for the names it raises — see the note by the upserts.
   const ratioRows: Record<string, unknown>[] = [];
+  const capUpdates: MarketCapWrite[] = [];
   const signalRows: Record<string, unknown>[] = [];
   const summary: ScanResult['candidates'] = [];
   let evaluated = 0;
@@ -363,6 +433,9 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
       status: result.signal.status,
       conditionsMet: result.signal.conditionsMet,
     });
+    // Every evaluated candidate refreshes its cached USD cap, not just the
+    // suggested ones, so the whole screened universe self-heals over a cycle (A1c).
+    capUpdates.push({ symbol: candidate.symbol, marketCapUsd: result.marketCapUsd });
 
     // Only genuinely interesting names become suggestions. Everything else is
     // simply not raised — the feed is for things worth a decision.
@@ -408,6 +481,9 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     if (error) throw new Error(`signal_history upsert failed: ${error.message}`);
   }
 
+  const capsWritten = await writeMarketCaps(client, capUpdates);
+  if (capsWritten > 0) log(`refreshed ${capsWritten} universe market caps`);
+
   log(`evaluated ${evaluated}, suggested ${rows.length}`);
 
   return {
@@ -415,6 +491,8 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     suggested: rows.length,
     skipped: candidates.length - evaluated,
     nextCursor: cursor + consumed,
+    exhausted: false,
+    throttled,
     candidates: summary,
   };
 }

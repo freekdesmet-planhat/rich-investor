@@ -1,76 +1,69 @@
 /**
- * Where the universe scan got to, and what a candidate cost it.
+ * The universe scan's shared state: cursor, cost estimate and circuit breaker.
  *
- * Both live in `macro_context.detail`, beside the day they were written. That
- * is a reasonable home — the nightly job owns that row — but it made the read
- * subtly wrong, and the symptom was invisible.
+ * All three live in the one-row `scan_cursor` table (migration 0039). The cursor
+ * used to live in macro_context.detail as JSON and was advanced read-modify-write,
+ * which was safe only while one slice ran a night. The scan runs in four slices
+ * now, so the cursor is claimed atomically instead: claimScanBatch reserves a
+ * row range and returns its start, and the DB row lock guarantees two slices
+ * never get the same range — the thing that would double our traffic to an
+ * unofficial, single-IP quote provider.
  *
- * The scan used to read "the most recent macro_context row". The nightly run
- * refreshes the macro context *before* it scans, and that refresh inserts the
- * day's row with `detail` defaulting to `{}`. So by the time the scan asked
- * where it had got to, the newest row was today's — empty — and the answer was
- * always zero. Every night re-walked the same first few hundred candidates and
- * the rest of the screened universe was never reached at all. Nothing failed;
- * the suggestion feed just kept drawing from the same corner.
- *
- * So the state is the most recent value that *exists*, not whatever the newest
- * row happens to hold. Cursor and cost are searched for independently, because
- * a night that wrote one and not the other should not hide the other.
+ * The breaker is a date: a slice that sees the provider rate-limiting sets it to
+ * today, and the night's remaining slices read it and stand down rather than keep
+ * calling a provider that is already throttling us.
  */
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export const CURSOR_KEY = 'scan_cursor';
-export const COST_KEY = 'scanMsPerCandidate';
-
-export interface ScanState {
-  cursor: number;
-  /** Null until some night has measured one. */
+export interface ScanControl {
+  /** Measured cost per candidate, for the budget. Null until a night has one. */
   msPerCandidate: number | null;
+  /** The date the breaker was tripped, or null. */
+  breakerDate: string | null;
 }
 
-export interface DetailRow {
-  detail: Record<string, unknown> | null;
-}
-
-const positiveNumber = (value: unknown): number | null =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
-
-const nonNegativeNumber = (value: unknown): number | null =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
-
-/**
- * Reads the state out of recent rows, newest first.
- *
- * Takes rows rather than a client so the walk can be tested without a database,
- * which is the part that was wrong.
- */
-export function readScanStateFrom(rows: DetailRow[]): ScanState {
-  let cursor: number | null = null;
-  let msPerCandidate: number | null = null;
-
-  for (const row of rows) {
-    const detail = row.detail ?? {};
-    if (cursor == null) cursor = nonNegativeNumber(detail[CURSOR_KEY]);
-    if (msPerCandidate == null) msPerCandidate = positiveNumber(detail[COST_KEY]);
-    if (cursor != null && msPerCandidate != null) break;
-  }
-
-  return { cursor: cursor ?? 0, msPerCandidate };
-}
-
-/**
- * The `detail` to write back, merged onto whatever the day's row already holds.
- *
- * Merged rather than replaced: the previous version wrote `{ cursor }` over the
- * whole of `detail`, which was harmless while the cursor was the only key in it
- * and silently dropped anything added later.
- */
-export function mergeScanState(
-  existing: Record<string, unknown> | null,
-  state: ScanState,
-): Record<string, unknown> {
+export async function readScanControl(client: SupabaseClient): Promise<ScanControl> {
+  const { data } = await client
+    .from('scan_cursor')
+    .select('ms_per_candidate,breaker_date')
+    .eq('id', true)
+    .maybeSingle<{ ms_per_candidate: number | null; breaker_date: string | null }>();
   return {
-    ...(existing ?? {}),
-    [CURSOR_KEY]: state.cursor,
-    ...(state.msPerCandidate != null ? { [COST_KEY]: state.msPerCandidate } : {}),
+    msPerCandidate: data?.ms_per_candidate ?? null,
+    breakerDate: data?.breaker_date ?? null,
   };
+}
+
+/** True when the breaker was tripped today, so this slice should stand down. */
+export function isBreakerOpen(breakerDate: string | null, today: string): boolean {
+  return breakerDate != null && breakerDate === today;
+}
+
+/**
+ * Atomically reserve `claimRows` rows and get the offset to start at. The row
+ * lock in the RPC is what stops two slices claiming the same range.
+ */
+export async function claimScanBatch(client: SupabaseClient, claimRows: number): Promise<number> {
+  const { data, error } = await client.rpc('claim_scan_batch', { p_claim: claimRows });
+  if (error) throw new Error(`claim_scan_batch failed: ${error.message}`);
+  return Number(data);
+}
+
+/** Reset the cursor to the start, for the slice that ran off the end. */
+export async function resetScanCursor(client: SupabaseClient): Promise<void> {
+  const { error } = await client.rpc('reset_scan_cursor');
+  if (error) throw new Error(`reset_scan_cursor failed: ${error.message}`);
+}
+
+/** Carry the measured cost into the next slice's budget. */
+export async function saveScanCost(client: SupabaseClient, msPerCandidate: number): Promise<void> {
+  await client
+    .from('scan_cursor')
+    .update({ ms_per_candidate: msPerCandidate, updated_at: new Date().toISOString() })
+    .eq('id', true);
+}
+
+/** Open the breaker for the rest of tonight. */
+export async function tripBreaker(client: SupabaseClient, today: string): Promise<void> {
+  await client.from('scan_cursor').update({ breaker_date: today }).eq('id', true);
 }

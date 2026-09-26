@@ -19,6 +19,7 @@ import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import type { SignalStatus } from '@/lib/signal/buyWorthy';
 import { readThresholdOverrides } from './thresholdStore';
 import { evaluateSymbol } from './evaluateSymbol';
+import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
 import { refreshMacroContext } from '@/lib/macro/store';
 import { sendBuySignalAlerts, type NotifiableSignal, type NotifyOutcome } from './notify';
 import { sendDailyDigest, type DigestEntry, type DigestOutcome } from './digest';
@@ -196,6 +197,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
   const signalRows: Record<string, unknown>[] = [];
   const allViolations: InvariantViolation[] = [];
   const toNotify: NotifiableSignal[] = [];
+  const capUpdates: MarketCapWrite[] = [];
 
   for (const symbol of symbols) {
     const bundle = bundles.get(symbol);
@@ -235,6 +237,7 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
 
     ratioRows.push(...result.ratioRows);
     signalRows.push(result.signalRow);
+    capUpdates.push({ symbol, marketCapUsd: result.marketCapUsd });
 
     rows.push({
       symbol,
@@ -280,6 +283,11 @@ export async function runDailyPipeline(options: PipelineOptions): Promise<Pipeli
     if (error) throw new Error(`signal_history upsert failed: ${error.message}`);
     log(`wrote ${signalRows.length} signal rows`);
   }
+
+  // Refresh the universe's cached market caps from what we just fetched (A1c),
+  // so search floors and labels on real figures rather than the static band.
+  const capsWritten = await writeMarketCaps(client, capUpdates);
+  if (capsWritten > 0) log(`refreshed ${capsWritten} universe market caps`);
 
   // Alerts go out only after everything is stored, so a failed write never
   // produces an email about a signal that was not recorded.

@@ -272,12 +272,18 @@ browser-verified + full gate, like everything else. Audit item numbers in [ ].
 - **A11. Mobile filter overflow [15].** The watchlist sort/filter row overflows
   to 445px at 390px — fix that one now; the rest of mobile is item 2. Files:
   `app/page.tsx`.
-- **A12. Nightly scan skips Mega Cap.** The scan filters candidates to the
-  `Large Cap` band only, so mega caps are never suggested. Add Mega Cap — but
-  first report per-slice runtime headroom and scan throughput (names/night, and
-  how many nights a full pass of the 3,422 takes); adding names must not reopen
-  the 60s ceiling. Built together with A1c. Files: `lib/pipeline/scan.ts`,
-  `lib/data/queries.ts` (getScreeningProvenance).
+- **A12. Nightly scan skips Mega Cap; header count is wrong.** The scan filtered
+  candidates to the `Large Cap` band only, so mega caps were never suggested —
+  added Mega Cap. The throughput report that came first killed the original
+  "4 slices ≈ 4-week pass" plan: the scan's real domain is **~293 names** (four
+  focus sectors, US/Europe, primary listing), not the 3,422 the Suggestions page
+  claimed. One nightly slice already re-checks that whole set about every five
+  nights, so no new slices and no new schedule were added. The "3,422 screened"
+  copy was the same wrong figure, so the header now counts the *exact* cursor
+  population via the shared `applyScanScreen`, and cannot drift again. Circuit
+  breaker and atomic cursor claim (migration 0039) stay as retry protection.
+  Files: `lib/pipeline/scan.ts` (applyScanScreen, Mega Cap), `lib/data/queries.ts`
+  (getScreeningProvenance), `app/suggestions/page.tsx`, `messages/*.json`.
 - **A1c. Stale size labels self-heal, and search shows the real cap.** ~10% of
   "Large cap" labels are wrong (HelloFresh at $0.39bn), so a user adds a name
   search calls Large cap and the checklist then fails it on size. No new
@@ -293,6 +299,12 @@ browser-verified + full gate, like everything else. Audit item numbers in [ ].
 Order (2026-09-25): A11 → A9 → (A12 + A1c together, headroom/throughput report
 first). Deploy policy: push after each verified item with a production smoke
 test, not batched — see the Log for why batching bit us on 09-24.
+
+**Cadence (landing-page line, from A12):** _"Every large company we cover is
+re-checked about once a week; your watchlist every night."_ Concretely: one scan
+slice/night walks the ~293 focus-sector large caps in about five nights; the
+watchlist runs nightly in its 02:00–02:06 slices. Use this sentence on the
+landing page, not "3,422 screened tonight".
 
 ### B. Folded into the shipped items above (audit refinements)
 
@@ -318,6 +330,13 @@ status rule [9], editable condition 9 [16], "vs. the others you follow" [25],
 market-crash comparison under the P/E chart [34], sector-rule presentation,
 price-trigger + alert.
 
+Dependency on **sector-rule presentation** (audit §5): the nightly scan only
+walks the four focus sectors, which is what keeps its domain at ~293 names. If
+the parked "Follow the book strictly (sector rule off)" toggle ever ships, the
+scan's `applyScanScreen` focus filter must widen with it, and the "we check 293
+companies" copy plus the ~weekly cadence recompute from the wider domain —
+otherwise suggestions never surface the out-of-focus names the toggle allows.
+
 ## Working style
 
 Work through these one at a time. After each one, report what was built,
@@ -330,6 +349,31 @@ direction and on any data-source gap in items 7 or 8.
 ---
 
 ## Log
+
+- 2026-09-26: A12 + A1c shipped.
+  - **A1c (self-healing size).** `evaluateSymbol` now returns `marketCapUsd`, and
+    `runDaily`/`scan`/on-demand write it back to `universe.market_cap_usd` via
+    `writeMarketCaps`. Search floors and labels on the real figure when present
+    (`passesSizeFloor(band, cap, isExact)`, shows "$46.5B"), band as fallback.
+    One-off `scripts/backfill-valve-caps.ts` seeded 29/32 null-band valve names —
+    confirmed the heal in both directions: AZO $46.5bn / HON $67.4bn / BX $141.6bn
+    now surface by name, while STNE $2.1bn / EEFT $2.5bn / CABO $0.08bn are now
+    correctly dropped below the $10bn floor even on an exact ticker.
+  - **A12 (scan).** Added Mega Cap to the scan band filter. The
+    headroom/throughput report changed the plan: the scan's real domain is ~293
+    names (four focus sectors, US/Europe, primary listing), not 3,422 — the live
+    cursor confirmed it (wrapped at 265 Large-only on 09-25). One slice/night
+    re-checks the whole set in ~5 nights, so no new slices/schedule were added
+    (dropped the planned 4-slice migration 0040). Circuit breaker + atomic cursor
+    claim (0039) kept as retry protection. Per-slice headroom: 48/60s used, ~12s
+    spare. Function runtime ~135s/night ≈ ~1.1 hrs/month — nowhere near any tier.
+  - **Header drift fixed.** Both the scan candidate fetch and the Suggestions
+    "we check N" count now run through one `applyScanScreen`, so the page shows
+    293 (the true cursor population) and can't drift from what's scanned. Audit
+    repo copy (Bottom line, §1 Live proof strip, §3 Works) corrected off 3,422.
+  - Cadence line recorded above for the landing page. Sector-rule dependency
+    logged next to the parked §5 decision. Next: A12b (price pass) — build after
+    smoke test, with the nightly request count and yahoo batch-quote feasibility.
 
 - 2026-09-25: Deploy policy set — push after each verified item with a
   production smoke test, not batched. Batching is what put the stock-page

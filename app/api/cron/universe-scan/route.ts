@@ -23,12 +23,18 @@
  * watchlist, so the two are never in flight together.
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { env } from '@/lib/env';
-import { runScan } from '@/lib/pipeline/scan';
+import { runScan, SCAN_PAGE_MULTIPLIER } from '@/lib/pipeline/scan';
 import { observedMsPerCandidate, scanBudget, RUN_CEILING_MS } from '@/lib/pipeline/scanBudget';
-import { mergeScanState, readScanStateFrom, type ScanState } from '@/lib/pipeline/scanState';
+import {
+  claimScanBatch,
+  isBreakerOpen,
+  readScanControl,
+  resetScanCursor,
+  saveScanCost,
+  tripBreaker,
+} from '@/lib/pipeline/scanState';
 import { CronRunRecorder } from '@/lib/pipeline/cronRun';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 
@@ -61,15 +67,25 @@ export async function POST(request: NextRequest) {
   if (reaped.reaped > 0) run.log(`marked ${reaped.reaped} abandoned run(s) as timed out`);
   if (reaped.error) run.log(`could not sweep abandoned runs: ${reaped.error}`);
 
-  const state = await readScanState(client);
+  const today = new Date().toISOString().slice(0, 10);
+  const control = await readScanControl(client);
 
-  // The whole request, less the margin — where this used to get the remainder
-  // of somebody else's. `elapsedMs` is the handful of milliseconds spent
-  // opening the record, not forty seconds of watchlist.
+  // Circuit breaker: if an earlier slice tonight saw the provider throttling us,
+  // the rest stand down rather than keep calling it. This is the one guardrail
+  // that matters most — the quote provider is unofficial and single-IP, and a
+  // slice that ignores a 429 puts the watchlist's own quotes at risk too.
+  if (isBreakerOpen(control.breakerDate, today)) {
+    run.skipped('scan', 'circuit breaker open: a provider rate-limited an earlier slice tonight');
+    const telemetry = await run.finish(client);
+    return NextResponse.json({ ok: true, status: run.status, skipped: 'breaker', telemetry, log: run.logLines });
+  }
+
+  // The whole request, less the margin. `elapsedMs` is the handful of
+  // milliseconds spent opening the record, not forty seconds of watchlist.
   const budget = scanBudget({
     ceilingMs: RUN_CEILING_MS,
     elapsedMs: Date.now() - started,
-    msPerCandidate: state.msPerCandidate,
+    msPerCandidate: control.msPerCandidate,
     override: env.scanBatchSize(),
   });
   run.log(
@@ -85,51 +101,57 @@ export async function POST(request: NextRequest) {
     remainingMs: budget.remainingMs,
     ceilingMs: RUN_CEILING_MS,
     scanBatchSize: budget.override.kind,
-    cursor: state.cursor,
   };
 
   let scan = null;
   const scanStarted = Date.now();
 
   if (budget.limit > 0) {
+    // Reserve this slice's rows before doing any work, so a slice that overruns
+    // can never share a range with the next. The claim advances by the same
+    // over-fetch multiple runScan reads.
+    const claimRows = budget.limit * SCAN_PAGE_MULTIPLIER;
+    const start = await claimScanBatch(client, claimRows);
     try {
       scan = await runScan({
         client,
         limit: budget.limit,
-        cursor: state.cursor,
+        cursor: start,
         onProgress: (message) => run.log(message),
       });
 
-      // What it actually cost, carried into tomorrow so the estimate converges
-      // on this deployment's own providers rather than a guess made here. It
-      // matters more now than it did: against a sixty-second ceiling the
-      // pessimistic default of three seconds a candidate buys sixteen of them,
-      // and the measured figure is what lifts that to something useful.
+      // A slice that ran off the end resets the shared cursor, so the next slice
+      // starts a fresh pass rather than claiming an empty tail forever.
+      if (scan.exhausted) await resetScanCursor(client);
+
+      // Trip the breaker for the rest of tonight if the provider throttled us.
+      if (scan.throttled) {
+        await tripBreaker(client, today);
+        run.log('circuit breaker tripped: provider rate-limiting; later slices will skip');
+      }
+
+      // What it actually cost, carried forward so the estimate converges on this
+      // deployment's own providers rather than a guess made here.
       const attempted = scan.evaluated + scan.skipped;
-      await saveScanState(client, {
-        cursor: scan.nextCursor,
-        msPerCandidate:
-          observedMsPerCandidate(Date.now() - scanStarted, attempted, state.msPerCandidate) ??
-          state.msPerCandidate,
-      });
+      const measured = observedMsPerCandidate(Date.now() - scanStarted, attempted, control.msPerCandidate);
+      if (measured != null) await saveScanCost(client, measured);
 
       run.succeeded('scan', Date.now() - scanStarted, {
         count: scan.evaluated,
-        detail: { ...budgetDetail, suggested: scan.suggested, nextCursor: scan.nextCursor },
+        detail: { ...budgetDetail, suggested: scan.suggested, cursorStart: start, throttled: scan.throttled },
       });
       run.record({
         scanEvaluated: scan.evaluated,
         scanSuggested: scan.suggested,
-        scanCursorBefore: state.cursor,
-        scanCursorAfter: scan.nextCursor,
+        scanCursorBefore: start,
+        scanCursorAfter: scan.exhausted ? 0 : start + claimRows,
       });
     } catch (error) {
-      run.failed('scan', Date.now() - scanStarted, error, budgetDetail);
-      run.record({ scanCursorBefore: state.cursor, scanCursorAfter: state.cursor });
+      run.failed('scan', Date.now() - scanStarted, error, { ...budgetDetail, cursorStart: start });
+      run.record({ scanCursorBefore: start, scanCursorAfter: start + claimRows });
     }
   } else {
     run.skipped('scan', budget.reason, budgetDetail);
-    run.record({ scanCursorBefore: state.cursor, scanCursorAfter: state.cursor });
   }
 
   const telemetry = await run.finish(client);
@@ -146,50 +168,10 @@ export async function POST(request: NextRequest) {
       secondsLeft: Math.round(budget.remainingMs / 1000),
     },
     scan: scan
-      ? { evaluated: scan.evaluated, suggested: scan.suggested, nextCursor: scan.nextCursor }
+      ? { evaluated: scan.evaluated, suggested: scan.suggested, exhausted: scan.exhausted, throttled: scan.throttled }
       : null,
     log: run.logLines,
   });
-}
-
-/**
- * Several rows, not one.
- *
- * The macro refresh in the watchlist run has already inserted today's row with
- * an empty `detail`, so "the newest row" is today's and holds nothing — which
- * is how the cursor came back as zero every single night. A short window of
- * recent days is read and the most recent value that actually exists wins; see
- * scanState.ts.
- */
-async function readScanState(client: SupabaseClient): Promise<ScanState> {
-  const { data } = await client
-    .from('macro_context')
-    .select('detail')
-    .order('date', { ascending: false })
-    .limit(30)
-    .returns<Array<{ detail: Record<string, unknown> | null }>>();
-
-  return readScanStateFrom(data ?? []);
-}
-
-async function saveScanState(client: SupabaseClient, state: ScanState): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
-
-  const { data } = await client
-    .from('macro_context')
-    .select('detail')
-    .eq('date', today)
-    .maybeSingle<{ detail: Record<string, unknown> | null }>();
-
-  // Upserted, not updated: if the macro refresh failed earlier there is no row
-  // for today, and an update would match nothing and throw the scan's progress
-  // away without a word. `date` is the primary key and every other column is
-  // nullable, so inserting the day with only its state is valid.
-  await client
-    .from('macro_context')
-    .upsert({ date: today, detail: mergeScanState(data?.detail ?? null, state) }, {
-      onConflict: 'date',
-    });
 }
 
 /** GET is a health check: it reports readiness without running anything. */

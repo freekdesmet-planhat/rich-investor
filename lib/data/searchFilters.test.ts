@@ -41,17 +41,27 @@ describe('query folding', () => {
 });
 
 describe('size floor', () => {
-  it('admits Large and Mega always', () => {
-    expect(passesSizeFloor('Large Cap', false)).toBe(true);
-    expect(passesSizeFloor('Mega Cap', false)).toBe(true);
+  it('admits Large and Mega always, on the band alone', () => {
+    expect(passesSizeFloor('Large Cap', null, false)).toBe(true);
+    expect(passesSizeFloor('Mega Cap', null, false)).toBe(true);
   });
   it('admits a null band only on an exact ticker match', () => {
-    expect(passesSizeFloor(null, true)).toBe(true);
-    expect(passesSizeFloor(null, false)).toBe(false);
+    expect(passesSizeFloor(null, null, true)).toBe(true);
+    expect(passesSizeFloor(null, null, false)).toBe(false);
   });
-  it('never admits Mid/Small, even on an exact match', () => {
-    expect(passesSizeFloor('Mid Cap', true)).toBe(false);
-    expect(passesSizeFloor('Small Cap', true)).toBe(false);
+  it('never admits Mid/Small on the band, even on an exact match', () => {
+    expect(passesSizeFloor('Mid Cap', null, true)).toBe(false);
+    expect(passesSizeFloor('Small Cap', null, true)).toBe(false);
+  });
+  it('lets a real USD cap override the band in both directions (A1c)', () => {
+    // A stale "Large cap" label that has since shrunk is dropped on the real
+    // figure, not admitted on the label.
+    expect(passesSizeFloor('Large Cap', 390_000_000, false)).toBe(false);
+    // A real cap at/above the floor admits a name whatever its band says.
+    expect(passesSizeFloor('Mid Cap', 25_000_000_000, false)).toBe(true);
+    expect(passesSizeFloor(null, 25_000_000_000, false)).toBe(true);
+    // Exactly on the line passes.
+    expect(passesSizeFloor(null, 10_000_000_000, false)).toBe(true);
   });
   it('labels the null-band rescue as checked-on-analysis', () => {
     expect(sizeLabelOf(null)).toBe('checkedOnAnalysis');

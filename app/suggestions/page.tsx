@@ -101,11 +101,7 @@ export default async function SuggestionsPage({
             neither — it showed the cards and nothing else. */}
         <p className="text-ink-subtle mb-4 text-sm">
           {provenance.screened != null
-            ? t('provenance', {
-                shown: counts.pending,
-                screened: provenance.screened,
-                universe: provenance.universe ?? provenance.screened,
-              })
+            ? t('provenance', { screened: provenance.screened })
             : t('pending')}
           {provenance.lastSuggestedAt && (
             <span className="ml-1">

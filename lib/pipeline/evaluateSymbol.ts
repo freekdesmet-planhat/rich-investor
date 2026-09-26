@@ -68,6 +68,12 @@ export interface EvaluatedSymbol {
   violations: InvariantViolation[];
   previousStatus: SignalStatus | null;
   becameBuyWorthy: boolean;
+  /**
+   * The company's market cap in USD, as the engine computed it. Written back to
+   * the universe row so search can floor and label on a real figure instead of
+   * the static dataset's stale band (A1c).
+   */
+  marketCapUsd: number | null;
   /** Ready to upsert into `ratios` (one per computed ratio). */
   ratioRows: Record<string, unknown>[];
   /** Ready to upsert into `signal_history`. */
@@ -183,6 +189,7 @@ export function evaluateSymbol(input: EvaluateSymbolInput): EvaluatedSymbol {
     violations,
     previousStatus,
     becameBuyWorthy,
+    marketCapUsd: (ratios.market_cap?.value as number | null | undefined) ?? null,
     ratioRows: buildRatioRows(symbol, asOf, ratios),
     signalRow: buildSignalRow({
       symbol,

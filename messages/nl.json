@@ -200,7 +200,7 @@
   },
   "suggestions": {
     "title": "Suggesties",
-    "provenance": "{shown} wachten, uit {screened} gescreende namen ({universe} in het universum).",
+    "provenance": "We controleren {screened} grote bedrijven in de vier focussectoren (VS en Europa) ongeveer wekelijks. Je volglijst controleren we elke nacht.",
     "lastRaised": "Laatst aangedragen op {date}.",
     "pending": "Wacht op je beslissing",
     "suggestedOn": "Gevonden op {date}",
