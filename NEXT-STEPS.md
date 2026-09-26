@@ -436,6 +436,23 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: Launch bigger items (8–11) shipped, one commit each, all prod-verified
+  EN+NL / light+dark / mobile. **8** — stock page reordered to the decision path
+  (verdict → checklist → chart → Why → ratios/AI → review): a nine-dot VerdictRing
+  with one headline per state (sticky under the nav on mobile), the measured value
+  on every checklist row, review gated (9/9 opens, 8/9 previews, ≥2-short collapses
+  to one line), sell signals only after "I own this". **9** — home leads with
+  "Ready for your research" and "Almost there" cards, then a compact list sorted by
+  conditions met; market context and the changelog collapse to one line + expander.
+  **10** — when the 50% decline is the last open condition, "Passes below <price> ·
+  checked every night" + an opt-in nightly email (price pass checks the crossing,
+  confirms via the last evaluation that the decline was the sole miss, dedups by
+  the price_alert kind); migrations 0045/0046. **11** — public landing at "/" (with
+  a live cadence count from the real scan domain), three read-only demo pages
+  (/demo/ASML.AS, HEIA.AS, AAPL; anything else 404s), a waitlist (service-role,
+  RLS-closed; migration 0047) and a /privacy placeholder flagged for legal. Middleware
+  opens "/", /demo, /privacy; everything else stays gated. **Launch build order
+  complete.**
 - 2026-09-26: Launch quick batch (items 1–7) shipped, one commit each, all prod
   smoke-tested EN+NL. **1** — 9/9 verdict renamed "Checklist complete" / "Alle
   voorwaarden gehaald" everywhere incl. emails; stock page gains a "Start my
