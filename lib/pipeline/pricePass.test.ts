@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { crossedThreshold, CROSS_THRESHOLDS } from './pricePass';
+import { crossedThreshold, CROSS_THRESHOLDS, capCurrency } from './pricePass';
+
+describe('market-cap currency', () => {
+  it('resolves the GBp/GBX pence alias to GBP (cap is already in pounds)', () => {
+    expect(capCurrency('GBp')).toBe('GBP');
+    expect(capCurrency('GBX')).toBe('GBP');
+  });
+  it('passes real currencies through and defaults null to USD', () => {
+    expect(capCurrency('EUR')).toBe('EUR');
+    expect(capCurrency('USD')).toBe('USD');
+    expect(capCurrency(null)).toBe('USD');
+  });
+});
 
 describe('price-pass decline crossing', () => {
   it('queues a name that crosses -50% since its last evaluation', () => {

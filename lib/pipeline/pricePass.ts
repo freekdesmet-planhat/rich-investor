@@ -97,6 +97,22 @@ export function crossedThreshold(prev: number, curr: number): number | null {
   return crossed;
 }
 
+/**
+ * The currency a market cap is denominated in, resolving minor-unit aliases.
+ *
+ * finance-query (like Yahoo) quotes some venues in a minor unit — the LSE price
+ * is in GBp (pence) — but reports the *market cap* in the major unit (GBP). Left
+ * as-is, `GBp` has no USD rate and every London large cap loses its cap: the
+ * first hand-run dropped 16 names this way, AstraZeneca and Shell among them. The
+ * cap value is already in pounds, so only the rate lookup needs the alias mapped;
+ * no division. (Prices are never converted here — the decline is a ratio in the
+ * quote currency, so pence cancels.)
+ */
+export function capCurrency(currency: string | null): string {
+  if (currency === 'GBp' || currency === 'GBX') return 'GBP';
+  return currency ?? 'USD';
+}
+
 function chunkList<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
@@ -268,9 +284,9 @@ export async function runPricePass(options: PricePassOptions): Promise<PricePass
     priced += quotes.length;
 
     // Load any new currency→USD rates this batch needs, then write caps in USD.
-    await fx.load(quotes.map((q) => [q.currency ?? 'USD', 'USD'] as [string, string]));
+    await fx.load(quotes.map((q) => [capCurrency(q.currency), 'USD'] as [string, string]));
     const caps: MarketCapWrite[] = quotes.map((q) => {
-      const r = q.currency ? fx.rate(q.currency, 'USD') : 1;
+      const r = fx.rate(capCurrency(q.currency), 'USD');
       const usd = q.marketCap != null && r != null ? q.marketCap * r : null;
       return { symbol: q.symbol, marketCapUsd: usd };
     });
