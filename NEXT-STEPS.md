@@ -295,6 +295,20 @@ browser-verified + full gate, like everything else. Audit item numbers in [ ].
   cycle the stale labels correct themselves. Built with A12 (both touch the
   scan). Files: `lib/pipeline/evaluateSymbol.ts`/`runDaily.ts`/`scan.ts`,
   `lib/data/searchFilters.ts`, `lib/data/queries.ts`, `app/search/page.tsx`.
+- **A12b. Nightly price pass (built 2026-09-26).** Cheap once the domain was
+  known to be small. At 02:12 (after the digest, before the scan) it batch-quotes
+  the large universe (finance-query `/v2/quotes`, 25/batch — the 293 focus names
+  every night, the ~1,042 other Large+Mega on a 1/7 rotation, the 1,616 Mid Cap
+  on a 1/28 rotation for upward label correction), ~18–21 requests/night. It
+  writes real USD market caps back after each batch (A1c heal, universe-wide,
+  partial-safe) and queues any name that has just *crossed* −45%/−50% since its
+  last full evaluation. The 02:15 scan drains that queue first, then walks the
+  cursor with the budget left; crash-night backlogs spill into later nights.
+  Shares the scan's circuit breaker; skips watched names, keeps suggested ones.
+  Files: `lib/pipeline/pricePass.ts`, `rotation.ts`, `scanQueue.ts`,
+  `scan.ts` (prioritySymbols), `lib/providers/financeQuery.ts` (fetchPriceBatch),
+  `app/api/cron/{price-pass,universe-scan}/route.ts`, migration
+  `0040_price_pass.sql` (scan_queue + schedule_price_pass).
 
 Order (2026-09-25): A11 → A9 → (A12 + A1c together, headroom/throughput report
 first). Deploy policy: push after each verified item with a production smoke
@@ -350,6 +364,20 @@ direction and on any data-source gap in items 7 or 8.
 
 ## Log
 
+- 2026-09-26: A12b (nightly price pass) built. At 02:12 it batch-quotes the large
+  universe cheaply (finance-query `/v2/quotes`, verified to hold at 25/batch):
+  293 focus names nightly, ~1,042 other Large+Mega on a 1/7 rotation, 1,616 Mid
+  Cap on a 1/28 rotation (upward label correction) — ~18–21 requests/night. It
+  writes USD market caps back after each batch (A1c heal, universe-wide,
+  partial-safe) and queues names that just *crossed* −45%/−50% since their last
+  full evaluation. The 02:15 scan drains `scan_queue` first, then the cursor with
+  the remaining budget; a crash night spills into later nights instead of blowing
+  the price pass. Shares the scan's circuit breaker; skips watched, keeps
+  suggested. New: `pricePass.ts`, `rotation.ts`, `scanQueue.ts`, `price-pass`
+  route, migration 0040. **Data-inventory note (blocked item 2):** quotes come
+  from the self-hosted finance-query, not `yahoo-finance2` directly; if it scrapes
+  Yahoo upstream the licensing point applies to it too, and its host IP carries
+  the single-IP exposure. Noted in the audit; nothing changed.
 - 2026-09-26: A12 + A1c shipped.
   - **A1c (self-healing size).** `evaluateSymbol` now returns `marketCapUsd`, and
     `runDaily`/`scan`/on-demand write it back to `universe.market_cap_usd` via

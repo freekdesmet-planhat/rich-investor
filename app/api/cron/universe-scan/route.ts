@@ -35,6 +35,7 @@ import {
   saveScanCost,
   tripBreaker,
 } from '@/lib/pipeline/scanState';
+import { readScanQueue } from '@/lib/pipeline/scanQueue';
 import { CronRunRecorder } from '@/lib/pipeline/cronRun';
 import { isAuthorisedCron } from '@/lib/auth/cronSecret';
 
@@ -103,20 +104,33 @@ export async function POST(request: NextRequest) {
     scanBatchSize: budget.override.kind,
   };
 
+  // Drain the price pass's priority queue first (A12b): names that just crossed
+  // a decline line are evaluated ahead of the cursor walk, up to the budget. The
+  // cursor then gets whatever is left, so a crash night that queued many names
+  // simply spills into the following nights rather than blowing the budget.
+  const queued = budget.limit > 0 ? await readScanQueue(client, budget.limit) : [];
+  const priorityDrain = queued.slice(0, budget.limit);
+  const cursorBudget = budget.limit - priorityDrain.length;
+  if (priorityDrain.length > 0) {
+    run.log(`draining ${priorityDrain.length} priority name(s) first: ${priorityDrain.join(', ')}`);
+  }
+
   let scan = null;
   const scanStarted = Date.now();
 
   if (budget.limit > 0) {
-    // Reserve this slice's rows before doing any work, so a slice that overruns
-    // can never share a range with the next. The claim advances by the same
-    // over-fetch multiple runScan reads.
-    const claimRows = budget.limit * SCAN_PAGE_MULTIPLIER;
-    const start = await claimScanBatch(client, claimRows);
+    // Reserve only the cursor rows before doing any work, so a slice that
+    // overruns can never share a range with the next. The claim advances by the
+    // same over-fetch multiple runScan reads. Priority names are addressed by
+    // symbol and do not touch the cursor.
+    const claimRows = cursorBudget * SCAN_PAGE_MULTIPLIER;
+    const start = cursorBudget > 0 ? await claimScanBatch(client, claimRows) : 0;
     try {
       scan = await runScan({
         client,
-        limit: budget.limit,
+        limit: cursorBudget,
         cursor: start,
+        prioritySymbols: priorityDrain,
         onProgress: (message) => run.log(message),
       });
 
@@ -138,7 +152,13 @@ export async function POST(request: NextRequest) {
 
       run.succeeded('scan', Date.now() - scanStarted, {
         count: scan.evaluated,
-        detail: { ...budgetDetail, suggested: scan.suggested, cursorStart: start, throttled: scan.throttled },
+        detail: {
+          ...budgetDetail,
+          suggested: scan.suggested,
+          cursorStart: start,
+          priorityDrained: priorityDrain.length,
+          throttled: scan.throttled,
+        },
       });
       run.record({
         scanEvaluated: scan.evaluated,

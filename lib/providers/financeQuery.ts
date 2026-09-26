@@ -172,6 +172,14 @@ interface RawFinancials {
   }>;
 }
 
+/** The subset the nightly price pass reads: price, currency, market cap. */
+export interface PriceQuote {
+  symbol: string;
+  price: number | null;
+  currency: string | null;
+  marketCap: number | null;
+}
+
 interface RawV2Quote {
   symbol: string;
   shortName?: string | null;
@@ -309,6 +317,30 @@ export class FinanceQueryProvider implements MarketDataProvider {
       });
     }
     return out;
+  }
+
+  /**
+   * One v2 request for price and market cap only — the nightly price pass.
+   *
+   * The full `getQuotes` fetches v1 as well (sector, earnings date, beta) and
+   * chunks at seven; the price pass needs neither, so it takes the v2 numbers in
+   * a single larger request and controls its own batch size. Kept as its own
+   * method so the price pass can write market caps and detect throttling one
+   * batch at a time — a partial run then keeps whatever it fetched.
+   */
+  async fetchPriceBatch(symbols: string[]): Promise<PriceQuote[]> {
+    if (symbols.length === 0) return [];
+    const data = await getJson<{ quotes?: RawV2Quote[] }>(
+      `/v2/quotes?symbols=${symbols.map(encodeURIComponent).join(',')}`,
+    );
+    return (data.quotes ?? [])
+      .filter((q): q is RawV2Quote => Boolean(q?.symbol))
+      .map((q) => ({
+        symbol: q.symbol,
+        price: q.regularMarketPrice ?? null,
+        currency: q.currency ?? null,
+        marketCap: q.marketCap ?? null,
+      }));
   }
 
   private async fetchV2Quotes(symbols: string[]): Promise<Map<string, RawV2Quote>> {

@@ -27,6 +27,7 @@ import { DEFAULT_THRESHOLDS, mergeThresholds } from '@/lib/ratios/thresholds';
 import { readThresholdOverrides } from './thresholdStore';
 import { evaluateSymbol } from './evaluateSymbol';
 import { writeMarketCaps, type MarketCapWrite } from './universeCaps';
+import { clearFromScanQueue } from './scanQueue';
 import {
   DEFAULT_SECTOR_RULES,
   resolveFocusSector,
@@ -159,12 +160,19 @@ export function dedupeByCompany<
 
 export interface ScanOptions {
   client: SupabaseClient;
-  /** How many candidates to evaluate this run. */
+  /** How many candidates to evaluate this run (the cursor walk). */
   limit?: number;
   /** Skip this many candidates first, so nightly runs advance through the list. */
   cursor?: number;
   regions?: string[];
   marketCapBands?: string[];
+  /**
+   * Names the price pass flagged (A12b), evaluated before the cursor walk and
+   * regardless of the focus/band filters — a crossing is worth a look whatever
+   * sector the name sits in. They are removed from `scan_queue` once evaluated.
+   * The caller sizes `limit` to the budget left after these.
+   */
+  prioritySymbols?: string[];
   onProgress?: (message: string) => void;
 }
 
@@ -197,6 +205,7 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     cursor = 0,
     regions = SCAN_REGIONS,
     marketCapBands = SCAN_BANDS,
+    prioritySymbols = [],
     onProgress,
   } = options;
   const log = onProgress ?? (() => {});
@@ -267,86 +276,111 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
     }
   }
 
-  // --- candidates ----------------------------------------------------------
+  // --- priority names (A12b queue drain) -----------------------------------
+  // The price pass flags names that just crossed a decline line; the scan
+  // evaluates them first and regardless of the focus/band screen — a crossing is
+  // worth a look whatever sector the name is in. The caller has already sized
+  // `limit` to the budget left after these.
+  let priorityCandidates: UniverseRow[] = [];
+  if (prioritySymbols.length > 0) {
+    const { data: priorityRows, error: priorityError } = await client
+      .from('universe')
+      .select('symbol,name,sector,industry,exchange,country')
+      .in('symbol', prioritySymbols)
+      .returns<UniverseRow[]>();
+    if (priorityError) throw new Error(`priority query failed: ${priorityError.message}`);
+    priorityCandidates = priorityRows ?? [];
+  }
+
+  // --- cursor candidates ---------------------------------------------------
   //
   // Both filters run in the database. They used to run here, over a page that
   // was 92% rows destined to be discarded — and since the cursor counts rows
   // consumed, that 92% also set the pace at which the scan crawled through the
   // universe. See scanQuery.ts for what each filter can and cannot express.
   const focusFilter = focusSectorFilter(rules);
-  if (focusFilter == null) {
+  if (limit > 0 && focusFilter == null) {
     log('no inclusive sector rules configured: scanning without a focus filter');
   }
 
-  // `limit * 2`, where it used to be `limit * 6`. The page is now mostly
-  // candidates, so the headroom only has to cover the exact focus check and the
-  // de-duplication of a company's remaining listings.
-  const pageEnd = cursor + limit * SCAN_PAGE_MULTIPLIER;
-
-  // The region/band/primary-pairing/focus screen, shared with the Suggestions
-  // provenance count (applyScanScreen) so the page's "we check N" figure is the
-  // same population this cursor walks. The primary filter is the venue/country
-  // *pairing*, not the venue alone: FRA is a real primary venue for German
-  // companies, so only the pairing separates it from Frankfurt cross-listings
-  // of US companies.
-  const query = applyScanScreen(
-    client.from('universe').select('symbol,name,sector,industry,exchange,country'),
-    rules,
-    { regions, bands: marketCapBands },
-  );
-
-  const { data: universe, error: universeError } = await query
-    .order('symbol')
-    .range(cursor, pageEnd)
-    .returns<UniverseRow[]>();
-
-  // Surfaced rather than swallowed. A malformed filter comes back as a
-  // PostgREST error and an empty `data`, which is indistinguishable from
-  // "reached the end of the universe" — and that is the exact shape of silence
-  // this whole change exists to remove.
-  if (universeError) {
-    throw new Error(`universe query failed: ${universeError.message}`);
-  }
-
-  const eligible: UniverseRow[] = [];
+  let universeRows: UniverseRow[] = [];
   let consumed = 0;
+  const cursorCandidates: UniverseRow[] = [];
 
-  for (const row of universe ?? []) {
-    consumed++;
-    if (exclude.has(row.symbol)) continue;
-    // Both of these are now narrower re-checks of what the query already did:
-    // the primary-listing test is exact in SQL, and the focus test is the
-    // authoritative most-specific-rule-wins resolution over a SQL superset.
-    if (!isPrimaryListingRow(row.exchange, row.country)) continue;
-    const focus = resolveFocusSector(rules, {
-      symbol: row.symbol,
-      sector: row.sector,
-      industry: row.industry,
-    });
-    if (focus.focusSector === 'outside_focus') continue;
-    if (excludedCompanies.has(`${(row.name ?? '').trim().toLowerCase()}|${row.country ?? ''}`)) {
-      continue;
+  if (limit > 0) {
+    // `limit * 2`, where it used to be `limit * 6`. The page is now mostly
+    // candidates, so the headroom only has to cover the exact focus check and
+    // the de-duplication of a company's remaining listings.
+    const pageEnd = cursor + limit * SCAN_PAGE_MULTIPLIER;
+
+    // The region/band/primary-pairing/focus screen, shared with the Suggestions
+    // provenance count (applyScanScreen) so the page's "we check N" figure is
+    // the same population this cursor walks.
+    const query = applyScanScreen(
+      client.from('universe').select('symbol,name,sector,industry,exchange,country'),
+      rules,
+      { regions, bands: marketCapBands },
+    );
+
+    const { data, error: universeError } = await query
+      .order('symbol')
+      .range(cursor, pageEnd)
+      .returns<UniverseRow[]>();
+
+    // Surfaced rather than swallowed. A malformed filter comes back as a
+    // PostgREST error and an empty `data`, indistinguishable from "reached the
+    // end" — the exact shape of silence this whole change exists to remove.
+    if (universeError) throw new Error(`universe query failed: ${universeError.message}`);
+    universeRows = data ?? [];
+
+    const eligible: UniverseRow[] = [];
+    for (const row of universeRows) {
+      consumed++;
+      if (exclude.has(row.symbol)) continue;
+      // Narrower re-checks of what the query already did: the primary-listing
+      // test is exact in SQL, and the focus test is the authoritative
+      // most-specific-rule-wins resolution over a SQL superset.
+      if (!isPrimaryListingRow(row.exchange, row.country)) continue;
+      const focus = resolveFocusSector(rules, {
+        symbol: row.symbol,
+        sector: row.sector,
+        industry: row.industry,
+      });
+      if (focus.focusSector === 'outside_focus') continue;
+      if (excludedCompanies.has(`${(row.name ?? '').trim().toLowerCase()}|${row.country ?? ''}`)) {
+        continue;
+      }
+      eligible.push(row);
     }
-    eligible.push(row);
+    // De-duplicate before applying the limit, so the batch is `limit` companies
+    // rather than `limit` listings of rather fewer companies.
+    cursorCandidates.push(...dedupeByCompany(eligible).slice(0, limit));
   }
 
-  // De-duplicate before applying the limit, so the batch is `limit` companies
-  // rather than `limit` listings of rather fewer companies.
-  const candidates = dedupeByCompany(eligible).slice(0, limit);
+  // Priority names first, then the cursor walk; a name in both appears once.
+  const seen = new Set<string>();
+  const candidates: UniverseRow[] = [];
+  for (const row of [...priorityCandidates, ...cursorCandidates]) {
+    if (seen.has(row.symbol)) continue;
+    seen.add(row.symbol);
+    candidates.push(row);
+  }
+
+  // The cursor ran off the end of the screened set — only meaningful when we
+  // actually walked it this run. Without the wrap the cursor sticks there for
+  // good: `cursor + 0` is `cursor`, every night, forever.
+  const exhausted = limit > 0 && universeRows.length === 0 && cursor > 0;
+  if (exhausted) log(`reached the end of the screened universe at ${cursor}; starting over`);
 
   log(
     `scanning ${candidates.length} candidates from cursor ${cursor} ` +
-      `(${consumed} rows read, ${eligible.length} eligible)`,
+      `(${priorityCandidates.length} priority, ${consumed} rows read)`,
   );
 
   if (candidates.length === 0) {
-    // An empty page means the cursor has run off the end of the screened set,
-    // which is now a few hundred companies rather than thousands — so it will
-    // happen regularly rather than never. Without the wrap the cursor sticks
-    // there for good: `cursor + 0` is `cursor`, every night, forever.
-    const exhausted = (universe ?? []).length === 0 && cursor > 0;
-    if (exhausted) log(`reached the end of the screened universe at ${cursor}; starting over`);
-
+    // Clear any priority names we were handed but could not resolve, so they do
+    // not clog the queue forever.
+    if (prioritySymbols.length > 0) await clearFromScanQueue(client, prioritySymbols);
     return {
       evaluated: 0,
       suggested: 0,
@@ -484,14 +518,20 @@ export async function runScan(options: ScanOptions): Promise<ScanResult> {
   const capsWritten = await writeMarketCaps(client, capUpdates);
   if (capsWritten > 0) log(`refreshed ${capsWritten} universe market caps`);
 
+  // The priority names have now had their full evaluation, so they leave the
+  // queue whether or not they became suggestions. A name still crossing the line
+  // will simply be re-queued by the next price pass — measured against its now
+  // freshly-stored baseline, so only a further decline re-triggers it.
+  if (prioritySymbols.length > 0) await clearFromScanQueue(client, prioritySymbols);
+
   log(`evaluated ${evaluated}, suggested ${rows.length}`);
 
   return {
     evaluated,
     suggested: rows.length,
     skipped: candidates.length - evaluated,
-    nextCursor: cursor + consumed,
-    exhausted: false,
+    nextCursor: exhausted ? 0 : cursor + consumed,
+    exhausted,
     throttled,
     candidates: summary,
   };
