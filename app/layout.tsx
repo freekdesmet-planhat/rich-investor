@@ -81,7 +81,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               replaces it with a proper methodology page. */}
           <footer className="mt-12 border-t border-line px-4 py-6 text-center text-xs text-ink-subtle">
             <p>{t('disclaimer')}</p>
-            <p className="mt-1 text-ink-faint">{t('tagline')}</p>
+            <p className="mt-1 text-ink-subtle">{t('tagline')}</p>
           </footer>
         </NextIntlClientProvider>
       </body>

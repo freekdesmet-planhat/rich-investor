@@ -554,7 +554,7 @@ function RowList({
                     stocks on the same count can wear different badges, and the
                     count alone cannot say why. */}
                 {labels.missingOne(entry) && (
-                  <span className="text-ink-faint">
+                  <span className="text-ink-subtle">
                     {' · '}
                     {labels.missingOne(entry)}
                   </span>

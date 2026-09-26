@@ -97,7 +97,7 @@ export async function Landing({ count }: { count: number }) {
           </div>
         </section>
 
-        <p className="text-ink-faint mt-16 border-t border-line pt-6 text-xs">{t('notAdvice')}</p>
+        <p className="text-ink-subtle mt-16 border-t border-line pt-6 text-xs">{t('notAdvice')}</p>
       </main>
     </>
   );

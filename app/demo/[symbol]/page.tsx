@@ -141,23 +141,59 @@ export default async function DemoStockPage({
           <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border text-sm">
             {signal.checklist.map((condition) => {
               const valueText = conditionValueText(condition);
+              // Same failed-row treatment as the real stock page (item 3), so the
+              // public showcase matches it: fail colour + "Not met" on a miss, a
+              // "?" and "Can't judge" where there is no data. Greyscale-safe.
+              const rowState: 'pass' | 'fail' | 'none' = !condition.applicable
+                ? 'none'
+                : condition.passed
+                  ? 'pass'
+                  : 'fail';
+              const rowIcon = rowState === 'none' ? '?' : rowState === 'pass' ? '✓' : '✗';
               return (
                 <li
                   key={condition.key}
                   className="bg-surface flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                 >
                   <span className="flex min-w-0 items-start gap-2 sm:items-center">
-                    <span aria-hidden="true" className="w-4 shrink-0 text-center">
-                      {!condition.applicable ? '–' : condition.passed ? '✓' : '✗'}
+                    <span
+                      aria-hidden="true"
+                      className={`w-4 shrink-0 text-center ${
+                        rowState === 'fail'
+                          ? 'text-fail font-semibold'
+                          : rowState === 'pass'
+                            ? 'text-pass'
+                            : 'text-ink-faint'
+                      }`}
+                    >
+                      {rowIcon}
                     </span>
-                    <span className={!condition.applicable ? 'text-ink-faint' : undefined}>
+                    <span className={rowState === 'none' ? 'text-ink-faint' : undefined}>
                       {docs.get(`condition:${condition.key}`)?.name ??
                         CONDITION_LABEL[condition.key]?.[locale] ??
                         condition.key}
                     </span>
                     {valueText && (
-                      <span className="text-ink shrink-0 text-sm font-semibold tabular-nums">
+                      <span
+                        className={`shrink-0 text-sm font-semibold tabular-nums ${
+                          rowState === 'fail'
+                            ? 'text-fail'
+                            : rowState === 'none'
+                              ? 'text-ink-faint'
+                              : 'text-ink'
+                        }`}
+                      >
                         {valueText}
+                      </span>
+                    )}
+                    {rowState === 'fail' && (
+                      <span className="shrink-0 text-xs font-medium text-fail">
+                        {tSignal('status.notMet')}
+                      </span>
+                    )}
+                    {rowState === 'none' && (
+                      <span className="shrink-0 text-xs font-medium text-ink-faint">
+                        {tSignal('status.cantJudge')}
                       </span>
                     )}
                   </span>
@@ -230,7 +266,7 @@ export default async function DemoStockPage({
           >
             {tDemo('cta')}
           </Link>
-          <p className="text-ink-faint mt-4 text-xs">{tLanding('notAdvice')}</p>
+          <p className="text-ink-subtle mt-4 text-xs">{tLanding('notAdvice')}</p>
         </div>
       </main>
     </>

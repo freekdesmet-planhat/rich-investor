@@ -87,11 +87,14 @@
    * than as a summary. These are legible on their own surface at small sizes,
    * which the previous straight `green-500`/`red-500` were not in light mode.
    */
-  --pass: #15803d;
+  /* Darkened a touch from the original green/amber so the Why-block headings
+     (text-pass / text-near) clear 4.5:1 on the sunken panel too, not only on the
+     page (round 2, item 7 review). */
+  --pass: #0f7538;
   --pass-wash: #f0fdf4;
   --pass-line: #bbf7d0;
 
-  --near: #b45309;
+  --near: #a54c08;
   --near-wash: #fffbeb;
   --near-line: #fde68a;
 

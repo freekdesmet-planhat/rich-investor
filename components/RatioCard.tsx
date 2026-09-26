@@ -134,7 +134,7 @@ export function RatioCard({
                   className={
                     variant.used
                       ? 'font-medium text-ink-muted'
-                      : 'text-ink-faint'
+                      : 'text-ink-subtle'
                   }
                 >
                   {variant.label}{' '}
