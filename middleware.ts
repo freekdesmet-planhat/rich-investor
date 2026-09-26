@@ -15,6 +15,6 @@ export const config = {
     // them redirected the browser to /login while it was deciding whether the
     // app could be installed. The result was no install prompt and a broken
     // home-screen icon — and nothing in the app looked wrong.
-    '/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|icon$|apple-icon$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|icon$|apple-icon$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
