@@ -457,11 +457,35 @@ direction and on any data-source gap in items 7 or 8.
   - Tooling: `scripts/verify-theme.ts` (committed) and a scratchpad whole-app
     smoke+contrast script (screenshots + WCAG audit; signs in when VERIFY_EMAIL/
     VERIFY_PASSWORD are set).
-  - BLOCKED: the branch deploy did not publish at the expected URL after ~25 min
-    and several pushes (Netlify serves site-not-found) — needs the build log
-    checked. Authed-page smoke, the ADYEN/GOOGL screenshots, verify:theme against
-    the branch, and the ADYEN re-analysis all wait on the live branch deploy plus
-    sign-in credentials.
+  - Branch deploys were set to "production branch only"; the user switched to All.
+    Branch deploy now live at round2-item7-review-fixes--richinvestor.netlify.app.
+
+- 2026-09-26: Round 2 item 7 review — **on-branch verification** (branch deploy live).
+  - Test user: dedicated `freek.desmet+ri-verify@planhat.com` created via the
+    Supabase admin API (email pre-confirmed, no mail), whitelisted, notifications
+    off, `onboarded_at` set so home renders; long random password in `.env.local`
+    (git-ignored, never printed). Sign-in on the branch does NOT bounce — password
+    login redirects to a relative path, so it stays on the branch domain. (Only the
+    magic-link callback uses NEXT_PUBLIC_SITE_URL = production.)
+  - verify:theme: 6 cases, 18/18 on the branch — incl. first-visit-follows-OS and a
+    saved preference opposite the OS painting on the FIRST frame (JS-disabled), which
+    proves the theme is server-rendered from the cookie, not a client script.
+  - Whole-app smoke (landing, 3 demos, home, stock ADYEN/GOOGL, suggestions, compare,
+    full research, account, how-it-works; EN/NL, light/dark, 1440+390): **0 contrast
+    findings** after the re-tier. Grey-row example captured on MET (financial →
+    cash_flow/debt "can't judge"). ADYEN re-analysed — Why prose now has one check
+    sentence (was two) and the 5-year high carries its currency (€2,745.00).
+  - OPEN DECISIONS for the user:
+    1. Drawdown consistency across surfaces: the stock page shows the close-based
+       drawdown (−69%), but compare, the home "missing" hint and the stored Why prose
+       still show the quote-based value (−68%) because the item-4 fix was UI-only on
+       the stock page. Clean fix = the pipeline change (drawdown current price = last
+       close) so every surface agrees and the UI override can go — caveat: it
+       marginally shifts buy-signal timing (quote vs close intraday), so it needs a
+       call before touching the safety-critical evaluation.
+    2. Home segmented filter pills still use a blue selected state, not the
+       dark-selected pills from the design notes — belongs in the item-8 rollout.
+    3. MET was analysed on prod purely to demonstrate the grey row; can be removed.
 
 - 2026-09-26: Round 2 item 7 **review fixes** (direction approved; fixes on the
   stock page before rollout, on a **preview deploy**). Eight points:
