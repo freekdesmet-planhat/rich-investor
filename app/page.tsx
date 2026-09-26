@@ -40,6 +40,9 @@ import type { FocusSector } from '@/lib/sectors/mapping';
 import type { Lang } from '@/lib/i18n/config';
 import { SectionHeading } from '@/components/ui/Surface';
 import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { Landing } from '@/components/Landing';
+import { getFocusCompanyCount } from '@/lib/data/landing';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +73,15 @@ export default async function WatchlistPage({
     sector?: string;
   }>;
 }) {
+  // Signed out, "/" is the public landing page (launch item 11) — the one route
+  // the middleware lets through unauthenticated. Everything below reads the
+  // watchlist and assumes a member, so it only runs once there is one.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return <Landing count={await getFocusCompanyCount()} />;
+
   // A first sign-in lands here, so this is where the primer is offered. A
   // redirect rather than a modal over the page: a dialog would be covering
   // the one screen a new member is trying to make sense of, and it would be

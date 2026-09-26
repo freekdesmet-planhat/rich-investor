@@ -674,5 +674,33 @@
     "turnOff": "Uitzetten",
     "emailSubject": "{symbol} is onder jouw instapniveau gezakt",
     "emailBody": "{name} ({symbol}) sloot op {price}, onder het instapniveau van {trigger} ({threshold} daling) — de laatste voorwaarde die nog ontbrak. Open de app om je beoordeling te doen."
+  },
+  "landing": {
+    "signIn": "Inloggen",
+    "headline": "Weet wanneer een sterk bedrijf in de aanbieding is.",
+    "sub": "Rich Investor toetst grote bedrijven aan negen heldere voorwaarden — stabiele groei, lage schuld, eerlijke kasstroom, een faire koers — en laat het weten zodra een bedrijf aan alle negen voldoet. Geen tips, geen ruis: een checklist, en het geduld om erop te wachten.",
+    "cadence": "We controleren {count} grote bedrijven in de vier focussectoren ongeveer één keer per week. Je volglijst elke nacht.",
+    "demoHeading": "Bekijk een echt voorbeeld",
+    "demoIntro": "Drie bedrijven, geanalyseerd precies zoals de app het doet:",
+    "waitlistHeading": "Zet je op de wachtlijst",
+    "waitlistIntro": "Laat je e-mailadres achter en we laten het weten zodra het opengaat.",
+    "emailPlaceholder": "jij@voorbeeld.nl",
+    "join": "Zet me op de wachtlijst",
+    "joining": "Bezig…",
+    "joined": "Je staat op de lijst — bedankt.",
+    "invalid": "Vul een geldig e-mailadres in.",
+    "error": "Er ging iets mis. Probeer het opnieuw.",
+    "privacyNote": "We gebruiken je e-mailadres alleen om je te laten weten wanneer Rich Investor opengaat. Zie onze <privacy>privacyverklaring</privacy>.",
+    "notAdvice": "Rich Investor is een persoonlijk analysehulpmiddel, geen beleggingsadvies."
+  },
+  "demo": {
+    "badge": "Demo",
+    "note": "Een alleen-lezen voorbeeld. Cijfers per {date}.",
+    "cta": "Zet je op de wachtlijst",
+    "back": "Terug naar Rich Investor"
+  },
+  "privacy": {
+    "title": "Privacyverklaring",
+    "placeholder": "[Placeholder — nog af te maken en te laten toetsen vóór de lancering.] Deze pagina beschrijft welke gegevens Rich Investor verzamelt, waarom, hoe lang ze worden bewaard en hoe je ze laat verwijderen. Specifiek voor de wachtlijst: we bewaren alleen je e-mailadres en de datum waarop je je aanmeldde, gebruiken het uitsluitend om je te laten weten wanneer Rich Investor opengaat, en verwijderen het op verzoek."
   }
 }

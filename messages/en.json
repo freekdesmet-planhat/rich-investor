@@ -674,5 +674,33 @@
     "turnOff": "Turn off",
     "emailSubject": "{symbol} passed your entry level",
     "emailBody": "{name} ({symbol}) closed at {price}, below the {threshold} entry level of {trigger} — the last condition it was missing. Open the app to run your review."
+  },
+  "landing": {
+    "signIn": "Sign in",
+    "headline": "Know when a great company goes on sale.",
+    "sub": "Rich Investor checks large companies against nine plain conditions — steady growth, low debt, honest cash flow, a fair price — and tells you when one meets them all. No tips, no noise: a checklist, and the patience to wait for it.",
+    "cadence": "We check {count} large companies in the four focus sectors about once a week. Your watchlist, every night.",
+    "demoHeading": "See a real example",
+    "demoIntro": "Three companies, analysed exactly as the app does it:",
+    "waitlistHeading": "Join the waitlist",
+    "waitlistIntro": "Leave your email and we'll tell you when it opens.",
+    "emailPlaceholder": "you@example.com",
+    "join": "Join the waitlist",
+    "joining": "Joining…",
+    "joined": "You're on the list — thanks.",
+    "invalid": "Please enter a valid email address.",
+    "error": "Something went wrong. Please try again.",
+    "privacyNote": "We'll only use your email to tell you when Rich Investor opens. See our <privacy>privacy notice</privacy>.",
+    "notAdvice": "Rich Investor is a personal analysis tool, not investment advice."
+  },
+  "demo": {
+    "badge": "Demo",
+    "note": "A read-only example. Figures as of {date}.",
+    "cta": "Join the waitlist",
+    "back": "Back to Rich Investor"
+  },
+  "privacy": {
+    "title": "Privacy notice",
+    "placeholder": "[Placeholder — to be completed and reviewed before launch.] This page will describe what data Rich Investor collects, why, how long it is kept, and how to have it removed. For the waitlist specifically: we store only your email address and the date you joined, use it solely to notify you when Rich Investor opens, and delete it on request."
   }
 }

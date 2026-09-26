@@ -11,7 +11,12 @@ import { createServerClient } from '@supabase/ssr';
 import { safeReturnTo } from '@/lib/auth/returnTo';
 import { isDefinitelySignedOut } from '@/lib/auth/sessionVerdict';
 
-const PUBLIC_PATHS = ['/login', '/auth/callback', '/auth/error'];
+// The public front door (launch item 11): the landing page at "/", the read-only
+// demo stock pages, and the privacy notice. "/" is matched exactly — every path
+// starts with it — while the others are prefixes. The landing page itself renders
+// nothing signed-in-only; the watchlist under "/" is gated inside the page by the
+// user check, not here.
+const PUBLIC_PATHS = ['/login', '/auth/callback', '/auth/error', '/demo', '/privacy'];
 
 /**
  * Reads a public Supabase variable, naming it if it is missing.
@@ -72,7 +77,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const unverifiable = Boolean(error && !isDefinitelySignedOut(error));
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic = pathname === '/' || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // API routes answer for themselves. Redirecting a fetch() to the sign-in HTML
   // gives the caller a 307 and a login page where it expected JSON; each route
